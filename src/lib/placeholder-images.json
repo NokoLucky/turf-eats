@@ -1,3 +1,70 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-landing",
+      "description": "A vibrant spread of fresh food on a rustic table.",
+      "imageUrl": "https://images.unsplash.com/photo-1686908541391-32d71b775e81?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxmb29kJTIwc3ByZWFkfGVufDB8fHx8MTc2MjQxOTQzNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "food spread"
+    },
+    {
+      "id": "restaurant-logo-1",
+      "description": "Logo for The Golden Spatula",
+      "imageUrl": "https://images.unsplash.com/photo-1460134583608-5f5d1dd1d61c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxyZXN0YXVyYW50JTIwbG9nb3xlbnwwfHx8fDE3NjIzMTYwMTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "restaurant logo"
+    },
+    {
+      "id": "restaurant-logo-2",
+      "description": "Logo for The Green Leaf",
+      "imageUrl": "https://images.unsplash.com/photo-1749104953185-d171e149ccb5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxjYWZlJTIwbG9nb3xlbnwwfHx8fDE3NjI0MTk0MzZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cafe logo"
+    },
+    {
+      "id": "restaurant-logo-3",
+      "description": "Logo for Pizza Palace",
+      "imageUrl": "https://images.unsplash.com/photo-1655462968944-9a901f4c3f85?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwaXp6YSUyMGxvZ298ZW58MHx8fHwxNzYyMzY5MjIzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pizza logo"
+    },
+    {
+      "id": "restaurant-logo-4",
+      "description": "Logo for Sushi Central",
+      "imageUrl": "https://images.unsplash.com/photo-1726824863833-e88146cf0a72?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8c3VzaGklMjBsb2dvfGVufDB8fHx8MTc2MjM2NDM3Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "sushi logo"
+    },
+    {
+      "id": "restaurant-banner-1",
+      "description": "Interior of The Golden Spatula diner",
+      "imageUrl": "https://images.unsplash.com/photo-1711450835306-a431df94290d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxkaW5lciUyMGludGVyaW9yfGVufDB8fHx8MTc2MjQxOTQzNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "diner interior"
+    },
+    {
+      "id": "menu-item-1",
+      "description": "A classic cheeseburger and fries.",
+      "imageUrl": "https://images.unsplash.com/photo-1599082295807-6e4a92c0790d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjaGVlc2VidXJnZXIlMjBmcmllc3xlbnwwfHx8fDE3NjI0MDU5NzN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cheeseburger fries"
+    },
+    {
+      "id": "menu-item-2",
+      "description": "A stack of buttermilk pancakes.",
+      "imageUrl": "https://images.unsplash.com/photo-1554520735-0a6b8b6ce8b7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwYW5jYWtlc3xlbnwwfHx8fDE3NjI0MTk0MzZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pancakes"
+    },
+    {
+      "id": "menu-item-3",
+      "description": "A healthy kale salad.",
+      "imageUrl": "https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxrYWxlJTIwc2FsYWR8ZW58MHx8fHwxNzYyNDE5NDM2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "kale salad"
+    },
+    {
+      "id": "menu-item-4",
+      "description": "A pepperoni pizza.",
+      "imageUrl": "https://images.unsplash.com/photo-1605478371310-a9f1e96b4ff4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwZXBwZXJvbmklMjBwaXp6YXxlbnwwfHx8fDE3NjIzNDk4MDR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pepperoni pizza"
+    },
+    {
+      "id": "avatar-1",
+      "description": "Avatar for a user",
+      "imageUrl": "https://images.unsplash.com/photo-1590086782792-42dd2350140d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjIzNzk2MTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    }
+  ]
 }
