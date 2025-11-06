@@ -61,7 +61,7 @@ export default function SignupPage() {
   return (
     <div className="flex flex-col items-center gap-8">
       <Logo />
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-xl">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold font-headline">Create an Account</CardTitle>
           <CardDescription>Join Turf Eats and discover local flavors</CardDescription>

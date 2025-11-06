@@ -43,7 +43,7 @@ export default function LoginPage() {
   const handleLogin = async (values: z.infer<typeof emailSchema>) => {
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
-      router.push('/role-selection');
+      router.push('/post-login');
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -55,15 +55,13 @@ export default function LoginPage() {
 
   const handlePhoneLogin = () => {
     // Mock login handler
-    // In a real app, you would handle Firebase login here.
-    // For this scaffold, we'll just redirect to role selection.
-    router.push('/role-selection');
+    router.push('/post-login');
   };
 
   return (
     <div className="flex flex-col items-center gap-8">
       <Logo />
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-xl">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold font-headline">Welcome Back</CardTitle>
           <CardDescription>Sign in to continue to Turf Eats</CardDescription>
