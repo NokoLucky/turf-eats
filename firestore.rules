@@ -1,0 +1,201 @@
+/**
+ * @fileoverview Firestore Security Rules for Turf Eats application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a role-based and ownership-based access control model.
+ * User profiles (Customer, Driver, StoreOwner) are strictly private and accessible only to the authenticated user.
+ * Restaurants and MenuItems have public read access, but writes are restricted to the owning StoreOwner.
+ * Orders and OrderItems have access control based on the associated Customer, Restaurant, or Driver.
+ *
+ * Data Structure:
+ * - /users/{userId}/customers/{customerId}: Customer profiles owned by the user.
+ * - /users/{userId}/drivers/{driverId}: Driver profiles owned by the user.
+ * - /users/{userId}/storeOwners/{storeOwnerId}: StoreOwner profiles owned by the user.
+ * - /restaurants/{restaurantId}: Restaurant information, publicly readable, owner-writeable.
+ * - /restaurants/{restaurantId}/menuItems/{menuItemId}: Menu items for each restaurant, publicly readable, owner-writeable.
+ * - /orders/{orderId}: Order information, access controlled by Customer, Restaurant, or Driver.
+ * - /orders/{orderId}/orderItems/{orderItemId}: Items within an order, access controlled by the parent order.
+ *
+ * Key Security Decisions:
+ * - User profiles are strictly private. Listing user profiles is disallowed.
+ * - Restaurants and MenuItems are publicly readable to support browsing.
+ * - Orders and OrderItems are accessible to the Customer, Restaurant, or Driver involved.
+ *
+ * Denormalization for Authorization:
+ * - The `Order` entity denormalizes `customerId`, `restaurantId`, and `driverId` to enable direct authorization checks without additional reads.
+ *
+ * Structural Segregation:
+ * - User-specific data (Customer, Driver, StoreOwner) is stored under the /users/{userId} collection to ensure private access.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Allows the authenticated user to manage their own Customer profile.
+     * @path /users/{userId}/customers/{customerId}
+     * @allow (create) - Authenticated user creates their own customer profile where userId and customerId match.
+     * @allow (get, update, delete) - Authenticated user reads, updates, or deletes their own customer profile where userId and customerId match.
+     * @deny (create, get, update, delete) - Any other user attempts to access this customer profile.
+     * @principle Enforces document ownership for writes and reads.
+     */
+    match /users/{userId}/customers/{customerId} {
+      // Only allow access if the userId and customerId match, ensuring it's the user's own profile.
+      allow create: if isSignedIn() && isNewOwner(userId, request.resource.data.userId) && request.auth.uid == userId && request.resource.data.id == customerId;
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow update: if isSignedIn() && isExistingOwner(userId) && request.auth.uid == userId && request.resource.data.id == resource.data.id;
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows the authenticated user to manage their own Driver profile.
+     * @path /users/{userId}/drivers/{driverId}
+     * @allow (create) - Authenticated user creates their own driver profile where userId and driverId match.
+     * @allow (get, update, delete) - Authenticated user reads, updates, or deletes their own driver profile where userId and driverId match.
+     * @deny (create, get, update, delete) - Any other user attempts to access this driver profile.
+     * @principle Enforces document ownership for writes and reads.
+     */
+    match /users/{userId}/drivers/{driverId} {
+      // Only allow access if the userId and driverId match, ensuring it's the user's own profile.
+      allow create: if isSignedIn() && isNewOwner(userId, request.resource.data.userId) && request.auth.uid == userId && request.resource.data.id == driverId;
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow update: if isSignedIn() && isExistingOwner(userId) && request.auth.uid == userId && request.resource.data.id == resource.data.id;
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows the authenticated user to manage their own StoreOwner profile.
+     * @path /users/{userId}/storeOwners/{storeOwnerId}
+     * @allow (create) - Authenticated user creates their own store owner profile where userId and storeOwnerId match.
+     * @allow (get, update, delete) - Authenticated user reads, updates, or deletes their own store owner profile where userId and storeOwnerId match.
+     * @deny (create, get, update, delete) - Any other user attempts to access this store owner profile.
+     * @principle Enforces document ownership for writes and reads.
+     */
+    match /users/{userId}/storeOwners/{storeOwnerId} {
+      // Only allow access if the userId and storeOwnerId match, ensuring it's the user's own profile.
+      allow create: if isSignedIn() && isNewOwner(userId, request.resource.data.userId) && request.auth.uid == userId && request.resource.data.id == storeOwnerId;
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow update: if isSignedIn() && isExistingOwner(userId) && request.auth.uid == userId && request.resource.data.id == resource.data.id;
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows anyone to read restaurant information, but only the store owner can modify it.
+     * @path /restaurants/{restaurantId}
+     * @allow (get, list) - Any user can read restaurant information.
+     * @allow (create) - A store owner can create a restaurant, provided storeOwnerId matches their user ID.
+     * @allow (update, delete) - The store owner can update or delete their restaurant.
+     * @deny (create, update, delete) - Any other user attempts to modify this restaurant.
+     * @principle Allows public read access with owner-only writes.
+     */
+    match /restaurants/{restaurantId} {
+      // Allow anyone to read restaurant information
+      allow get, list: if true;
+
+      // Only allow the store owner to create, update, and delete their restaurant.
+      allow create: if isSignedIn() && request.resource.data.storeOwnerId == request.auth.uid;
+      allow update: if isSignedIn() && isExistingOwner(resource.data.storeOwnerId);
+      allow delete: if isSignedIn() && isExistingOwner(resource.data.storeOwnerId);
+    }
+
+    /**
+     * @description Allows anyone to read menu items, but only the store owner can modify them.
+     * @path /restaurants/{restaurantId}/menuItems/{menuItemId}
+     * @allow (get, list) - Any user can read menu item information.
+     * @allow (create) - The store owner can create a menu item for their restaurant.
+     * @allow (update, delete) - The store owner can update or delete menu items for their restaurant.
+     * @deny (create, update, delete) - Any other user attempts to modify this menu item.
+     * @principle Allows public read access with owner-only writes, based on the parent restaurant's storeOwnerId.
+     */
+    match /restaurants/{restaurantId}/menuItems/{menuItemId} {
+      // Allow anyone to read menu item information
+      allow get, list: if true;
+
+      // Only allow the store owner to create, update, and delete menu items for their restaurant.
+      allow create: if isSignedIn() && get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid && request.resource.data.restaurantId == restaurantId;
+      allow update: if isSignedIn() && isRestaurantOwner(restaurantId) && request.resource.data.restaurantId == restaurantId;
+      allow delete: if isSignedIn() && isRestaurantOwner(restaurantId);
+    }
+
+    /**
+     * @description Allows access to order information based on the customer, restaurant, or driver involved.
+     * @path /orders/{orderId}
+     * @allow (get) - Customer, restaurant, or driver can read the order if their ID matches.
+     * @allow (list) -  Listing of orders is denied to everyone.
+     * @allow (create) - A customer can create an order, provided customerId matches their user ID.
+     * @allow (update) - Customer, restaurant, or driver can update the order if their ID matches.
+     * @allow (delete) -  Customer, restaurant, or driver can delete the order if their ID matches.
+     * @deny (create, update, delete) - Any other user attempts to modify this order.
+     * @principle Grants access to involved parties (customer, restaurant, driver) for order management.
+     */
+    match /orders/{orderId} {
+      // Allow access to order information based on the customer, restaurant, or driver involved.
+      allow get: if isSignedIn() && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.restaurantId || request.auth.uid == resource.data.driverId);
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
+      allow update: if isSignedIn() && isExistingOrderParticipant(resource.data.customerId, resource.data.restaurantId, resource.data.driverId);
+      allow delete: if isSignedIn() && isExistingOrderParticipant(resource.data.customerId, resource.data.restaurantId, resource.data.driverId);
+    }
+
+    /**
+     * @description Allows access to order items based on the customer, restaurant, or driver involved in the parent order.
+     * @path /orders/{orderId}/orderItems/{orderItemId}
+     * @allow (get) - Customer, restaurant, or driver can read the order item if they are involved in the parent order.
+     * @allow (list) -  Listing of order items is denied to everyone.
+     * @allow (create, update, delete) -  Customer, restaurant, or driver can create, update, or delete the order item if they are involved in the parent order.
+     * @deny (create, update, delete) - Any other user attempts to modify this order item.
+     * @principle Grants access to involved parties (customer, restaurant, driver) for order item management.
+     */
+    match /orders/{orderId}/orderItems/{orderItemId} {
+      // Allow access to order items based on the customer, restaurant, or driver involved in the parent order.
+      allow get: if isSignedIn() && isOrderParticipant(orderId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOrderParticipant(orderId);
+      allow update: if isSignedIn() && isOrderParticipant(orderId);
+      allow delete: if isSignedIn() && isOrderParticipant(orderId);
+    }
+
+
+    // --- Helper Functions ---
+
+    // Checks if the user is signed in.
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Checks if the user is the owner of the document (userId matches request.auth.uid).
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Checks if the user is the new owner of the document during a create operation.
+    function isNewOwner(userId, dataUserId) {
+      return dataUserId == userId;
+    }
+
+    // Checks if the user is the owner of the document and the document exists.
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+    }
+
+    // Checks if the user is the owner of a restaurant based on restaurantId.
+    function isRestaurantOwner(restaurantId) {
+      return get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid;
+    }
+
+    // Checks if the user is a participant (customer, restaurant, or driver) in an order based on their ID.
+    function isOrderParticipant(orderId) {
+      return isSignedIn() && (get(/databases/$(database)/documents/orders/$(orderId)).data.customerId == request.auth.uid
+              || get(/databases/$(database)/documents/orders/$(orderId)).data.restaurantId == request.auth.uid
+              || get(/databases/$(database)/documents/orders/$(orderId)).data.driverId == request.auth.uid);
+    }
+
+    // Checks if the provided customerId, restaurantId, or driverId matches the authenticated user's ID, ensuring they are a participant in the order.
+    function isExistingOrderParticipant(customerId, restaurantId, driverId) {
+        return isSignedIn() && resource != null && (request.auth.uid == customerId || request.auth.uid == restaurantId || request.auth.uid == driverId);
+    }
+  }
+}

@@ -1,0 +1,438 @@
+{
+  "entities": {
+    "Customer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Customer",
+      "type": "object",
+      "description": "Represents a customer in the Turf Eats application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the customer."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the user's authentication ID. (Relationship: User 1:1 Customer)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The customer's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The customer's email address.",
+          "format": "email"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The customer's phone number."
+        },
+        "address": {
+          "type": "string",
+          "description": "The customer's address."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "email",
+        "phoneNumber",
+        "address"
+      ]
+    },
+    "Driver": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Driver",
+      "type": "object",
+      "description": "Represents a driver in the Turf Eats application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the driver."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the user's authentication ID. (Relationship: User 1:1 Driver)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The driver's full name."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The driver's phone number."
+        },
+        "vehicleType": {
+          "type": "string",
+          "description": "The type of vehicle the driver uses."
+        },
+        "licenseNumber": {
+          "type": "string",
+          "description": "The driver's license number."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "phoneNumber",
+        "vehicleType",
+        "licenseNumber"
+      ]
+    },
+    "StoreOwner": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "StoreOwner",
+      "type": "object",
+      "description": "Represents a store owner in the Turf Eats application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the store owner."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the user's authentication ID. (Relationship: User 1:1 StoreOwner)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The store owner's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The store owner's email address.",
+          "format": "email"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The store owner's phone number."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "email",
+        "phoneNumber"
+      ]
+    },
+    "Restaurant": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Restaurant",
+      "type": "object",
+      "description": "Represents a restaurant in the Turf Eats application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the restaurant."
+        },
+        "storeOwnerId": {
+          "type": "string",
+          "description": "Reference to the StoreOwner. (Relationship: StoreOwner 1:N Restaurant)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the restaurant."
+        },
+        "logoUrl": {
+          "type": "string",
+          "description": "URL of the restaurant's logo."
+        },
+        "rating": {
+          "type": "number",
+          "description": "The restaurant's average rating."
+        },
+        "category": {
+          "type": "string",
+          "description": "The restaurant's category (e.g., Italian, Mexican)."
+        },
+        "address": {
+          "type": "string",
+          "description": "The restaurant's address."
+        },
+        "openingHours": {
+          "type": "string",
+          "description": "The restaurant's opening hours."
+        }
+      },
+      "required": [
+        "id",
+        "storeOwnerId",
+        "name",
+        "logoUrl",
+        "rating",
+        "category",
+        "address",
+        "openingHours"
+      ]
+    },
+    "MenuItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MenuItem",
+      "type": "object",
+      "description": "Represents a menu item offered by a restaurant.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the menu item."
+        },
+        "restaurantId": {
+          "type": "string",
+          "description": "Reference to the Restaurant. (Relationship: Restaurant 1:N MenuItem)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the menu item."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the menu item."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the menu item."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the menu item's image."
+        }
+      },
+      "required": [
+        "id",
+        "restaurantId",
+        "name",
+        "description",
+        "price"
+      ]
+    },
+    "Order": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Order",
+      "type": "object",
+      "description": "Represents an order placed by a customer.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the order."
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Reference to the Customer. (Relationship: Customer 1:N Order)"
+        },
+        "restaurantId": {
+          "type": "string",
+          "description": "Reference to the Restaurant. (Relationship: Restaurant 1:N Order)"
+        },
+        "driverId": {
+          "type": "string",
+          "description": "Reference to the Driver. (Relationship: Driver 1:N Order)"
+        },
+        "orderDate": {
+          "type": "string",
+          "description": "The date and time the order was placed.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the order (e.g., Placed, Accepted, Preparing, Out for Delivery, Delivered)."
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "The total amount of the order."
+        },
+        "deliveryAddress": {
+          "type": "string",
+          "description": "The delivery address for the order."
+        }
+      },
+      "required": [
+        "id",
+        "customerId",
+        "restaurantId",
+        "orderDate",
+        "status",
+        "totalAmount",
+        "deliveryAddress"
+      ]
+    },
+    "OrderItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OrderItem",
+      "type": "object",
+      "description": "Represents an item within an order.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the order item."
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Reference to the Order. (Relationship: Order 1:N OrderItem)"
+        },
+        "menuItemId": {
+          "type": "string",
+          "description": "Reference to the MenuItem. (Relationship: MenuItem 1:N OrderItem)"
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of the menu item in the order."
+        },
+        "itemPrice": {
+          "type": "number",
+          "description": "The price of this particular menu item"
+        }
+      },
+      "required": [
+        "id",
+        "orderId",
+        "menuItemId",
+        "quantity",
+        "itemPrice"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/customers/{customerId}",
+        "definition": {
+          "entityName": "Customer",
+          "schema": {
+            "$ref": "#/backend/entities/Customer"
+          },
+          "description": "Stores customer profiles. Uses path-based ownership, secured by userId. Ensures only the authenticated user can access their Customer profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the authenticated user."
+            },
+            {
+              "name": "customerId",
+              "description": "The ID of the customer profile. Must match userId."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/drivers/{driverId}",
+        "definition": {
+          "entityName": "Driver",
+          "schema": {
+            "$ref": "#/backend/entities/Driver"
+          },
+          "description": "Stores driver profiles. Uses path-based ownership, secured by userId. Ensures only the authenticated user can access their Driver profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the authenticated user."
+            },
+            {
+              "name": "driverId",
+              "description": "The ID of the driver profile. Must match userId."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/storeOwners/{storeOwnerId}",
+        "definition": {
+          "entityName": "StoreOwner",
+          "schema": {
+            "$ref": "#/backend/entities/StoreOwner"
+          },
+          "description": "Stores store owner profiles. Uses path-based ownership, secured by userId. Ensures only the authenticated user can access their StoreOwner profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the authenticated user."
+            },
+            {
+              "name": "storeOwnerId",
+              "description": "The ID of the store owner profile. Must match userId."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/restaurants/{restaurantId}",
+        "definition": {
+          "entityName": "Restaurant",
+          "schema": {
+            "$ref": "#/backend/entities/Restaurant"
+          },
+          "description": "Stores restaurant information. Allows listing of all restaurants.  Access control is based on the storeOwnerId field, which allows filtering restaurants by their owner.",
+          "params": [
+            {
+              "name": "restaurantId",
+              "description": "The ID of the restaurant."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/restaurants/{restaurantId}/menuItems/{menuItemId}",
+        "definition": {
+          "entityName": "MenuItem",
+          "schema": {
+            "$ref": "#/backend/entities/MenuItem"
+          },
+          "description": "Stores menu items for each restaurant. Access control can be based on the parent restaurant's storeOwnerId to verify ownership.",
+          "params": [
+            {
+              "name": "restaurantId",
+              "description": "The ID of the restaurant."
+            },
+            {
+              "name": "menuItemId",
+              "description": "The ID of the menu item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/orders/{orderId}",
+        "definition": {
+          "entityName": "Order",
+          "schema": {
+            "$ref": "#/backend/entities/Order"
+          },
+          "description": "Stores order information. Includes denormalized customerId, restaurantId, and driverId for authorization independence.",
+          "params": [
+            {
+              "name": "orderId",
+              "description": "The ID of the order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/orders/{orderId}/orderItems/{orderItemId}",
+        "definition": {
+          "entityName": "OrderItem",
+          "schema": {
+            "$ref": "#/backend/entities/OrderItem"
+          },
+          "description": "Stores individual items within an order. Access control is based on the parent order's customerId, restaurantId, and driverId.",
+          "params": [
+            {
+              "name": "orderId",
+              "description": "The ID of the order."
+            },
+            {
+              "name": "orderItemId",
+              "description": "The ID of the order item."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to align with the application's core features, focusing on role-based access control and data ownership. The design prioritizes Authorization Independence by denormalizing relevant authorization data, specifically for Restaurants and Orders. This eliminates the need for `get()` calls in security rules, ensuring atomicity of operations. Structural Segregation is used to isolate data based on access needs, as seen in the `/users/{userId}` collection, which houses user-specific data. The application uses Path-Based Ownership for `Customer`, `Driver`, and `StoreOwner` profiles which are placed under `/users/{userId}`. Restaurants are under `/restaurants/{restaurantId}` with `storeOwnerId` attribute which could be used to list resources owned by the user. Order data are placed under the `/orders/{orderId}`, with denormalized `customerId`, `restaurantId`, and `driverId`. The structure enables simple and secure `list` operations, effectively addressing QAPs. Explicit state modeling is used via the `status` field in the `Order` entity.\n\nAuthorization Independence is achieved by avoiding hierarchical dependencies. For example, access to Orders does not require fetching customer or restaurant details. The `customerId`, `restaurantId` and `driverId` within the `/orders/{orderId}` collection allow for querying and filtering orders based on these IDs directly, without needing to perform additional reads.\n\nFor QAPs, the structure supports secure `list` operations via collection-based access control. Listing Restaurants could be restricted based on `storeOwnerId` or `category`. Orders can be listed based on `customerId`, `restaurantId`, or `driverId`.\n\nData integrity is supported by the inherent structure (e.g., 1:N relationships are represented through subcollections or document references)."
+  }
+}
