@@ -29,7 +29,7 @@ export default function Header() {
       <div className="container flex h-16 items-center">
         <Logo />
         <nav className="ml-6 hidden items-center gap-6 text-sm font-medium md:flex">
-          <Link href="/app" className="transition-colors hover:text-primary">
+          <Link href="/app/dashboard" className="transition-colors hover:text-primary">
             Restaurants
           </Link>
           <Link href="/app/orders" className="transition-colors hover:text-primary">

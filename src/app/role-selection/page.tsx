@@ -4,8 +4,8 @@ import { useRouter } from 'next/navigation';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { User, Bike, Store } from 'lucide-react';
 import Logo from '@/components/logo';
-import { useAuth, useFirestore, useUser } from '@/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking } from '@/firebase';
 
@@ -14,7 +14,7 @@ const roles = [
     name: 'Customer',
     description: 'Order delicious food from local restaurants.',
     icon: <User className="h-12 w-12 text-primary" />,
-    href: '/app',
+    href: '/app/dashboard',
     role: 'customer',
   },
   {
