@@ -12,6 +12,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Logo from '@/components/logo';
+import { useAuth } from '@/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 const emailSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -24,6 +27,8 @@ const phoneSchema = z.object({
 
 export default function LoginPage() {
   const router = useRouter();
+  const auth = useAuth();
+  const { toast } = useToast();
 
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
@@ -35,8 +40,21 @@ export default function LoginPage() {
     defaultValues: { phone: '' },
   });
 
-  // Mock login handler
-  const handleLogin = () => {
+  const handleLogin = async (values: z.infer<typeof emailSchema>) => {
+    try {
+      await signInWithEmailAndPassword(auth, values.email, values.password);
+      router.push('/role-selection');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: error.message || 'An unexpected error occurred.',
+      });
+    }
+  };
+
+  const handlePhoneLogin = () => {
+    // Mock login handler
     // In a real app, you would handle Firebase login here.
     // For this scaffold, we'll just redirect to role selection.
     router.push('/role-selection');
@@ -93,7 +111,7 @@ export default function LoginPage() {
             </TabsContent>
             <TabsContent value="phone">
               <Form {...phoneForm}>
-                <form onSubmit={phoneForm.handleSubmit(handleLogin)} className="space-y-4 pt-4">
+                <form onSubmit={phoneForm.handleSubmit(handlePhoneLogin)} className="space-y-4 pt-4">
                   <FormField
                     control={phoneForm.control}
                     name="phone"

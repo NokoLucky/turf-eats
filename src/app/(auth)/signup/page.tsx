@@ -12,6 +12,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Logo from '@/components/logo';
+import { useAuth } from '@/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 const emailSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -24,6 +27,8 @@ const phoneSchema = z.object({
 
 export default function SignupPage() {
   const router = useRouter();
+  const auth = useAuth();
+  const { toast } = useToast();
 
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
@@ -35,10 +40,21 @@ export default function SignupPage() {
     defaultValues: { phone: '' },
   });
 
-  // Mock signup handler
-  const handleSignup = () => {
-    // In a real app, you would handle Firebase signup here.
-    // For this scaffold, we'll just redirect to role selection.
+  const handleSignup = async (values: z.infer<typeof emailSchema>) => {
+    try {
+      await createUserWithEmailAndPassword(auth, values.email, values.password);
+      router.push('/role-selection');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Sign-up Failed',
+        description: error.message || 'An unexpected error occurred.',
+      });
+    }
+  };
+
+  const handlePhoneSignup = () => {
+    // Mock signup handler
     router.push('/role-selection');
   };
 
@@ -93,7 +109,7 @@ export default function SignupPage() {
             </TabsContent>
             <TabsContent value="phone">
               <Form {...phoneForm}>
-                <form onSubmit={phoneForm.handleSubmit(handleSignup)} className="space-y-4 pt-4">
+                <form onSubmit={phoneForm.handleSubmit(handlePhoneSignup)} className="space-y-4 pt-4">
                   <FormField
                     control={phoneForm.control}
                     name="phone"
