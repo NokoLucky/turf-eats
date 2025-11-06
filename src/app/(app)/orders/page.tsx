@@ -51,7 +51,7 @@ export default function OrdersPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <Button asChild variant="ghost" size="sm">
-                      <Link href={`/app/orders/${order.id}`}>
+                      <Link href={`/orders/${order.id}`}>
                         View Details <ArrowRight className="ml-2 h-4 w-4" />
                       </Link>
                     </Button>

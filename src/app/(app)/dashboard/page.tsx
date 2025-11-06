@@ -1,5 +1,5 @@
 'use client';
-
+import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Star, Utensils, Search, ChefHat, Pizza, Salad } from 'lucide-react';
@@ -53,7 +53,7 @@ export default function CustomerDashboardPage() {
             <h2 className="font-headline text-2xl font-bold mb-4">Popular Restaurants</h2>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {restaurants.map((restaurant) => (
-            <Link href={`/app/restaurant/${restaurant.id}`} key={restaurant.id} className="group">
+            <Link href={`/restaurant/${restaurant.id}`} key={restaurant.id} className="group">
                 <Card className="overflow-hidden h-full transition-shadow duration-300 hover:shadow-lg">
                 <CardHeader className="p-0">
                     <div className="relative h-48 w-full">

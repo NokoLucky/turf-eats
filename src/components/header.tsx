@@ -29,16 +29,16 @@ export default function Header() {
       <div className="container flex h-16 items-center">
         <Logo />
         <nav className="ml-6 hidden items-center gap-6 text-sm font-medium md:flex">
-          <Link href="/app/dashboard" className="transition-colors hover:text-primary">
+          <Link href="/dashboard" className="transition-colors hover:text-primary">
             Restaurants
           </Link>
-          <Link href="/app/orders" className="transition-colors hover:text-primary">
+          <Link href="/orders" className="transition-colors hover:text-primary">
             My Orders
           </Link>
         </nav>
         <div className="ml-auto flex items-center gap-4">
           <Button asChild variant="ghost" size="icon" className="relative">
-            <Link href="/app/cart">
+            <Link href="/cart">
               <ShoppingCart className="h-5 w-5" />
               {cartItemCount > 0 && (
                 <Badge
@@ -75,7 +75,7 @@ export default function Header() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/app/orders">
+                <Link href="/orders">
                   <User className="mr-2 h-4 w-4" />
                   <span>My Orders</span>
                 </Link>

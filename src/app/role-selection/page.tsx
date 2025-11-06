@@ -14,7 +14,7 @@ const roles = [
     name: 'Customer',
     description: 'Order delicious food from local restaurants.',
     icon: <User className="h-12 w-12 text-primary" />,
-    href: '/app/dashboard',
+    href: '/dashboard',
     role: 'customer',
   },
   {

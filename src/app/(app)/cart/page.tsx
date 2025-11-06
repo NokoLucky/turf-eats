@@ -36,7 +36,7 @@ export default function CartPage() {
         description: "Thank you for your order. You can track it in the 'My Orders' section.",
     });
     dispatch({ type: 'CLEAR_CART' });
-    router.push('/app/orders');
+    router.push('/orders');
   };
 
   return (
@@ -51,7 +51,7 @@ export default function CartPage() {
             <CardContent>
                 <p className="text-muted-foreground">Looks like you haven't added anything to your cart yet.</p>
                 <Button asChild className="mt-6">
-                    <Link href="/app">Start Shopping</Link>
+                    <Link href="/dashboard">Start Shopping</Link>
                 </Button>
             </CardContent>
         </Card>

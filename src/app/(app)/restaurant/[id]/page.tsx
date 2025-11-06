@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { Star, Utensils, PlusCircle } from 'lucide-react';
-
+import React from 'react';
 import { restaurants } from '@/lib/data';
 import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
