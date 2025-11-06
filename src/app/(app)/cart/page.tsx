@@ -17,9 +17,9 @@ export default function CartPage() {
   const router = useRouter();
 
   const subtotal = state.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const taxes = subtotal * 0.08;
+  const serviceFee = subtotal * 0.08;
   const deliveryFee = 5.0;
-  const total = subtotal + taxes + deliveryFee;
+  const total = subtotal + serviceFee + deliveryFee;
 
   const updateQuantity = (id: string, quantity: number) => {
     dispatch({ type: 'UPDATE_QUANTITY', payload: { id, quantity } });
@@ -106,8 +106,8 @@ export default function CartPage() {
                   <span>R{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Taxes</span>
-                  <span>R{taxes.toFixed(2)}</span>
+                  <span>Service Fee</span>
+                  <span>R{serviceFee.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Delivery Fee</span>
