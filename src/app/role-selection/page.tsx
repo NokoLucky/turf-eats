@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Moped, Store } from 'lucide-react';
+import { User, Bike, Store } from 'lucide-react';
 import Logo from '@/components/logo';
 
 const roles = [
@@ -13,7 +13,7 @@ const roles = [
   {
     name: 'Driver',
     description: 'Earn money by delivering food in your town.',
-    icon: <Moped className="h-12 w-12 text-primary" />,
+    icon: <Bike className="h-12 w-12 text-primary" />,
     href: '/driver/dashboard',
   },
   {

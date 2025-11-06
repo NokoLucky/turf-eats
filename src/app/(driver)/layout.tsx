@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { LogOut, Moped, User } from 'lucide-react';
+import { LogOut, Bike, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import Logo from '@/components/logo';
@@ -18,7 +18,7 @@ function DriverHeader() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2">
-                <Moped className="h-5 w-5 text-primary"/>
+                <Bike className="h-5 w-5 text-primary"/>
                 <span>Driver</span>
               </Button>
             </DropdownMenuTrigger>
