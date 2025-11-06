@@ -73,7 +73,7 @@ export default function CartPage() {
                       />
                       <div className="flex-1">
                         <h3 className="font-semibold">{item.name}</h3>
-                        <p className="text-sm text-muted-foreground">${item.price.toFixed(2)}</p>
+                        <p className="text-sm text-muted-foreground">R{item.price.toFixed(2)}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <Input
@@ -88,7 +88,7 @@ export default function CartPage() {
                             <span className="sr-only">Remove item</span>
                         </Button>
                       </div>
-                      <p className="w-20 text-right font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="w-20 text-right font-semibold">R{(item.price * item.quantity).toFixed(2)}</p>
                     </li>
                   ))}
                 </ul>
@@ -103,20 +103,20 @@ export default function CartPage() {
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>R{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Taxes</span>
-                  <span>${taxes.toFixed(2)}</span>
+                  <span>R{taxes.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Delivery Fee</span>
-                  <span>${deliveryFee.toFixed(2)}</span>
+                  <span>R{deliveryFee.toFixed(2)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>R{total.toFixed(2)}</span>
                 </div>
               </CardContent>
               <CardFooter>

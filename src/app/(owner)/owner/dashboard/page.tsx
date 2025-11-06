@@ -25,7 +25,7 @@ export default function OwnerDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$4,283.45</div>
+            <div className="text-2xl font-bold">R4,283.45</div>
             <p className="text-xs text-muted-foreground">+20.1% from last month</p>
           </CardContent>
         </Card>
@@ -72,7 +72,7 @@ export default function OwnerDashboard() {
                 <TableRow key={order.id}>
                   <TableCell className="font-medium">{order.id}</TableCell>
                   <TableCell>{order.customer}</TableCell>
-                  <TableCell>${order.total.toFixed(2)}</TableCell>
+                  <TableCell>R{order.total.toFixed(2)}</TableCell>
                   <TableCell>
                     <Badge variant={order.status === 'New' ? 'destructive' : 'outline'}>{order.status}</Badge>
                   </TableCell>

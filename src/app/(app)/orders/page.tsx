@@ -45,7 +45,7 @@ export default function OrdersPage() {
                   <TableCell className="font-medium">{order.id}</TableCell>
                   <TableCell>{order.restaurantName}</TableCell>
                   <TableCell>{order.date}</TableCell>
-                  <TableCell>${order.total.toFixed(2)}</TableCell>
+                  <TableCell>R{order.total.toFixed(2)}</TableCell>
                   <TableCell>
                     <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                   </TableCell>

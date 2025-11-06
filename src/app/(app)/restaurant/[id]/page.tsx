@@ -77,7 +77,7 @@ export default function RestaurantMenuPage({ params }: { params: { id: string } 
                 <CardTitle className="font-headline text-xl">{item.name}</CardTitle>
                 <CardDescription className="mt-2 flex-1">{item.description}</CardDescription>
                 <div className="mt-4 flex items-center justify-between">
-                  <p className="text-lg font-bold text-primary">${item.price.toFixed(2)}</p>
+                  <p className="text-lg font-bold text-primary">R{item.price.toFixed(2)}</p>
                   <Button onClick={() => handleAddToCart(item)}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Add to Cart
