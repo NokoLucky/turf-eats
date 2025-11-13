@@ -43,18 +43,17 @@ const menuItemSchema = z.object({
 type MenuItemFormValues = z.infer<typeof menuItemSchema>;
 
 function MenuItemDialog({
-  restaurantId,
+  onSubmit,
   menuItem,
   onOpenChange,
   open,
 }: {
-  restaurantId: string;
+  onSubmit: (data: MenuItemFormValues) => void;
   menuItem?: MenuItem;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 }) {
-  const firestore = useFirestore();
-  const { toast } = useToast();
+  
   const form = useForm<MenuItemFormValues>({
     resolver: zodResolver(menuItemSchema),
     defaultValues: menuItem || {
@@ -64,26 +63,12 @@ function MenuItemDialog({
       imageUrl: '',
     },
   });
-
-  const onSubmit = (data: MenuItemFormValues) => {
-    if (!firestore || !restaurantId) return;
-
-    const menuItemsCollectionRef = collection(firestore, 'restaurants', restaurantId, 'menuItems');
-    
-    if (menuItem?.id) {
-      // Update existing item
-      const docRef = doc(menuItemsCollectionRef, menuItem.id);
-      setDocumentNonBlocking(docRef, { ...data, restaurantId }, { merge: true });
-      toast({ title: 'Menu item updated!' });
-    } else {
-      // Add new item: generate ID client-side first
-      const newDocRef = doc(menuItemsCollectionRef);
-      setDocumentNonBlocking(newDocRef, { ...data, id: newDocRef.id, restaurantId });
-      toast({ title: 'Menu item added!' });
-    }
+  
+  const handleFormSubmit = (data: MenuItemFormValues) => {
+    onSubmit(data);
     onOpenChange(false);
     form.reset();
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -93,7 +78,7 @@ function MenuItemDialog({
           <DialogDescription>Fill in the details for your menu item.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -181,6 +166,23 @@ export default function MenuManagementPage() {
 
   const { data: menuItems, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsRef);
 
+  const handleSubmitMenuItem = (data: MenuItemFormValues) => {
+    if (!firestore || !restaurantId) return;
+
+    const menuItemsCollectionRef = collection(firestore, 'restaurants', restaurantId, 'menuItems');
+    
+    if (editingMenuItem?.id) {
+      // Update existing item
+      const docRef = doc(menuItemsCollectionRef, editingMenuItem.id);
+      setDocumentNonBlocking(docRef, data, { merge: true });
+      toast({ title: 'Menu item updated!' });
+    } else {
+      // Add new item
+      addDocumentNonBlocking(menuItemsCollectionRef, { ...data, restaurantId });
+      toast({ title: 'Menu item added!' });
+    }
+  };
+
   const handleEdit = (item: MenuItem) => {
     setEditingMenuItem(item);
     setDialogOpen(true);
@@ -199,6 +201,7 @@ export default function MenuManagementPage() {
       toast({
         title: "Item Deleted",
         description: "The menu item has been removed.",
+        variant: 'destructive',
       });
     }
   };
@@ -282,13 +285,17 @@ export default function MenuManagementPage() {
         ))}
       </div>
       
-       {isDialogOpen && restaurantId && <MenuItemDialog 
-          restaurantId={restaurantId} 
+       {isDialogOpen && restaurantId && (
+        <MenuItemDialog 
+          onSubmit={handleSubmitMenuItem}
           menuItem={editingMenuItem}
           open={isDialogOpen}
           onOpenChange={handleDialogChange}
-        />}
+        />
+      )}
 
     </div>
   );
 }
+
+    
