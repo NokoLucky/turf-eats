@@ -8,12 +8,10 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Trash2, ShoppingBag } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
 export default function CartPage() {
   const { state, dispatch } = useCart();
-  const { toast } = useToast();
   const router = useRouter();
 
   const subtotal = state.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
@@ -30,13 +28,7 @@ export default function CartPage() {
   }
 
   const handleCheckout = () => {
-    // Mock checkout
-    toast({
-        title: "Order Placed!",
-        description: "Thank you for your order. You can track it in the 'My Orders' section.",
-    });
-    dispatch({ type: 'CLEAR_CART' });
-    router.push('/orders');
+    router.push('/checkout');
   };
 
   return (
@@ -121,7 +113,7 @@ export default function CartPage() {
               </CardContent>
               <CardFooter>
                 <Button className="w-full font-bold" size="lg" onClick={handleCheckout}>
-                  Place Order
+                  Proceed to Checkout
                 </Button>
               </CardFooter>
             </Card>
