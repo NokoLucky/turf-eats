@@ -135,7 +135,7 @@ export default function RoleSelectionPage() {
       <div className="grid w-full max-w-4xl grid-cols-1 gap-6 md:grid-cols-3">
         {roles.map((role) => (
           <div key={role.name} onClick={() => handleRoleSelection(role.role, role.href)} className="cursor-pointer">
-            <Card className="h-full transform transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/20">
+            <Card className="h-full transform transition-transform duration-300 hover:-translate-y-2 bg-primary/5 shadow-lg shadow-primary/10">
               <CardHeader className="flex flex-col items-center justify-center text-center">
                 <div className="mb-4 rounded-full bg-primary/10 p-4">
                   {role.icon}
