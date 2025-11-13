@@ -1,4 +1,6 @@
+'use client'
 
+import React from 'react';
 import { notFound } from 'next/navigation';
 import { orders, type OrderStatus } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
