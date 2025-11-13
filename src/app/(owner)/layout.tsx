@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { doc } from 'firebase/firestore';
+import { collection, query, where, limit } from 'firebase/firestore';
 import { LogOut, Store, Utensils as MenuIcon, Settings, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import Logo from '@/components/logo';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Restaurant } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -18,12 +18,13 @@ function OwnerHeader() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  const restaurantRef = useMemoFirebase(() => {
+  const restaurantQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return doc(firestore, 'restaurants', user.uid);
+    return query(collection(firestore, 'restaurants'), where('storeOwnerId', '==', user.uid), limit(1));
   }, [user, firestore]);
 
-  const { data: restaurant, isLoading } = useDoc<Restaurant>(restaurantRef);
+  const { data: restaurants, isLoading } = useCollection<Restaurant>(restaurantQuery);
+  const restaurant = restaurants?.[0];
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">

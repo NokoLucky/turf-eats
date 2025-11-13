@@ -1,15 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { collection, doc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, query, where, limit } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Trash2, Edit, MoreHorizontal } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, MoreHorizontal, ChefHat } from 'lucide-react';
 import Image from 'next/image';
 
 import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import type { MenuItem } from '@/lib/data';
+import type { MenuItem, Restaurant } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -166,15 +166,21 @@ export default function MenuManagementPage() {
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | undefined>(undefined);
 
-  // A store owner's user ID is the same as their restaurant's document ID.
-  const restaurantId = user?.uid; 
+  const restaurantQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collection(firestore, 'restaurants'), where('storeOwnerId', '==', user.uid), limit(1));
+  }, [user, firestore]);
+
+  const { data: restaurants, isLoading: isRestaurantLoading } = useCollection<Restaurant>(restaurantQuery);
+  const restaurant = restaurants?.[0];
+  const restaurantId = restaurant?.id;
 
   const menuItemsRef = useMemoFirebase(() => {
     if (!firestore || !restaurantId) return null;
     return collection(firestore, 'restaurants', restaurantId, 'menuItems');
   }, [firestore, restaurantId]);
 
-  const { data: menuItems, isLoading } = useCollection<MenuItem>(menuItemsRef);
+  const { data: menuItems, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsRef);
 
   const handleEdit = (item: MenuItem) => {
     setEditingMenuItem(item);
@@ -205,8 +211,25 @@ export default function MenuManagementPage() {
     setDialogOpen(open);
   }
 
-  if (!restaurantId) {
-    return <div className="container py-12">Please log in as a store owner.</div>
+  const isLoading = isRestaurantLoading || isMenuLoading;
+
+  if (isRestaurantLoading) {
+    return <div className="container py-12"><Skeleton className="h-8 w-64 mb-8" /><Skeleton className="h-10 w-40" /></div>
+  }
+
+  if (!restaurant) {
+    return (
+      <div className="container py-12 text-center">
+        <ChefHat className="mx-auto h-16 w-16 text-muted-foreground" />
+        <h1 className="mt-4 font-headline text-2xl font-bold">No Restaurant Found</h1>
+        <p className="mt-2 text-muted-foreground">
+          Please create your restaurant profile before adding menu items.
+        </p>
+        <Button asChild className="mt-4">
+          <a href="/owner/restaurant">Create Restaurant</a>
+        </Button>
+      </div>
+    );
   }
 
   return (
@@ -214,7 +237,7 @@ export default function MenuManagementPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-headline text-4xl font-bold">Manage Your Menu</h1>
-          <p className="mt-2 text-muted-foreground">Add, edit, or remove items available at your restaurant.</p>
+          <p className="mt-2 text-muted-foreground">Add, edit, or remove items for <span className="font-semibold text-primary">{restaurant.name}</span>.</p>
         </div>
         <Button onClick={handleAddNew}>
           <PlusCircle className="mr-2" />
@@ -223,7 +246,7 @@ export default function MenuManagementPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {isLoading && Array.from({length: 4}).map((_, i) => <Card key={i}><CardContent className="p-4 space-y-2"><Skeleton className="aspect-video w-full" /><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-1/2" /></CardContent></Card>)}
+        {isMenuLoading && Array.from({length: 4}).map((_, i) => <Card key={i}><CardContent className="p-4 space-y-2"><Skeleton className="aspect-video w-full" /><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-1/2" /></CardContent></Card>)}
 
         {menuItems?.map((item) => (
           <Card key={item.id}>

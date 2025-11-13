@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect } from 'react';
-import { doc } from 'firebase/firestore';
+import { collection, doc, query, where, limit, addDoc } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 
-import { useFirestore, useUser, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import type { Restaurant } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,15 +58,14 @@ export default function RestaurantDetailsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
-  
-  const restaurantId = user?.uid;
 
-  const restaurantRef = useMemoFirebase(() => {
-    if (!firestore || !restaurantId) return null;
-    return doc(firestore, 'restaurants', restaurantId);
-  }, [firestore, restaurantId]);
+  const restaurantQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collection(firestore, 'restaurants'), where('storeOwnerId', '==', user.uid), limit(1));
+  }, [user, firestore]);
 
-  const { data: restaurantData, isLoading } = useDoc<Restaurant>(restaurantRef);
+  const { data: restaurantData, isLoading } = useCollection<Restaurant>(restaurantQuery);
+  const existingRestaurant = restaurantData?.[0];
 
   const form = useForm<RestaurantFormValues>({
     resolver: zodResolver(restaurantSchema),
@@ -82,35 +81,45 @@ export default function RestaurantDetailsPage() {
   });
 
   useEffect(() => {
-    if (restaurantData) {
+    if (existingRestaurant) {
         const dataWithHours = {
-            ...restaurantData,
-            openingTime: restaurantData.openingHours?.split(' - ')[0] || '9:00 AM',
-            closingTime: restaurantData.openingHours?.split(' - ')[1] || '10:00 PM'
+            ...existingRestaurant,
+            openingTime: existingRestaurant.openingHours?.split(' - ')[0] || '9:00 AM',
+            closingTime: existingRestaurant.openingHours?.split(' - ')[1] || '10:00 PM'
         }
       form.reset(dataWithHours);
     }
-  }, [restaurantData, form]);
+  }, [existingRestaurant, form]);
 
   const onSubmit = (data: RestaurantFormValues) => {
-    if (!restaurantId || !restaurantRef) return;
+    if (!user || !firestore) return;
     
     const { openingTime, closingTime, ...restData } = data;
 
     const submissionData = {
         ...restData,
-        id: restaurantId, // Explicitly set the ID
-        storeOwnerId: restaurantId, // Ensure owner ID is set for security rules
+        storeOwnerId: user.uid, // Ensure owner ID is set
         openingHours: `${openingTime} - ${closingTime}`,
-        rating: restaurantData?.rating || Math.floor(Math.random() * 2) + 3, // Preserve existing rating or default
+        rating: existingRestaurant?.rating || Math.floor(Math.random() * 2) + 3.5, // Preserve or set default
     };
 
-    setDocumentNonBlocking(restaurantRef, submissionData, { merge: true });
-
-    toast({
-      title: 'Restaurant Updated',
-      description: 'Your restaurant details have been saved.',
-    });
+    if (existingRestaurant) {
+        // Update existing restaurant
+        const restaurantRef = doc(firestore, 'restaurants', existingRestaurant.id);
+        setDocumentNonBlocking(restaurantRef, submissionData, { merge: true });
+        toast({
+            title: 'Restaurant Updated',
+            description: 'Your restaurant details have been saved.',
+        });
+    } else {
+        // Create new restaurant
+        const restaurantsCollectionRef = collection(firestore, 'restaurants');
+        addDocumentNonBlocking(restaurantsCollectionRef, submissionData);
+         toast({
+            title: 'Restaurant Created!',
+            description: 'Your new restaurant has been saved.',
+        });
+    }
 
     router.refresh();
   };
@@ -120,7 +129,9 @@ export default function RestaurantDetailsPage() {
       <div className="mx-auto max-w-2xl">
         <div className="mb-8">
           <h1 className="font-headline text-4xl font-bold">My Restaurant</h1>
-          <p className="mt-2 text-muted-foreground">Update your restaurant's public information.</p>
+          <p className="mt-2 text-muted-foreground">
+            {existingRestaurant ? "Update your restaurant's public information." : "Create your restaurant profile."}
+          </p>
         </div>
         <Card>
           <CardHeader>
