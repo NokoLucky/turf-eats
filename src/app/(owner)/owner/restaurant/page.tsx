@@ -99,12 +99,13 @@ export default function RestaurantDetailsPage() {
     const { openingTime, closingTime, ...restData } = data;
 
     const submissionData = {
-        id: restaurantId, // Ensure the document ID is part of the data
         ...restData,
+        storeOwnerId: restaurantId, // Ensure storeOwnerId is set to the user's UID
         openingHours: `${openingTime} - ${closingTime}`,
-        storeOwnerId: restaurantId, // Ensure storeOwnerId is set
     }
 
+    // By using restaurantRef which is doc(firestore, 'restaurants', restaurantId),
+    // we ensure the document ID is the user's UID.
     setDocumentNonBlocking(restaurantRef, submissionData, { merge: true });
 
     toast({

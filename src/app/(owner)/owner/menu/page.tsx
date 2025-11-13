@@ -163,8 +163,7 @@ export default function MenuManagementPage() {
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | undefined>(undefined);
 
-  // For now, we assume one restaurant per owner.
-  // A more robust solution might involve a selector if an owner can have multiple restaurants.
+  // A store owner's user ID is the same as their restaurant's document ID.
   const restaurantId = user?.uid; 
 
   const menuItemsRef = useMemoFirebase(() => {
