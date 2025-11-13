@@ -248,10 +248,10 @@ export default function MenuManagementPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuItem onSelect={() => handleEdit(item)}>
-                    <Edit className="mr-2" /> Edit
+                    <Edit className="mr-2 h-4 w-4" /> Edit
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleDelete(item.id)} className="text-destructive">
-                    <Trash2 className="mr-2" /> Delete
+                  <DropdownMenuItem onSelect={() => handleDelete(item.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
