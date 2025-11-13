@@ -59,7 +59,6 @@ export default function RestaurantDetailsPage() {
   const { toast } = useToast();
   const router = useRouter();
   
-  // A store owner's user ID is the same as their restaurant's document ID.
   const restaurantId = user?.uid;
 
   const restaurantRef = useMemoFirebase(() => {
@@ -94,7 +93,11 @@ export default function RestaurantDetailsPage() {
   }, [restaurantData, form]);
 
   const onSubmit = (data: RestaurantFormValues) => {
-    if (!restaurantRef || !restaurantId) return;
+    if (!restaurantId || !firestore) return;
+    
+    // The restaurantRef is already pointing to the correct document,
+    // which is doc(firestore, 'restaurants', restaurantId)
+    const docRef = doc(firestore, 'restaurants', restaurantId);
     
     const { openingTime, closingTime, ...restData } = data;
 
@@ -105,7 +108,7 @@ export default function RestaurantDetailsPage() {
         openingHours: `${openingTime} - ${closingTime}`,
     }
 
-    setDocumentNonBlocking(restaurantRef, submissionData, { merge: true });
+    setDocumentNonBlocking(docRef, submissionData, { merge: true });
 
     toast({
       title: 'Restaurant Updated',
