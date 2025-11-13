@@ -16,61 +16,78 @@ export type MenuItem = {
   description: string;
   price: number;
   image: ImagePlaceholder;
+  restaurantId: string;
+  imageUrl: string;
 };
 
 export type Restaurant = {
   id: string;
   name: string;
-  logo: ImagePlaceholder;
+  logoUrl: string;
   rating: number;
   category: string;
-  banner: ImagePlaceholder;
+  bannerUrl: string;
   menu: MenuItem[];
+  storeOwnerId: string;
+  address: string;
+  openingHours: string;
 };
 
 export const restaurants: Restaurant[] = [
   {
     id: '1',
     name: 'The Golden Spatula',
-    logo: findImage('restaurant-logo-1'),
+    logoUrl: findImage('restaurant-logo-1').imageUrl,
     rating: 4.5,
     category: 'Diner',
-    banner: findImage('restaurant-banner-1'),
+    bannerUrl: findImage('restaurant-banner-1').imageUrl,
     menu: [
-      { id: '101', name: 'Classic Burger', description: 'Juicy beef patty with lettuce, tomato, and our special sauce.', price: 9.99, image: findImage('menu-item-1') },
-      { id: '102', name: 'Pancakes', description: 'Fluffy buttermilk pancakes served with maple syrup.', price: 7.50, image: findImage('menu-item-2') },
+      { id: '101', name: 'Classic Burger', description: 'Juicy beef patty with lettuce, tomato, and our special sauce.', price: 9.99, image: findImage('menu-item-1'), restaurantId: '1', imageUrl: findImage('menu-item-1').imageUrl },
+      { id: '102', name: 'Pancakes', description: 'Fluffy buttermilk pancakes served with maple syrup.', price: 7.50, image: findImage('menu-item-2'), restaurantId: '1', imageUrl: findImage('menu-item-2').imageUrl },
     ],
+    storeOwnerId: '',
+    address: '',
+    openingHours: ''
   },
   {
     id: '2',
     name: 'The Green Leaf',
-    logo: findImage('restaurant-logo-2'),
+    logoUrl: findImage('restaurant-logo-2').imageUrl,
     rating: 4.8,
     category: 'Healthy',
-    banner: { ...findImage('restaurant-banner-1'), imageUrl: 'https://picsum.photos/seed/turf11/1200/400' },
+    bannerUrl: 'https://picsum.photos/seed/turf11/1200/400',
     menu: [
-      { id: '201', name: 'Kale Salad', description: 'Fresh kale, quinoa, and avocado with a lemon vinaigrette.', price: 12.00, image: findImage('menu-item-3') },
+      { id: '201', name: 'Kale Salad', description: 'Fresh kale, quinoa, and avocado with a lemon vinaigrette.', price: 12.00, image: findImage('menu-item-3'), restaurantId: '2', imageUrl: findImage('menu-item-3').imageUrl },
     ],
+    storeOwnerId: '',
+    address: '',
+    openingHours: ''
   },
   {
     id: '3',
     name: 'Pizza Palace',
-    logo: findImage('restaurant-logo-3'),
+    logoUrl: findImage('restaurant-logo-3').imageUrl,
     rating: 4.2,
     category: 'Pizza',
-    banner: { ...findImage('restaurant-banner-1'), imageUrl: 'https://picsum.photos/seed/turf12/1200/400' },
+    bannerUrl: 'https://picsum.photos/seed/turf12/1200/400',
     menu: [
-      { id: '301', name: 'Pepperoni Pizza', description: 'Classic pizza with zesty pepperoni and mozzarella.', price: 15.99, image: findImage('menu-item-4') },
+      { id: '301', name: 'Pepperoni Pizza', description: 'Classic pizza with zesty pepperoni and mozzarella.', price: 15.99, image: findImage('menu-item-4'), restaurantId: '3', imageUrl: findImage('menu-item-4').imageUrl },
     ],
+    storeOwnerId: '',
+    address: '',
+    openingHours: ''
   },
   {
     id: '4',
     name: 'Sushi Central',
-    logo: findImage('restaurant-logo-4'),
+    logoUrl: findImage('restaurant-logo-4').imageUrl,
     rating: 4.7,
     category: 'Japanese',
-    banner: { ...findImage('restaurant-banner-1'), imageUrl: 'https://picsum.photos/seed/turf13/1200/400' },
+    bannerUrl: 'https://picsum.photos/seed/turf13/1200/400',
     menu: [],
+    storeOwnerId: '',
+    address: '',
+    openingHours: ''
   },
 ];
 

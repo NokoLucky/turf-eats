@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { LogOut, Store, User } from 'lucide-react';
+import { LogOut, Store, Utensils as MenuIcon, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import Logo from '@/components/logo';
@@ -10,13 +10,13 @@ function OwnerHeader() {
       <div className="container flex h-16 items-center">
         <Logo />
         <nav className="ml-6 hidden items-center gap-6 text-sm font-medium md:flex">
-          <Link href="/owner/dashboard" className="transition-colors hover:text-primary font-semibold text-primary">
+          <Link href="/owner/dashboard" className="transition-colors hover:text-primary">
             Dashboard
           </Link>
-          <Link href="#" className="transition-colors hover:text-primary">
+          <Link href="/owner/menu" className="transition-colors hover:text-primary">
             Menu
           </Link>
-           <Link href="#" className="transition-colors hover:text-primary">
+           <Link href="/owner/orders" className="transition-colors hover:text-primary">
             Orders
           </Link>
         </nav>
@@ -29,6 +29,18 @@ function OwnerHeader() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+               <DropdownMenuItem asChild>
+                <Link href="/owner/restaurant">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Restaurant Details</span>
+                </Link>
+              </DropdownMenuItem>
+               <DropdownMenuItem asChild>
+                <Link href="/owner/menu">
+                  <MenuIcon className="mr-2 h-4 w-4" />
+                  <span>Manage Menu</span>
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/">
                   <LogOut className="mr-2 h-4 w-4" />
