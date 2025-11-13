@@ -111,7 +111,7 @@ export default function CustomerDashboardPage() {
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                             <Star className="h-4 w-4 text-primary fill-primary" />
-                            <span>{restaurant.rating.toFixed(1)}</span>
+                            <span>{(restaurant.rating || 0).toFixed(1)}</span>
                         </div>
                         <div className="flex items-center gap-1">
                             <Utensils className="h-4 w-4" />
