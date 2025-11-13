@@ -77,7 +77,9 @@ function MenuItemDialog({
       toast({ title: 'Menu item updated!' });
     } else {
       // Add new item
-      addDocumentNonBlocking(collectionRef, { ...data, restaurantId });
+      const newDocRef = doc(collectionRef);
+      const newId = newDocRef.id;
+      setDocumentNonBlocking(newDocRef, { ...data, id: newId, restaurantId });
       toast({ title: 'Menu item added!' });
     }
     onOpenChange(false);
