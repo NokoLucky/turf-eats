@@ -66,17 +66,18 @@ function MenuItemDialog({
   });
 
   const onSubmit = (data: MenuItemFormValues) => {
-    if (!firestore) return;
+    if (!firestore || !restaurantId) return;
 
-    const collectionRef = collection(firestore, 'restaurants', restaurantId, 'menuItems');
+    const menuItemsCollectionRef = collection(firestore, 'restaurants', restaurantId, 'menuItems');
+    
     if (menuItem?.id) {
       // Update existing item
-      const docRef = doc(collectionRef, menuItem.id);
+      const docRef = doc(menuItemsCollectionRef, menuItem.id);
       setDocumentNonBlocking(docRef, { ...data, restaurantId }, { merge: true });
       toast({ title: 'Menu item updated!' });
     } else {
       // Add new item: generate ID client-side first
-      const newDocRef = doc(collectionRef); // Creates a ref with a new auto-generated ID
+      const newDocRef = doc(menuItemsCollectionRef); // Creates a ref with a new auto-generated ID in the sub-collection
       const newId = newDocRef.id;
       setDocumentNonBlocking(newDocRef, { ...data, id: newId, restaurantId });
       toast({ title: 'Menu item added!' });
@@ -253,7 +254,7 @@ export default function MenuManagementPage() {
         ))}
       </div>
       
-       {isDialogOpen && <MenuItemDialog 
+       {isDialogOpen && restaurantId && <MenuItemDialog 
           restaurantId={restaurantId} 
           menuItem={editingMenuItem}
           open={isDialogOpen}
@@ -263,3 +264,5 @@ export default function MenuManagementPage() {
     </div>
   );
 }
+
+    
