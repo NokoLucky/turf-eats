@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { Star, Utensils, PlusCircle } from 'lucide-react';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +18,8 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
   const { dispatch } = useCart();
   const firestore = useFirestore();
 
+  console.log('Restaurant ID from URL params:', id);
+
   const restaurantRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'restaurants', id) : null),
     [firestore, id]
@@ -30,7 +32,13 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
   const { data: restaurant, isLoading: isRestaurantLoading } = useDoc<Omit<Restaurant, 'menu'>>(restaurantRef);
   const { data: menuItems, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsRef);
 
+  useEffect(() => {
+    console.log('Restaurant data fetched from Firestore:', restaurant);
+    console.log('Is restaurant loading:', isRestaurantLoading);
+  }, [restaurant, isRestaurantLoading]);
+  
   if (!isRestaurantLoading && !restaurant) {
+    console.error('Restaurant not found after loading. Triggering 404.');
     notFound();
   }
 
