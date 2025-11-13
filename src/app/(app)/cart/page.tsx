@@ -32,7 +32,7 @@ export default function CartPage() {
   };
 
   return (
-    <div className="container py-12">
+    <div className="container py-12 px-4 sm:px-8">
       <h1 className="font-headline text-4xl font-bold mb-8">Your Cart</h1>
       {state.items.length === 0 ? (
         <Card className="text-center py-20">
@@ -48,26 +48,26 @@ export default function CartPage() {
             </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <Card>
               <CardContent className="p-0">
                 <ul className="divide-y">
                   {state.items.map((item) => (
-                    <li key={item.id} className="flex items-center gap-4 p-6">
+                    <li key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 sm:p-6">
                       <Image
                         src={item.image.imageUrl}
                         alt={item.image.description}
                         data-ai-hint={item.image.imageHint}
                         width={80}
                         height={80}
-                        className="rounded-md object-cover"
+                        className="rounded-md object-cover w-full sm:w-20 h-auto sm:h-20"
                       />
                       <div className="flex-1">
                         <h3 className="font-semibold">{item.name}</h3>
                         <p className="text-sm text-muted-foreground">R{item.price.toFixed(2)}</p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 self-end sm:self-center">
                         <Input
                           type="number"
                           min="1"
@@ -80,7 +80,7 @@ export default function CartPage() {
                             <span className="sr-only">Remove item</span>
                         </Button>
                       </div>
-                      <p className="w-20 text-right font-semibold">R{(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="hidden sm:block w-20 text-right font-semibold">R{(item.price * item.quantity).toFixed(2)}</p>
                     </li>
                   ))}
                 </ul>

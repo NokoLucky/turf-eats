@@ -40,9 +40,9 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="container py-12">
+    <div className="container py-12 px-4 sm:px-8">
       <h1 className="font-headline text-4xl font-bold mb-8">Confirm Your Order</h1>
-      <div className="grid grid-cols-1 gap-12 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
             <Card>
                 <CardHeader>
@@ -105,7 +105,7 @@ export default function CheckoutPage() {
               <CardContent className="space-y-4">
                 {state.items.map(item => (
                     <div key={item.id} className="flex justify-between items-center text-sm">
-                        <span>{item.quantity} x {item.name}</span>
+                        <span className="flex-1 truncate pr-2">{item.quantity} x {item.name}</span>
                         <span className='font-medium'>R{(item.price * item.quantity).toFixed(2)}</span>
                     </div>
                 ))}

@@ -47,7 +47,7 @@ export default function CustomerDashboardPage() {
 
   return (
     <div className="bg-muted/20">
-      <div className="container py-8">
+      <div className="container py-8 px-4 sm:px-8">
         <div className="mb-12 text-center">
           <h1 className="font-headline text-4xl font-bold tracking-tight lg:text-5xl">
             Find Your Next Meal
@@ -55,7 +55,7 @@ export default function CustomerDashboardPage() {
           <p className="mt-2 max-w-2xl mx-auto text-muted-foreground">
             Browse through the best local restaurants and find your favorite dishes.
           </p>
-          <div className="mt-6 max-w-2xl mx-auto flex gap-2">
+          <div className="mt-6 max-w-2xl mx-auto flex flex-col sm:flex-row gap-2">
             <div className="relative flex-grow">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input placeholder="Search restaurants or cuisines..." className="pl-10 bg-card h-12" />
@@ -68,11 +68,11 @@ export default function CustomerDashboardPage() {
             <h2 className="font-headline text-2xl font-bold mb-4">Categories</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {categories.map((category) => (
-                    <Card key={category.name} className="flex flex-col items-center justify-center p-6 hover:bg-primary/5 hover:shadow-md transition-all cursor-pointer">
+                    <Card key={category.name} className="flex flex-col items-center justify-center p-4 sm:p-6 hover:bg-primary/5 hover:shadow-md transition-all cursor-pointer">
                         <div className="p-3 rounded-full bg-primary/10 mb-2 text-primary">
-                            {React.cloneElement(category.icon, { className: "h-8 w-8" })}
+                            {React.cloneElement(category.icon, { className: "h-6 w-6 sm:h-8 sm:w-8" })}
                         </div>
-                        <p className="font-semibold">{category.name}</p>
+                        <p className="font-semibold text-sm sm:text-base text-center">{category.name}</p>
                     </Card>
                 ))}
             </div>
@@ -108,7 +108,7 @@ export default function CustomerDashboardPage() {
                     />
                     <div className="flex-1">
                         <h3 className="font-headline text-lg font-bold truncate">{restaurant.name}</h3>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                             <Star className="h-4 w-4 text-primary fill-primary" />
                             <span>{(restaurant.rating || 0).toFixed(1)}</span>

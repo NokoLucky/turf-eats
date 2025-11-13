@@ -49,7 +49,7 @@ export default function RestaurantMenuPage({ params }: { params: { id: string } 
       {isLoading ? (
         <>
           <Skeleton className="h-64 w-full" />
-          <div className="container py-12">
+          <div className="container py-8 px-4 sm:px-8">
             <Skeleton className="h-8 w-1/3 mb-8" />
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -70,15 +70,15 @@ export default function RestaurantMenuPage({ params }: { params: { id: string } 
               priority
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-            <div className="container relative flex h-full items-end pb-8">
+            <div className="container relative flex h-full items-end pb-8 px-4 sm:px-8">
               <div>
-                <h1 className="font-headline text-5xl font-bold text-white">
+                <h1 className="font-headline text-4xl sm:text-5xl font-bold text-white">
                   {restaurant.name}
                 </h1>
                 <div className="mt-2 flex items-center gap-4 text-sm text-neutral-200">
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 text-primary fill-primary" />
-                    <span>{restaurant.rating.toFixed(1)}</span>
+                    <span>{(restaurant.rating || 0).toFixed(1)}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Utensils className="h-4 w-4" />
@@ -88,7 +88,7 @@ export default function RestaurantMenuPage({ params }: { params: { id: string } 
               </div>
             </div>
           </div>
-          <div className="container py-12">
+          <div className="container py-12 px-4 sm:px-8">
             <h2 className="font-headline text-3xl font-bold mb-8">Menu</h2>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {menuItems?.map((item) => (
@@ -104,7 +104,7 @@ export default function RestaurantMenuPage({ params }: { params: { id: string } 
                       />
                     </div>
                   </CardHeader>
-                  <CardContent className="flex flex-1 flex-col">
+                  <CardContent className="flex flex-1 flex-col p-4">
                     <CardTitle className="font-headline text-xl">{item.name}</CardTitle>
                     <CardDescription className="mt-2 flex-1">{item.description}</CardDescription>
                     <div className="mt-4 flex items-center justify-between">

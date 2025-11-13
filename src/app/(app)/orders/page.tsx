@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, MoreVertical } from 'lucide-react';
 
 const getStatusVariant = (status: OrderStatus): "default" | "secondary" | "destructive" | "outline" => {
     switch(status) {
@@ -21,12 +21,12 @@ const getStatusVariant = (status: OrderStatus): "default" | "secondary" | "destr
 
 export default function OrdersPage() {
   return (
-    <div className="container py-12">
+    <div className="container py-12 px-4 sm:px-8">
       <div className="mb-8">
         <h1 className="font-headline text-4xl font-bold">My Orders</h1>
         <p className="text-muted-foreground mt-2">View your order history and track current orders.</p>
       </div>
-      <Card>
+      <Card className="hidden sm:block">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -62,6 +62,28 @@ export default function OrdersPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <div className="sm:hidden space-y-4">
+        {orders.map((order) => (
+          <Card key={order.id}>
+            <CardHeader>
+              <CardTitle className='text-lg'>{order.restaurantName}</CardTitle>
+              <CardDescription>#{order.id} - {order.date}</CardDescription>
+            </CardHeader>
+            <CardContent className='flex items-center justify-between'>
+                <div>
+                    <p className='text-lg font-bold'>R{order.total.toFixed(2)}</p>
+                    <Badge variant={getStatusVariant(order.status)} className='mt-1'>{order.status}</Badge>
+                </div>
+                <Button asChild variant="default" size="sm">
+                    <Link href={`/orders/${order.id}`}>
+                        View
+                    </Link>
+                </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
