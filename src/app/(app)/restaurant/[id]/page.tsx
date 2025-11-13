@@ -14,17 +14,18 @@ import type { Restaurant, MenuItem } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function RestaurantMenuPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const { toast } = useToast();
   const { dispatch } = useCart();
   const firestore = useFirestore();
 
   const restaurantRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'restaurants', params.id) : null),
-    [firestore, params.id]
+    () => (firestore ? doc(firestore, 'restaurants', id) : null),
+    [firestore, id]
   );
   const menuItemsRef = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'restaurants', params.id, 'menuItems') : null),
-    [firestore, params.id]
+    () => (firestore ? collection(firestore, 'restaurants', id, 'menuItems') : null),
+    [firestore, id]
   );
 
   const { data: restaurant, isLoading: isRestaurantLoading } = useDoc<Omit<Restaurant, 'menu'>>(restaurantRef);
