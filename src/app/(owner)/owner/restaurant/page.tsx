@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const restaurantSchema = z.object({
   name: z.string().min(2, 'Name is too short'),
   address: z.string().min(10, 'Address is too short'),
-  category: z.string().min(2, 'Category is too short'),
+  category: z.string({ required_error: 'Please select a category.' }),
   openingTime: z.string({ required_error: 'Please select an opening time.' }),
   closingTime: z.string({ required_error: 'Please select a closing time.' }),
   logoUrl: z.string().url('Must be a valid URL'),
@@ -35,6 +35,21 @@ const timeOptions = Array.from({ length: 48 }, (_, i) => {
     const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
     return `${displayHours}:${minutes} ${period}`;
 });
+
+const categories = [
+    'Fast Food',
+    'Breakfast and Brunch',
+    'Pizza',
+    'Burgers',
+    'Healthy',
+    'Grocery',
+    'Diner',
+    'Cafe',
+    'Italian',
+    'Mexican',
+    'Japanese',
+    'Desserts',
+];
 
 
 export default function RestaurantDetailsPage() {
@@ -132,17 +147,26 @@ export default function RestaurantDetailsPage() {
                     )}
                   />
                   <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="e.g., Pizza, Healthy, Diner" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                      control={form.control}
+                      name="category"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Category</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                              <SelectTrigger>
+                                  <SelectValue placeholder="Select a category" />
+                              </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                              {categories.map(category => (
+                                  <SelectItem key={category} value={category}>{category}</SelectItem>
+                              ))}
+                              </SelectContent>
+                          </Select>
+                          <FormMessage />
+                          </FormItem>
+                      )}
                   />
                   <FormField
                     control={form.control}
