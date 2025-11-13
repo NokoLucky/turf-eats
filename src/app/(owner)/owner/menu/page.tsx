@@ -1,14 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { collection, doc, query, where, limit } from 'firebase/firestore';
+import { collection, doc, query, where, limit, addDoc } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { PlusCircle, Trash2, Edit, MoreHorizontal, ChefHat } from 'lucide-react';
 import Image from 'next/image';
 
-import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import type { MenuItem, Restaurant } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,16 +70,20 @@ function MenuItemDialog({
 
     const menuItemsCollectionRef = collection(firestore, 'restaurants', restaurantId, 'menuItems');
     
+    const submissionData = {
+      ...data,
+      restaurantId,
+    };
+
     if (menuItem?.id) {
       // Update existing item
       const docRef = doc(menuItemsCollectionRef, menuItem.id);
-      setDocumentNonBlocking(docRef, { ...data, restaurantId }, { merge: true });
+      setDocumentNonBlocking(docRef, submissionData, { merge: true });
       toast({ title: 'Menu item updated!' });
     } else {
       // Add new item: generate ID client-side first
       const newDocRef = doc(menuItemsCollectionRef);
-      const newId = newDocRef.id;
-      setDocumentNonBlocking(newDocRef, { ...data, id: newId, restaurantId });
+      setDocumentNonBlocking(newDocRef, { ...submissionData, id: newDocRef.id });
       toast({ title: 'Menu item added!' });
     }
     onOpenChange(false);
@@ -293,3 +297,5 @@ export default function MenuManagementPage() {
     </div>
   );
 }
+
+    
