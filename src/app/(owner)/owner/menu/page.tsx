@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { collection, doc, query, where, limit, addDoc } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { collection, doc, query, where, limit } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -64,10 +64,15 @@ function MenuItemDialog({
     },
   });
   
+  useEffect(() => {
+    // Reset form when the menuItem prop changes
+    form.reset(menuItem || { name: '', description: '', price: 0, imageUrl: '' });
+  }, [menuItem, form]);
+
   const handleFormSubmit = (data: MenuItemFormValues) => {
+    console.log('[Dialog] Form submitted with data:', data);
     onSubmit(data);
     onOpenChange(false);
-    form.reset();
   }
 
   return (
@@ -151,7 +156,11 @@ export default function MenuManagementPage() {
   const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | undefined>(undefined);
 
   const restaurantQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
+    if (!user || !firestore) {
+      console.log('DEBUG: User or Firestore not available for restaurantQuery.');
+      return null;
+    }
+    console.log('DEBUG: Creating restaurantQuery for user:', user.uid);
     return query(collection(firestore, 'restaurants'), where('storeOwnerId', '==', user.uid), limit(1));
   }, [user, firestore]);
 
@@ -160,47 +169,73 @@ export default function MenuManagementPage() {
   const restaurantId = restaurant?.id;
 
   const menuItemsRef = useMemoFirebase(() => {
-    if (!firestore || !restaurantId) return null;
+    if (!firestore || !restaurantId) {
+       console.log('DEBUG: Firestore or restaurantId not available for menuItemsRef.');
+      return null;
+    }
+    console.log('DEBUG: Creating menuItemsRef for restaurantId:', restaurantId);
     return collection(firestore, 'restaurants', restaurantId, 'menuItems');
   }, [firestore, restaurantId]);
 
   const { data: menuItems, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsRef);
 
+  useEffect(() => {
+    console.log('DEBUG: restaurant data:', restaurant);
+    console.log('DEBUG: restaurantId:', restaurantId);
+    console.log('DEBUG: menuItems data:', menuItems);
+  }, [restaurant, restaurantId, menuItems]);
+
+
   const handleSubmitMenuItem = (data: MenuItemFormValues) => {
-    if (!firestore || !restaurantId) return;
+    console.log('[handleSubmitMenuItem] Received data:', data);
+    if (!firestore || !restaurantId) {
+      console.error('[handleSubmitMenuItem] Firestore or restaurantId is missing.');
+      toast({ title: 'Error', description: 'Could not find restaurant to save item to.', variant: 'destructive' });
+      return;
+    }
 
     const menuItemsCollectionRef = collection(firestore, 'restaurants', restaurantId, 'menuItems');
     
     if (editingMenuItem?.id) {
-      // Update existing item
+      console.log(`[handleSubmitMenuItem] Updating item ID: ${editingMenuItem.id}`);
       const docRef = doc(menuItemsCollectionRef, editingMenuItem.id);
+      console.log('[handleSubmitMenuItem] Update doc path:', docRef.path);
       setDocumentNonBlocking(docRef, data, { merge: true });
       toast({ title: 'Menu item updated!' });
     } else {
-      // Add new item
+      console.log('[handleSubmitMenuItem] Adding new item.');
       addDocumentNonBlocking(menuItemsCollectionRef, { ...data, restaurantId });
       toast({ title: 'Menu item added!' });
     }
   };
 
   const handleEdit = (item: MenuItem) => {
+    console.log('[handleEdit] Editing item:', item);
     setEditingMenuItem(item);
     setDialogOpen(true);
   };
   
   const handleAddNew = () => {
+    console.log('[handleAddNew] Adding new item.');
     setEditingMenuItem(undefined);
     setDialogOpen(true);
   };
 
   const handleDelete = (itemId: string) => {
-    if (!firestore || !restaurantId) return;
+    console.log(`[handleDelete] Attempting to delete item ID: ${itemId}`);
+    if (!firestore || !restaurantId) {
+      console.error('[handleDelete] Firestore or restaurantId is missing.');
+      toast({ title: 'Error', description: 'Could not find restaurant to delete item from.', variant: 'destructive' });
+      return;
+    }
+    
     if (confirm('Are you sure you want to delete this item?')) {
       const docRef = doc(firestore, 'restaurants', restaurantId, 'menuItems', itemId);
+      console.log('[handleDelete] Delete doc path:', docRef.path);
       deleteDocumentNonBlocking(docRef);
       toast({
-        title: "Item Deleted",
-        description: "The menu item has been removed.",
+        title: "Item Deletion Initiated",
+        description: "The menu item will be removed shortly.",
         variant: 'destructive',
       });
     }
@@ -208,6 +243,7 @@ export default function MenuManagementPage() {
   
   const handleDialogChange = (open: boolean) => {
     if (!open) {
+      console.log('[handleDialogChange] Dialog closing, clearing editingMenuItem.');
       setEditingMenuItem(undefined);
     }
     setDialogOpen(open);
@@ -285,7 +321,7 @@ export default function MenuManagementPage() {
         ))}
       </div>
       
-       {isDialogOpen && restaurantId && (
+       {isDialogOpen && (
         <MenuItemDialog 
           onSubmit={handleSubmitMenuItem}
           menuItem={editingMenuItem}
@@ -297,5 +333,3 @@ export default function MenuManagementPage() {
     </div>
   );
 }
-
-    
