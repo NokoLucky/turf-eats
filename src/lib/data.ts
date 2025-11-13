@@ -27,13 +27,12 @@ export type Restaurant = {
   rating: number;
   category: string;
   bannerUrl: string;
-  menu: MenuItem[];
   storeOwnerId: string;
   address: string;
   openingHours: string;
 };
 
-export const restaurants: Restaurant[] = [
+export const restaurants: Omit<Restaurant, 'menu'>[] = [
   {
     id: '1',
     name: 'The Golden Spatula',
@@ -41,13 +40,9 @@ export const restaurants: Restaurant[] = [
     rating: 4.5,
     category: 'Diner',
     bannerUrl: findImage('restaurant-banner-1').imageUrl,
-    menu: [
-      { id: '101', name: 'Classic Burger', description: 'Juicy beef patty with lettuce, tomato, and our special sauce.', price: 9.99, image: findImage('menu-item-1'), restaurantId: '1', imageUrl: findImage('menu-item-1').imageUrl },
-      { id: '102', name: 'Pancakes', description: 'Fluffy buttermilk pancakes served with maple syrup.', price: 7.50, image: findImage('menu-item-2'), restaurantId: '1', imageUrl: findImage('menu-item-2').imageUrl },
-    ],
     storeOwnerId: '',
     address: '',
-    openingHours: ''
+    openingHours: '9:00 AM - 10:00 PM'
   },
   {
     id: '2',
@@ -56,12 +51,9 @@ export const restaurants: Restaurant[] = [
     rating: 4.8,
     category: 'Healthy',
     bannerUrl: 'https://picsum.photos/seed/turf11/1200/400',
-    menu: [
-      { id: '201', name: 'Kale Salad', description: 'Fresh kale, quinoa, and avocado with a lemon vinaigrette.', price: 12.00, image: findImage('menu-item-3'), restaurantId: '2', imageUrl: findImage('menu-item-3').imageUrl },
-    ],
     storeOwnerId: '',
     address: '',
-    openingHours: ''
+    openingHours: '10:00 AM - 8:00 PM'
   },
   {
     id: '3',
@@ -70,12 +62,9 @@ export const restaurants: Restaurant[] = [
     rating: 4.2,
     category: 'Pizza',
     bannerUrl: 'https://picsum.photos/seed/turf12/1200/400',
-    menu: [
-      { id: '301', name: 'Pepperoni Pizza', description: 'Classic pizza with zesty pepperoni and mozzarella.', price: 15.99, image: findImage('menu-item-4'), restaurantId: '3', imageUrl: findImage('menu-item-4').imageUrl },
-    ],
     storeOwnerId: '',
     address: '',
-    openingHours: ''
+    openingHours: '11:00 AM - 11:00 PM'
   },
   {
     id: '4',
@@ -84,10 +73,9 @@ export const restaurants: Restaurant[] = [
     rating: 4.7,
     category: 'Japanese',
     bannerUrl: 'https://picsum.photos/seed/turf13/1200/400',
-    menu: [],
     storeOwnerId: '',
     address: '',
-    openingHours: ''
+    openingHours: '12:00 PM - 9:00 PM'
   },
 ];
 

@@ -10,21 +10,32 @@ import { useFirestore, useUser, useDoc, useMemoFirebase, setDocumentNonBlocking 
 import type { Restaurant } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const restaurantSchema = z.object({
   name: z.string().min(2, 'Name is too short'),
   address: z.string().min(10, 'Address is too short'),
   category: z.string().min(2, 'Category is too short'),
-  openingHours: z.string().min(4, 'Opening hours are too short'),
+  openingTime: z.string({ required_error: 'Please select an opening time.' }),
+  closingTime: z.string({ required_error: 'Please select a closing time.' }),
   logoUrl: z.string().url('Must be a valid URL'),
   bannerUrl: z.string().url('Must be a valid URL'),
 });
 
 type RestaurantFormValues = z.infer<typeof restaurantSchema>;
+
+const timeOptions = Array.from({ length: 48 }, (_, i) => {
+    const hours = Math.floor(i / 2);
+    const minutes = i % 2 === 0 ? '00' : '30';
+    const period = hours < 12 ? 'AM' : 'PM';
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    return `${displayHours}:${minutes} ${period}`;
+});
+
 
 export default function RestaurantDetailsPage() {
   const { user } = useUser();
@@ -47,7 +58,8 @@ export default function RestaurantDetailsPage() {
       name: '',
       address: '',
       category: '',
-      openingHours: '',
+      openingTime: '9:00 AM',
+      closingTime: '10:00 PM',
       logoUrl: '',
       bannerUrl: '',
     },
@@ -55,15 +67,27 @@ export default function RestaurantDetailsPage() {
 
   useEffect(() => {
     if (restaurantData) {
-      form.reset(restaurantData);
+        const dataWithHours = {
+            ...restaurantData,
+            openingTime: restaurantData.openingHours?.split(' - ')[0] || '9:00 AM',
+            closingTime: restaurantData.openingHours?.split(' - ')[1] || '10:00 PM'
+        }
+      form.reset(dataWithHours);
     }
   }, [restaurantData, form]);
 
   const onSubmit = (data: RestaurantFormValues) => {
     if (!restaurantRef) return;
     
-    // We create a restaurant document if it doesn't exist.
-    setDocumentNonBlocking(restaurantRef, data, { merge: true });
+    const { openingTime, closingTime, ...restData } = data;
+
+    const submissionData = {
+        ...restData,
+        openingHours: `${openingTime} - ${closingTime}`,
+        storeOwnerId: restaurantId, // Ensure storeOwnerId is set
+    }
+
+    setDocumentNonBlocking(restaurantRef, submissionData, { merge: true });
 
     toast({
       title: 'Restaurant Updated',
@@ -133,19 +157,52 @@ export default function RestaurantDetailsPage() {
                       </FormItem>
                     )}
                   />
-                   <FormField
-                    control={form.control}
-                    name="openingHours"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Opening Hours</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="e.g., 9:00 AM - 10:00 PM" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="openingTime"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Opening Time</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a time" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                    {timeOptions.map(time => (
+                                        <SelectItem key={`open-${time}`} value={time}>{time}</SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="closingTime"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Closing Time</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a time" />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                    {timeOptions.map(time => (
+                                        <SelectItem key={`close-${time}`} value={time}>{time}</SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
                    <FormField
                     control={form.control}
                     name="logoUrl"
@@ -155,6 +212,9 @@ export default function RestaurantDetailsPage() {
                         <FormControl>
                           <Input {...field} placeholder="https://example.com/logo.png" />
                         </FormControl>
+                         <FormDescription>
+                            Provide a link to a hosted image. You can use a free service like Imgur.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -168,6 +228,9 @@ export default function RestaurantDetailsPage() {
                         <FormControl>
                           <Input {...field} placeholder="https://example.com/banner.png" />
                         </FormControl>
+                         <FormDescription>
+                            Provide a link to a hosted image. This will appear at the top of your restaurant page.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
