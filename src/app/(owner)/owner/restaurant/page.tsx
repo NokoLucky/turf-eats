@@ -95,18 +95,18 @@ export default function RestaurantDetailsPage() {
   const onSubmit = (data: RestaurantFormValues) => {
     if (!restaurantId || !firestore) return;
     
-    const docRef = doc(firestore, 'restaurants', restaurantId);
-    
     const { openingTime, closingTime, ...restData } = data;
 
     const submissionData = {
         ...restData,
         id: restaurantId,
-        storeOwnerId: restaurantId,
+        storeOwnerId: restaurantId, // Ensure owner ID is set
         openingHours: `${openingTime} - ${closingTime}`,
-    }
+        rating: restaurantData?.rating || 0 // Preserve existing rating or default to 0
+    };
 
-    setDocumentNonBlocking(docRef, submissionData, { merge: true });
+    // Use the memoized restaurantRef to set the document
+    setDocumentNonBlocking(restaurantRef, submissionData, { merge: true });
 
     toast({
       title: 'Restaurant Updated',
@@ -129,7 +129,7 @@ export default function RestaurantDetailsPage() {
             <CardDescription>This information will be visible to customers.</CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {isLoading && !restaurantData ? ( // Show skeleton only on initial load
               <div className="space-y-4">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />

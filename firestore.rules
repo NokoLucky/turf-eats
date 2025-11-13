@@ -97,7 +97,7 @@ service cloud.firestore {
 
       // Only allow the store owner to create, update, and delete their restaurant.
       allow create: if isSignedIn() && request.resource.data.storeOwnerId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.storeOwnerId == request.auth.uid;
+      allow update: if isSignedIn() && request.resource.data.storeOwnerId == request.auth.uid && resource.data.storeOwnerId == request.auth.uid;
       allow delete: if isSignedIn() && isExistingOwner(resource.data.storeOwnerId);
     }
 
@@ -115,7 +115,7 @@ service cloud.firestore {
       allow get, list: if true;
 
       // Only allow the store owner to create, update, and delete menu items for their restaurant.
-      allow create: if isSignedIn() && get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid && request.resource.data.restaurantId == restaurantId;
+      allow create: if isSignedIn() && isRestaurantOwner(restaurantId) && request.resource.data.restaurantId == restaurantId;
       allow update: if isSignedIn() && isRestaurantOwner(restaurantId) && request.resource.data.restaurantId == restaurantId;
       allow delete: if isSignedIn() && isRestaurantOwner(restaurantId);
     }
