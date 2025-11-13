@@ -95,15 +95,13 @@ export default function RestaurantDetailsPage() {
   const onSubmit = (data: RestaurantFormValues) => {
     if (!restaurantId || !firestore) return;
     
-    // The restaurantRef is already pointing to the correct document,
-    // which is doc(firestore, 'restaurants', restaurantId)
     const docRef = doc(firestore, 'restaurants', restaurantId);
     
     const { openingTime, closingTime, ...restData } = data;
 
     const submissionData = {
         ...restData,
-        id: restaurantId, // Ensure the ID field is in the document data
+        id: restaurantId,
         storeOwnerId: restaurantId,
         openingHours: `${openingTime} - ${closingTime}`,
     }
