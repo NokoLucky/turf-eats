@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { ShoppingCart, User, LogOut, LayoutDashboard } from 'lucide-react';
 
 import { useCart } from '@/context/cart-context';
+import { useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -17,12 +17,20 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import Logo from '@/components/logo';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function Header() {
   const { state } = useCart();
+  const { user } = useUser();
   const cartItemCount = state.items.reduce((acc, item) => acc + item.quantity, 0);
-  const avatarImage = PlaceHolderImages.find((img) => img.id === 'avatar-1');
+
+  const getInitials = (name?: string | null) => {
+    if (!name) return 'U';
+    const names = name.split(' ');
+    if (names.length > 1) {
+      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -55,22 +63,18 @@ export default function Header() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  {avatarImage && (
-                    <AvatarImage
-                      src={avatarImage.imageUrl}
-                      alt={avatarImage.description}
-                      data-ai-hint={avatarImage.imageHint}
-                    />
-                  )}
-                  <AvatarFallback>U</AvatarFallback>
+                  {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || 'User'} />}
+                  <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">User</p>
-                  <p className="text-xs leading-none text-muted-foreground">user@example.com</p>
+                  <p className="text-sm font-medium leading-none">{user?.displayName || 'User'}</p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {user?.email || 'No email provided'}
+                  </p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
