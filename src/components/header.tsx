@@ -45,7 +45,7 @@ export default function Header() {
           </Link>
         </nav>
         <div className="ml-auto flex items-center gap-4">
-          <Button asChild variant="ghost" size="icon" className="relative">
+          <Button asChild size="icon" className="relative rounded-full bg-accent text-accent-foreground hover:bg-accent/90">
             <Link href="/cart">
               <ShoppingCart className="h-5 w-5" />
               {cartItemCount > 0 && (
