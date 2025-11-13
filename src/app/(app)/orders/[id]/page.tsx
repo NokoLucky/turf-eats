@@ -1,14 +1,15 @@
+
 import { notFound } from 'next/navigation';
 import { orders, type OrderStatus } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, Moped, Pizza, Circle } from 'lucide-react';
+import { CheckCircle, Bike, Pizza, Circle } from 'lucide-react';
 import OrderTrackingMap from '@/components/order-tracking-map';
 
 const statusSteps: { status: OrderStatus; icon: React.ReactNode; label: string }[] = [
     { status: 'Placed', icon: <Circle />, label: 'Order Placed' },
     { status: 'Preparing', icon: <Pizza />, label: 'Preparing' },
-    { status: 'Out for Delivery', icon: <Moped />, label: 'Out for Delivery' },
+    { status: 'Out for Delivery', icon: <Bike />, label: 'Out for Delivery' },
     { status: 'Delivered', icon: <CheckCircle />, label: 'Delivered' },
 ];
 
