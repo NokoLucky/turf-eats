@@ -8,7 +8,7 @@ import * as z from 'zod';
 import { PlusCircle, Trash2, Edit, MoreHorizontal } from 'lucide-react';
 import Image from 'next/image';
 
-import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import type { MenuItem } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,7 +77,7 @@ function MenuItemDialog({
       toast({ title: 'Menu item updated!' });
     } else {
       // Add new item: generate ID client-side first
-      const newDocRef = doc(menuItemsCollectionRef); // Creates a ref with a new auto-generated ID in the sub-collection
+      const newDocRef = doc(menuItemsCollectionRef);
       const newId = newDocRef.id;
       setDocumentNonBlocking(newDocRef, { ...data, id: newId, restaurantId });
       toast({ title: 'Menu item added!' });
@@ -162,6 +162,7 @@ function MenuItemDialog({
 export default function MenuManagementPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | undefined>(undefined);
 
@@ -185,10 +186,15 @@ export default function MenuManagementPage() {
     setDialogOpen(true);
   };
 
-  const handleDelete = async (itemId: string) => {
+  const handleDelete = (itemId: string) => {
     if (!firestore || !restaurantId) return;
     if (confirm('Are you sure you want to delete this item?')) {
-      await deleteDoc(doc(firestore, 'restaurants', restaurantId, 'menuItems', itemId));
+      const docRef = doc(firestore, 'restaurants', restaurantId, 'menuItems', itemId);
+      deleteDocumentNonBlocking(docRef);
+      toast({
+        title: "Item Deleted",
+        description: "The menu item has been removed.",
+      });
     }
   };
   
@@ -264,5 +270,3 @@ export default function MenuManagementPage() {
     </div>
   );
 }
-
-    

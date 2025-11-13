@@ -92,13 +92,9 @@ service cloud.firestore {
      * @principle Allows public read access with owner-only writes.
      */
     match /restaurants/{restaurantId} {
-      // Allow anyone to read restaurant information
-      allow get, list: if true;
-
-      // Only allow the store owner to create, update, and delete their restaurant.
-      allow create: if isSignedIn() && request.resource.data.storeOwnerId == request.auth.uid;
-      allow update: if isSignedIn() && request.resource.data.storeOwnerId == request.auth.uid && resource.data.storeOwnerId == request.auth.uid;
-      allow delete: if isSignedIn() && isExistingOwner(resource.data.storeOwnerId);
+        allow get, list: if true;
+        allow create, update: if isSignedIn() && request.auth.uid == request.resource.data.storeOwnerId;
+        allow delete: if isSignedIn() && request.auth.uid == resource.data.storeOwnerId;
     }
 
     /**
@@ -111,13 +107,9 @@ service cloud.firestore {
      * @principle Allows public read access with owner-only writes, based on the parent restaurant's storeOwnerId.
      */
     match /restaurants/{restaurantId}/menuItems/{menuItemId} {
-      // Allow anyone to read menu item information
-      allow get, list: if true;
-
-      // Only allow the store owner to create, update, and delete menu items for their restaurant.
-      allow create: if isSignedIn() && isRestaurantOwner(restaurantId) && request.resource.data.restaurantId == restaurantId;
-      allow update: if isSignedIn() && isRestaurantOwner(restaurantId) && request.resource.data.restaurantId == restaurantId;
-      allow delete: if isSignedIn() && isRestaurantOwner(restaurantId);
+        allow get, list: if true;
+        allow create, update: if isSignedIn() && isRestaurantOwner(restaurantId);
+        allow delete: if isSignedIn() && isRestaurantOwner(restaurantId);
     }
 
     /**
@@ -183,7 +175,8 @@ service cloud.firestore {
 
     // Checks if the user is the owner of a restaurant based on restaurantId.
     function isRestaurantOwner(restaurantId) {
-      return get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid;
+      let restaurant = get(/databases/$(database)/documents/restaurants/$(restaurantId)).data;
+      return restaurant.storeOwnerId == request.auth.uid;
     }
 
     // Checks if the user is a participant (customer, restaurant, or driver) in an order based on their ID.
