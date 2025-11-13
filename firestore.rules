@@ -15,7 +15,14 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    match /users/{userId}/{document=**} {
+    // Specific rules for user profile subcollections
+    match /users/{userId}/customers/{customerId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+    match /users/{userId}/drivers/{driverId} {
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+    }
+    match /users/{userId}/storeOwners/{storeOwnerId} {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
 
@@ -27,24 +34,32 @@ service cloud.firestore {
 
     match /restaurants/{restaurantId}/menuItems/{menuItemId} {
         allow get, list: if true;
-        allow create, update: if isSignedIn() && get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid;
-        allow delete: if isSignedIn() && get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid;
+        allow create, update, delete: if isSignedIn() && get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid;
     }
 
     match /orders/{orderId} {
-      allow get: if isSignedIn() && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.restaurantId || request.auth.uid == resource.data.driverId);
-      allow list: if false;
+      function isOrderParticipant() {
+        return request.auth.uid == resource.data.customerId || 
+               request.auth.uid == resource.data.restaurantId || 
+               request.auth.uid == resource.data.driverId;
+      }
+      
+      allow get: if isSignedIn() && isOrderParticipant();
+      allow list: if false; // Deny broad listing of orders for security
       allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
-      allow update, delete: if isSignedIn() && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.restaurantId || request.auth.uid == resource.data.driverId);
+      allow update: if isSignedIn() && isOrderParticipant();
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.customerId; // Only customer can delete
     }
 
     match /orders/{orderId}/orderItems/{orderItemId} {
-      function isOrderParticipant() {
+      function isParentOrderParticipant() {
         let order = get(/databases/$(database)/documents/orders/$(orderId)).data;
-        return request.auth.uid == order.customerId || request.auth.uid == order.restaurantId || request.auth.uid == order.driverId;
+        return request.auth.uid == order.customerId || 
+               request.auth.uid == order.restaurantId || 
+               request.auth.uid == order.driverId;
       }
 
-      allow read, write: if isSignedIn() && isOrderParticipant();
+      allow read, write: if isSignedIn() && isParentOrderParticipant();
     }
   }
 }
