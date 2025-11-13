@@ -5,6 +5,7 @@ import { doc } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useRouter } from 'next/navigation';
 
 import { useFirestore, useUser, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import type { Restaurant } from '@/lib/data';
@@ -56,6 +57,7 @@ export default function RestaurantDetailsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
   
   // A store owner's user ID is the same as their restaurant's document ID.
   const restaurantId = user?.uid;
@@ -108,6 +110,8 @@ export default function RestaurantDetailsPage() {
       title: 'Restaurant Updated',
       description: 'Your restaurant details have been saved.',
     });
+
+    router.push('/owner/dashboard');
   };
 
   return (

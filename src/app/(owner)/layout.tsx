@@ -1,10 +1,30 @@
+'use client';
 import Link from 'next/link';
-import { LogOut, Store, Utensils as MenuIcon, Settings } from 'lucide-react';
+import { doc } from 'firebase/firestore';
+import { LogOut, Store, Utensils as MenuIcon, Settings, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import Logo from '@/components/logo';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import type { Restaurant } from '@/lib/data';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function OwnerHeader() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const restaurantRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'restaurants', user.uid);
+  }, [user, firestore]);
+
+  const { data: restaurant, isLoading } = useDoc<Restaurant>(restaurantRef);
+
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
       <div className="container flex h-16 items-center">
@@ -16,7 +36,7 @@ function OwnerHeader() {
           <Link href="/owner/menu" className="transition-colors hover:text-primary">
             Menu
           </Link>
-           <Link href="/owner/orders" className="transition-colors hover:text-primary">
+          <Link href="/owner/orders" className="transition-colors hover:text-primary">
             Orders
           </Link>
         </nav>
@@ -24,18 +44,22 @@ function OwnerHeader() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2">
-                <Store className="h-5 w-5 text-primary"/>
-                <span>My Restaurant</span>
+                <Store className="h-5 w-5 text-primary" />
+                {isLoading ? (
+                  <Skeleton className="h-5 w-24" />
+                ) : (
+                  <span className='truncate max-w-xs'>{restaurant?.name || 'My Restaurant'}</span>
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-               <DropdownMenuItem asChild>
+              <DropdownMenuItem asChild>
                 <Link href="/owner/restaurant">
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Restaurant Details</span>
                 </Link>
               </DropdownMenuItem>
-               <DropdownMenuItem asChild>
+              <DropdownMenuItem asChild>
                 <Link href="/owner/menu">
                   <MenuIcon className="mr-2 h-4 w-4" />
                   <span>Manage Menu</span>
