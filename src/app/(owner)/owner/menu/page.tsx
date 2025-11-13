@@ -8,7 +8,7 @@ import * as z from 'zod';
 import { PlusCircle, Trash2, Edit, MoreHorizontal } from 'lucide-react';
 import Image from 'next/image';
 
-import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import type { MenuItem } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +19,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   DropdownMenu,
@@ -76,8 +75,8 @@ function MenuItemDialog({
       setDocumentNonBlocking(docRef, { ...data, restaurantId }, { merge: true });
       toast({ title: 'Menu item updated!' });
     } else {
-      // Add new item
-      const newDocRef = doc(collectionRef);
+      // Add new item: generate ID client-side first
+      const newDocRef = doc(collectionRef); // Creates a ref with a new auto-generated ID
       const newId = newDocRef.id;
       setDocumentNonBlocking(newDocRef, { ...data, id: newId, restaurantId });
       toast({ title: 'Menu item added!' });
