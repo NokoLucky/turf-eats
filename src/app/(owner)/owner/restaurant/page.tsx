@@ -94,11 +94,12 @@ export default function RestaurantDetailsPage() {
   }, [restaurantData, form]);
 
   const onSubmit = (data: RestaurantFormValues) => {
-    if (!restaurantRef) return;
+    if (!restaurantRef || !restaurantId) return;
     
     const { openingTime, closingTime, ...restData } = data;
 
     const submissionData = {
+        id: restaurantId, // Ensure the document ID is part of the data
         ...restData,
         openingHours: `${openingTime} - ${closingTime}`,
         storeOwnerId: restaurantId, // Ensure storeOwnerId is set

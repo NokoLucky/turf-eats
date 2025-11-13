@@ -86,8 +86,8 @@ service cloud.firestore {
      * @description Allows anyone to read restaurant information, but only the store owner can modify it.
      * @path /restaurants/{restaurantId}
      * @allow (get, list) - Any user can read restaurant information.
-     * @allow (create) - A store owner can create a restaurant, provided storeOwnerId matches their user ID.
-     * @allow (update, delete) - The store owner can update or delete their restaurant.
+     * @allow (create, update) - A store owner can create or update a restaurant, provided storeOwnerId and restaurantId match their user ID.
+     * @allow (delete) - The store owner can delete their restaurant.
      * @deny (create, update, delete) - Any other user attempts to modify this restaurant.
      * @principle Allows public read access with owner-only writes.
      */
@@ -96,8 +96,7 @@ service cloud.firestore {
       allow get, list: if true;
 
       // Only allow the store owner to create, update, and delete their restaurant.
-      allow create: if isSignedIn() && request.resource.data.storeOwnerId == request.auth.uid;
-      allow update: if isSignedIn() && isExistingOwner(resource.data.storeOwnerId);
+      allow create, update: if isSignedIn() && request.resource.data.storeOwnerId == request.auth.uid && restaurantId == request.auth.uid;
       allow delete: if isSignedIn() && isExistingOwner(resource.data.storeOwnerId);
     }
 
