@@ -1,13 +1,13 @@
 'use client'
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { CheckCircle, Bike, Pizza, Circle, ShoppingBag } from 'lucide-react';
 import OrderTrackingMap from '@/components/order-tracking-map';
-import { useDoc, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { doc, collection, getDoc, getDocs, onSnapshot } from 'firebase/firestore';
 import type { Order, OrderItem, OrderStatus, Restaurant } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
@@ -72,60 +72,77 @@ function OrderDetailsSkeleton() {
 export default function OrderDetailsPage({ params }: { params: { id: string } }) {
   console.log('[OrderDetailsPage] Rendering with Order ID Param:', params.id);
   const firestore = useFirestore();
-
-  const orderRef = useMemoFirebase(() => {
-    if (!firestore || !params.id) return null;
-    console.log('[OrderDetailsPage] Creating document reference for:', `orders/${params.id}`);
-    return doc(firestore, 'orders', params.id);
-  }, [firestore, params.id]);
-  
-  const { data: order, isLoading: isOrderLoading, error: orderError } = useDoc<Order>(orderRef);
-
-  const restaurantRef = useMemoFirebase(() => 
-    (firestore && order?.restaurantId) ? doc(firestore, 'restaurants', order.restaurantId) : null
-  , [firestore, order?.restaurantId]);
-  const { data: restaurant } = useDoc<Restaurant>(restaurantRef);
-
-  const orderItemsRef = useMemoFirebase(() => {
-    if (!firestore || !params.id) return null;
-    console.log('[OrderDetailsPage] Creating collection reference for:', `orders/${params.id}/orderItems`);
-    return collection(firestore, 'orders', params.id, 'orderItems');
-  }, [firestore, params.id]);
-  const { data: orderItems, isLoading: areItemsLoading, error: itemsError } = useCollection<OrderItem>(orderItemsRef);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log('[OrderDetailsPage] Order State Change:', {
-        isOrderLoading,
-        order,
-        orderError,
-    });
-    console.log('[OrderDetailsPage] Order Items State Change:', {
-        areItemsLoading,
-        orderItems,
-        itemsError,
-    });
-  }, [isOrderLoading, order, orderError, areItemsLoading, orderItems, itemsError]);
+    if (!firestore || !params.id) return;
 
+    const orderRef = doc(firestore, 'orders', params.id);
+    
+    // Set up a real-time listener for the main order document to get status updates
+    const unsubscribe = onSnapshot(orderRef, 
+      (docSnap) => {
+        if (docSnap.exists()) {
+          console.log('[OrderDetailsPage] Order document found:', docSnap.data());
+          const orderData = { id: docSnap.id, ...docSnap.data() } as Order;
+          setOrder(orderData);
 
-  const isLoading = isOrderLoading || areItemsLoading;
+          // Fetch related data only after we confirm the order exists
+          // Fetch restaurant data
+          if (orderData.restaurantId) {
+            const restaurantRef = doc(firestore, 'restaurants', orderData.restaurantId);
+            getDoc(restaurantRef).then(restaurantSnap => {
+              if (restaurantSnap.exists()) {
+                setRestaurant({ id: restaurantSnap.id, ...restaurantSnap.data() } as Restaurant);
+              }
+            });
+          }
 
-  if (!isLoading && !order) {
-    console.error('[OrderDetailsPage] Condition met: Not loading and no order found. Triggering 404.');
-    notFound();
-  }
+          // Fetch order items
+          const itemsRef = collection(firestore, 'orders', params.id, 'orderItems');
+          getDocs(itemsRef).then(itemsSnap => {
+            const items = itemsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as OrderItem));
+            console.log('[OrderDetailsPage] Order items found:', items);
+            setOrderItems(items);
+          });
+
+        } else {
+          console.log('[OrderDetailsPage] No such order document!');
+          setOrder(null);
+        }
+        setIsLoading(false);
+      },
+      (error) => {
+        console.error("[OrderDetailsPage] Snapshot error:", error);
+        setIsLoading(false);
+        setOrder(null);
+      }
+    );
+
+    return () => unsubscribe(); // Cleanup the listener on unmount
+  }, [firestore, params.id]);
+
 
   if (isLoading) {
     return <OrderDetailsSkeleton />;
   }
 
-  const currentStatusIndex = statusSteps.findIndex(step => step.status === order!.status);
+  if (!order) {
+    console.error('[OrderDetailsPage] Condition met: Not loading and no order found. Triggering 404.');
+    notFound();
+  }
+
+  const currentStatusIndex = statusSteps.findIndex(step => step.status === order.status);
 
   return (
     <div className="container py-12 px-4 sm:px-8">
       <div className="mb-8">
-        <h1 className="font-headline text-4xl font-bold">Order #{order!.id.slice(0, 6)}...</h1>
+        <h1 className="font-headline text-4xl font-bold">Order #{order.id.slice(0, 6)}...</h1>
         <p className="text-muted-foreground mt-2">
-          From <span className="font-semibold text-primary">{restaurant?.name || '...'}</span> on {order!.orderDate ? format(order!.orderDate.toDate(), 'PPP') : 'N/A'}
+          From <span className="font-semibold text-primary">{restaurant?.name || '...'}</span> on {order.orderDate ? format(order.orderDate.toDate(), 'PPP') : 'N/A'}
         </p>
       </div>
 
@@ -174,7 +191,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
                 {!orderItems || orderItems.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center text-muted-foreground py-8">
                         <ShoppingBag className="h-10 w-10 mb-4" />
-                        <p>Loading items or no items found for this order...</p>
+                        <p>Loading items...</p>
                     </div>
                 ) : (
                     <>
@@ -189,7 +206,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
                         <Separator className="my-4" />
                         <div className="flex justify-between font-bold text-lg">
                             <span>Total</span>
-                            <span>R{order!.totalAmount.toFixed(2)}</span>
+                            <span>R{order.totalAmount.toFixed(2)}</span>
                         </div>
                     </>
                 )}
