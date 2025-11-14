@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,11 +21,16 @@ export default function CheckoutPage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  if (state.items.length === 0) {
-    // Redirect to dashboard if cart is empty
-    if(typeof window !== 'undefined') {
-        router.replace('/dashboard');
+  useEffect(() => {
+    // If cart is empty, redirect away from checkout.
+    // This must be in a useEffect to avoid state updates during render.
+    if (state.items.length === 0) {
+      router.replace('/dashboard');
     }
+  }, [state.items, router]);
+
+  // If the cart is empty, render nothing while the redirect is in-flight.
+  if (state.items.length === 0) {
     return null;
   }
 
@@ -78,10 +84,10 @@ export default function CheckoutPage() {
 
       // 2. Create order items in a batch
       const batch = writeBatch(firestore);
-      const orderItemsCollection = collection(orderDocRef, 'orderItems');
-
+      
       for (const item of state.items) {
-        const orderItemRef = doc(orderItemsCollection); // Creates a ref with a new auto-ID
+        // Correctly create a new doc reference in a subcollection for each item
+        const orderItemRef = doc(collection(firestore, `orders/${orderDocRef.id}/orderItems`));
         batch.set(orderItemRef, {
             orderId: orderDocRef.id,
             menuItemId: item.id,
