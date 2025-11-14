@@ -93,7 +93,7 @@ export default function CheckoutPage() {
             menuItemId: item.id,
             quantity: item.quantity,
             itemPrice: item.price,
-            name: item.name,
+            name: item.name, // Denormalize for easier display
         });
       }
 

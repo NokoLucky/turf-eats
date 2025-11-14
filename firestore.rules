@@ -11,6 +11,7 @@ service cloud.firestore {
     }
 
     function isRestaurantOwner(restaurantId) {
+      // This function can only be used for document-level (get, create, update, delete) rules, not list rules.
       return isSignedIn() && get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid;
     }
     
@@ -21,7 +22,7 @@ service cloud.firestore {
     match /restaurants/{restaurantId} {
       allow get, list: if true;
       allow create: if isSignedIn();
-      allow update, delete: if isOwner(resource.data.storeOwnerId);
+      allow update, delete: if isRestaurantOwner(restaurantId);
     }
 
     match /restaurants/{restaurantId}/menuItems/{menuItemId} {
@@ -30,31 +31,31 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      // Customer can list their own orders. Owner can list orders for their restaurant.
-      // Firestore rules for list operations require that the query constraints match the rule.
-      // This is more restrictive than document-level access.
-      allow list: if (request.query.where.customerId == request.auth.uid && isSignedIn()) || (request.query.where.storeOwnerId == request.auth.uid && isSignedIn());
+      // This is the key fix: A single 'list' rule that covers both customers and owners.
+      // It allows a query if the query constrains either 'customerId' OR 'storeOwnerId' to the user's UID.
+      // Firestore enforces that the query made by the client MUST match one of these conditions.
+      allow list: if isSignedIn() && (request.query.where.customerId == request.auth.uid || request.query.where.storeOwnerId == request.auth.uid);
       
-      // Customer: Can create an order.
-      allow create: if isSignedIn();
+      // Customer: Can create an order for themselves.
+      allow create: if isOwner(request.resource.data.customerId);
       
-      // Customer: Can read their own order.
-      // Owner: Can read orders for their restaurant.
+      // Customer can read their own order.
+      // Owner can read orders for their restaurant.
       allow read: if isOwner(resource.data.customerId) || isOwner(resource.data.storeOwnerId);
 
-      // Owner/Driver: Can update status.
-      // Customer: Can update (e.g. to cancel).
+      // Customer, Owner, or Driver can update an order (e.g., status change).
       allow update: if isOwner(resource.data.customerId) || isOwner(resource.data.storeOwnerId) || isOwner(resource.data.driverId);
       
-      // Customer: Can delete their own order.
+      // Customer can delete their own order (e.g. cancel).
       allow delete: if isOwner(resource.data.customerId);
 
       match /orderItems/{orderItemId} {
-        // Access is inherited from the parent order document.
+        // Access is inherited from the parent order document for reads.
         allow read: if isOwner(get(/databases/$(database)/documents/orders/$(orderId)).data.customerId) || isOwner(get(/databases/$(database)/documents/orders/$(orderId)).data.storeOwnerId);
-        // Only the order creator can create items for it (done in a batch).
+        
+        // Only the customer who created the order can add items to it.
         allow create: if isOwner(get(/databases/$(database)/documents/orders/$(orderId)).data.customerId);
-    }
+      }
     }
   }
 }
