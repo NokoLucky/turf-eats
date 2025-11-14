@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useMapsLibrary } from '@vis.gl/react-google-maps';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
-import { Search, MapPin, Loader2 } from 'lucide-react';
+import { Search, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AddressAutocompleteProps {
@@ -17,104 +17,138 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
   const places = useMapsLibrary('places');
   const geocoding = useMapsLibrary('geocoding');
 
-  const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
-  const [geocoder, setGeocoder] = useState<google.maps.Geocoder | null>(null);
-
   const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [internalValue, setInternalValue] = useState(value || '');
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (places && !autocompleteService) {
-      setAutocompleteService(new places.AutocompleteService());
-    }
-     if (geocoding && !geocoder) {
-      setGeocoder(new geocoding.Geocoder());
-    }
-  }, [places, autocompleteService, geocoding, geocoder]);
+  const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null);
+  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
   
+  const [internalValue, setInternalValue] = useState(value || '');
+
+  // Initialize services when libraries are loaded
   useEffect(() => {
-    if (value !== internalValue) {
-      setInternalValue(value || '');
+    if (places) {
+      autocompleteServiceRef.current = new places.AutocompleteService();
     }
+    if (geocoding) {
+      geocoderRef.current = new geocoding.Geocoder();
+    }
+  }, [places, geocoding]);
+
+  // Sync internal state if the external value changes
+  useEffect(() => {
+    setInternalValue(value || '');
   }, [value]);
 
+  // Debounced search function
   useEffect(() => {
+    if (!autocompleteServiceRef.current || !internalValue || internalValue.length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
     const timer = setTimeout(() => {
-      if (!autocompleteService || internalValue.length < 3) {
-        setSuggestions([]);
-        setShowSuggestions(false);
-        return;
-      }
       setIsLoading(true);
-      autocompleteService.getPlacePredictions(
-        { input: internalValue, componentRestrictions: { country: 'za' } },
-        (predictions, status) => {
-          setIsLoading(false);
-          if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-            setSuggestions(predictions);
-            setShowSuggestions(true);
-          } else {
-            setSuggestions([]);
-            setShowSuggestions(false);
+      
+      autocompleteServiceRef.current!.getPlacePredictions({
+        input: internalValue,
+        componentRestrictions: { country: 'za' },
+        types: ['address']
+      }, (predictions, status) => {
+        setIsLoading(false);
+        
+        if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+          setSuggestions(predictions);
+          setShowSuggestions(true);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+          if (status !== google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+            console.error('❌ [AddressAutocomplete] Autocomplete error:', status);
           }
         }
-      );
-    }, 500);
+      });
+    }, 300);
 
     return () => clearTimeout(timer);
-  }, [internalValue, autocompleteService]);
+  }, [internalValue]);
 
+  // Click outside handler
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
       }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSelectSuggestion = (description: string) => {
-    onChange(description);
-    setInternalValue(description);
-    setShowSuggestions(false);
-    setSuggestions([]);
-  };
-  
-  const handleUseCurrentLocation = () => {
-    if (!geocoder) {
-       toast({ variant: 'destructive', title: 'Error', description: 'Geocoding service is not ready.' });
-       return;
+  const handleSelectSuggestion = (placeId: string, description: string) => {
+    if (!geocoderRef.current) {
+      // Fallback: just use the description
+      onChange(description);
+      setInternalValue(description);
+      setShowSuggestions(false);
+      return;
     }
-    if (!navigator.geolocation) {
-       toast({ variant: 'destructive', title: 'Geolocation Error', description: "Your browser does not support geolocation." });
-       return;
+
+    // Get full address details using Geocoding API
+    geocoderRef.current.geocode({ placeId }, (results, status) => {
+      if (status === 'OK' && results && results[0]) {
+        const fullAddress = results[0].formatted_address;
+        onChange(fullAddress);
+        setInternalValue(fullAddress);
+      } else {
+        // Fallback to the description
+        onChange(description);
+        setInternalValue(description);
+      }
+      setShowSuggestions(false);
+    });
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation || !geocoderRef.current) {
+      toast({ 
+        variant: "destructive", 
+        title: "Geolocation not supported", 
+        description: "Your browser doesn't support geolocation or maps library isn't ready." 
+      });
+      return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const latLng = {
+        const latlng = {
           lat: position.coords.latitude,
-          lng: position.coords.longitude,
+          lng: position.coords.longitude
         };
-        geocoder.geocode({ location: latLng }, (results, status) => {
+        
+        geocoderRef.current!.geocode({ location: latlng }, (results, status) => {
           if (status === 'OK' && results && results[0]) {
             const address = results[0].formatted_address;
             onChange(address);
             setInternalValue(address);
-            toast({ title: 'Location Updated', description: 'Your current location has been set.' });
+            toast({ title: "Location Updated", description: "Your current location has been set." });
           } else {
-            toast({ variant: 'destructive', title: 'Geocoding Error', description: `Could not find address. Status: ${status}` });
+            toast({ 
+              variant: "destructive", 
+              title: "Could not find address", 
+              description: `Reverse geocoding failed: ${status}` 
+            });
           }
         });
       },
-      () => {
-        toast({ variant: 'destructive', title: 'Location Access Denied', description: 'Please enable location permissions.' });
+      (error) => {
+        console.error('Error getting location:', error);
+        toast({ 
+          variant: "destructive", 
+          title: "Location Access Denied", 
+          description: "Please enable location permissions in your browser." 
+        });
       }
     );
   };
@@ -125,6 +159,31 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
     onChange(newValue);
   };
 
+  // Show loading state while libraries are loading
+  if (!places || !geocoding) {
+    return (
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <Input
+            value={internalValue}
+            onChange={handleInputChange}
+            placeholder="Loading address services..."
+            disabled
+          />
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          disabled
+          title="Loading maps services..."
+        >
+          <MapPin className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="relative" ref={containerRef}>
       <div className="flex gap-2">
@@ -132,16 +191,13 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
           <Input
             value={internalValue}
             onChange={handleInputChange}
-            onFocus={() => { 
-              if (suggestions.length > 0) setShowSuggestions(true); 
-            }}
+            onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
             placeholder="Enter your delivery address..."
             className="pr-10"
-            disabled={!autocompleteService}
           />
           {isLoading && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <Loader2 className="animate-spin h-4 w-4 text-primary" />
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
             </div>
           )}
         </div>
@@ -151,7 +207,6 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
           size="icon"
           onClick={handleUseCurrentLocation}
           title="Use current location"
-          disabled={!geocoder}
         >
           <MapPin className="h-4 w-4" />
         </Button>
@@ -164,7 +219,7 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
               key={suggestion.place_id}
               type="button"
               className="w-full text-left px-4 py-2 hover:bg-accent hover:text-accent-foreground transition-colors"
-              onClick={() => handleSelectSuggestion(suggestion.description)}
+              onClick={() => handleSelectSuggestion(suggestion.place_id, suggestion.description)}
             >
               <div className="flex items-start gap-2">
                 <Search className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />

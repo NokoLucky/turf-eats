@@ -8,7 +8,7 @@ const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <APIProvider apiKey={API_KEY}>
+    <APIProvider apiKey={API_KEY} version="beta" libraries={['places', 'geocoding']}>
       <CartProvider>
         <div className="relative flex min-h-screen flex-col">
           <Header />
