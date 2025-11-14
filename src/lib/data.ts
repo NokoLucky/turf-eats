@@ -32,53 +32,6 @@ export type Restaurant = {
   openingHours: string;
 };
 
-export const restaurants: Omit<Restaurant, 'menu'>[] = [
-  {
-    id: '1',
-    name: 'The Golden Spatula',
-    logoUrl: findImage('restaurant-logo-1').imageUrl,
-    rating: 4.5,
-    category: 'Diner',
-    bannerUrl: findImage('restaurant-banner-1').imageUrl,
-    storeOwnerId: '',
-    address: '',
-    openingHours: '9:00 AM - 10:00 PM'
-  },
-  {
-    id: '2',
-    name: 'The Green Leaf',
-    logoUrl: findImage('restaurant-logo-2').imageUrl,
-    rating: 4.8,
-    category: 'Healthy',
-    bannerUrl: 'https://picsum.photos/seed/turf11/1200/400',
-    storeOwnerId: '',
-    address: '',
-    openingHours: '10:00 AM - 8:00 PM'
-  },
-  {
-    id: '3',
-    name: 'Pizza Palace',
-    logoUrl: findImage('restaurant-logo-3').imageUrl,
-    rating: 4.2,
-    category: 'Pizza',
-    bannerUrl: 'https://picsum.photos/seed/turf12/1200/400',
-    storeOwnerId: '',
-    address: '',
-    openingHours: '11:00 AM - 11:00 PM'
-  },
-  {
-    id: '4',
-    name: 'Sushi Central',
-    logoUrl: findImage('restaurant-logo-4').imageUrl,
-    rating: 4.7,
-    category: 'Japanese',
-    bannerUrl: 'https://picsum.photos/seed/turf13/1200/400',
-    storeOwnerId: '',
-    address: '',
-    openingHours: '12:00 PM - 9:00 PM'
-  },
-];
-
 export type OrderStatus = 'Placed' | 'Preparing' | 'Out for Delivery' | 'Delivered' | 'Cancelled';
 
 export type Order = {
