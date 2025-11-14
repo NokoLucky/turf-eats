@@ -16,17 +16,6 @@ export default function Header() {
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
         <Logo />
-        <nav className="ml-6 hidden items-center gap-6 text-sm font-medium md:flex">
-          <Link href="/dashboard" className="transition-colors hover:text-primary">
-            Restaurants
-          </Link>
-          <Link href="/orders" className="transition-colors hover:text-primary">
-            My Orders
-          </Link>
-           <Link href="/profile" className="transition-colors hover:text-primary">
-            My Profile
-          </Link>
-        </nav>
         <div className="ml-auto flex items-center gap-4">
           <Button asChild size="icon" className="relative bg-accent text-accent-foreground hover:bg-accent/90">
             <Link href="/cart">

@@ -21,7 +21,7 @@ const statusSteps: { status: OrderStatus; icon: React.ReactNode; label: string }
 
 function OrderDetailsSkeleton() {
   return (
-    <div className="container py-12">
+    <div className="container py-12 px-4 sm:px-8">
         <div className="mb-8">
             <Skeleton className="h-10 w-1/2" />
             <Skeleton className="h-5 w-1/3 mt-2" />
@@ -89,22 +89,27 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
 
   const isLoading = isOrderLoading || areItemsLoading;
 
+  // Use this check to decide when to show the 404 page.
+  // It should only trigger if loading is complete AND the order still isn't found.
+  if (!isLoading && !order) {
+    notFound();
+  }
+
+  // Show a skeleton or loading state while data is being fetched.
   if (isLoading) {
     return <OrderDetailsSkeleton />;
   }
 
-  if (!order) {
-    notFound();
-  }
-
-  const currentStatusIndex = statusSteps.findIndex(step => step.status === order.status);
+  // At this point, if there's no order, the `notFound()` would have already been called.
+  // We can safely assume `order` exists.
+  const currentStatusIndex = statusSteps.findIndex(step => step.status === order!.status);
 
   return (
     <div className="container py-12 px-4 sm:px-8">
       <div className="mb-8">
-        <h1 className="font-headline text-4xl font-bold">Order #{order.id.slice(0, 6)}...</h1>
+        <h1 className="font-headline text-4xl font-bold">Order #{order!.id.slice(0, 6)}...</h1>
         <p className="text-muted-foreground mt-2">
-          From <span className="font-semibold text-primary">{restaurant?.name || '...'}</span> on {order.orderDate ? format(order.orderDate.toDate(), 'PPP') : 'N/A'}
+          From <span className="font-semibold text-primary">{restaurant?.name || '...'}</span> on {order!.orderDate ? format(order!.orderDate.toDate(), 'PPP') : 'N/A'}
         </p>
       </div>
 
@@ -153,7 +158,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
                 {!orderItems || orderItems.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center text-muted-foreground py-8">
                         <ShoppingBag className="h-10 w-10 mb-4" />
-                        <p>No items found for this order.</p>
+                        <p>Loading items or no items found for this order...</p>
                     </div>
                 ) : (
                     <>
@@ -168,7 +173,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
                         <Separator className="my-4" />
                         <div className="flex justify-between font-bold text-lg">
                             <span>Total</span>
-                            <span>R{order.totalAmount.toFixed(2)}</span>
+                            <span>R{order!.totalAmount.toFixed(2)}</span>
                         </div>
                     </>
                 )}
