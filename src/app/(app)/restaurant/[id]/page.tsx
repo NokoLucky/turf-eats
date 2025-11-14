@@ -52,7 +52,18 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
   }, [firestore, id]);
 
   const handleAddToCart = (item: MenuItem) => {
-    dispatch({ type: 'ADD_ITEM', payload: { ...item, image: { id: item.id, imageUrl: item.imageUrl, description: item.name, imageHint: 'food' } } });
+    dispatch({
+      type: 'ADD_ITEM',
+      payload: {
+        ...item,
+        image: {
+          id: item.id,
+          imageUrl: item.imageUrl,
+          description: item.name,
+          imageHint: 'food item',
+        },
+      },
+    });
     toast({
       title: 'Added to cart!',
       description: `${item.name} has been added to your cart.`,
