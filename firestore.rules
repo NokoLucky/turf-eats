@@ -11,6 +11,8 @@ service cloud.firestore {
     }
 
     function isRestaurantOwner(restaurantId) {
+      // Note: This function can't be used in 'list' rules directly
+      // because get() is not allowed in list rules.
       return isSignedIn() && get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid;
     }
 
@@ -34,16 +36,20 @@ service cloud.firestore {
 
     // Orders
     match /orders/{orderId} {
-      // Allow list/read only if the order belongs to the user
-      allow list, get: if isSignedIn() && resource.data.customerId == request.auth.uid;
-      // Allow create for any signed-in user
+      // Allow a user to query for their own orders.
+      allow list: if isSignedIn() && request.query.where.customerId == request.auth.uid;
+      // Allow a user to read their own specific order.
+      allow get: if isSignedIn() && resource.data.customerId == request.auth.uid;
+      // Allow a restaurant owner to read orders for their restaurant.
+      allow get: if isRestaurantOwner(resource.data.restaurantId);
+      // Allow create for any signed-in user.
       allow create: if isSignedIn();
-      // Allow update/delete only for the customer who created it or the restaurant owner
+      // Allow update/delete only for the customer who created it or the restaurant owner.
       allow update, delete: if (isSignedIn() && resource.data.customerId == request.auth.uid) || isRestaurantOwner(resource.data.restaurantId);
       
-      // Order items can be read if the user can read the parent order
+      // Order items can be read if the user can read the parent order.
       match /orderItems/{orderItemId} {
-        allow read, list: if isSignedIn() && get(/databases/$(database)/documents/orders/$(orderId)).data.customerId == request.auth.uid;
+        allow read, list: if isSignedIn() && (get(/databases/$(database)/documents/orders/$(orderId)).data.customerId == request.auth.uid || isRestaurantOwner(get(/databases/$(database)/documents/orders/$(orderId)).data.restaurantId));
         allow create: if isSignedIn(); // Batch writes in app handle security
       }
     }
