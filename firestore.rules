@@ -36,17 +36,24 @@ service cloud.firestore {
 
     // Orders collection
     match /orders/{orderId} {
-      // Customer: Can list their own orders.
-      allow list: if isSignedIn() && request.query.where.customerId == request.auth.uid;
+      // Allow list for customers OR restaurant owners based on their queries.
+      allow list: if isSignedIn() && 
+                   (request.query.where.customerId == request.auth.uid || 
+                    request.query.where.restaurantId in get(/databases/$(database)/documents/users/$(request.auth.uid)/storeOwners/$(request.auth.uid)).data.restaurantIds);
+      
       // Customer: Can create an order.
       allow create: if isSignedIn();
-      // Customer: Can read, update, delete their own order.
-      allow read, update, delete: if isOwner(resource.data.customerId);
+      
+      // Customer: Can read their own order.
+      // Owner: Can read orders for their restaurant.
+      allow read: if isOwner(resource.data.customerId) || isRestaurantOwner(resource.data.restaurantId);
 
-      // Restaurant Owner: Can list orders for their restaurant.
-      allow list: if isSignedIn() && request.query.where.restaurantId == get(/databases/$(database)/documents/users/$(request.auth.uid)/storeOwners/$(request.auth.uid)).data.restaurantId;
-      // Restaurant Owner: Can read and update orders for their restaurant.
-      allow read, update: if isRestaurantOwner(resource.data.restaurantId);
+      // Owner: Can update status.
+      // Customer: Can update (e.g. to cancel).
+      allow update: if isOwner(resource.data.customerId) || isRestaurantOwner(resource.data.restaurantId);
+      
+      // Customer: Can delete their own order.
+      allow delete: if isOwner(resource.data.customerId);
     }
     
     // OrderItems sub-collection
