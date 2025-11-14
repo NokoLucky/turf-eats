@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -70,38 +70,54 @@ function OrderDetailsSkeleton() {
 }
 
 export default function OrderDetailsPage({ params }: { params: { id: string } }) {
+  console.log('[OrderDetailsPage] Rendering with Order ID Param:', params.id);
   const firestore = useFirestore();
 
-  const orderRef = useMemoFirebase(() => 
-    firestore ? doc(firestore, 'orders', params.id) : null
-  , [firestore, params.id]);
-  const { data: order, isLoading: isOrderLoading } = useDoc<Order>(orderRef);
+  const orderRef = useMemoFirebase(() => {
+    if (!firestore || !params.id) return null;
+    console.log('[OrderDetailsPage] Creating document reference for:', `orders/${params.id}`);
+    return doc(firestore, 'orders', params.id);
+  }, [firestore, params.id]);
+  
+  const { data: order, isLoading: isOrderLoading, error: orderError } = useDoc<Order>(orderRef);
 
   const restaurantRef = useMemoFirebase(() => 
     (firestore && order?.restaurantId) ? doc(firestore, 'restaurants', order.restaurantId) : null
   , [firestore, order?.restaurantId]);
   const { data: restaurant } = useDoc<Restaurant>(restaurantRef);
 
-  const orderItemsRef = useMemoFirebase(() =>
-    firestore ? collection(firestore, 'orders', params.id, 'orderItems') : null
-  , [firestore, params.id]);
-  const { data: orderItems, isLoading: areItemsLoading } = useCollection<OrderItem>(orderItemsRef);
+  const orderItemsRef = useMemoFirebase(() => {
+    if (!firestore || !params.id) return null;
+    console.log('[OrderDetailsPage] Creating collection reference for:', `orders/${params.id}/orderItems`);
+    return collection(firestore, 'orders', params.id, 'orderItems');
+  }, [firestore, params.id]);
+  const { data: orderItems, isLoading: areItemsLoading, error: itemsError } = useCollection<OrderItem>(orderItemsRef);
+
+  useEffect(() => {
+    console.log('[OrderDetailsPage] Order State Change:', {
+        isOrderLoading,
+        order,
+        orderError,
+    });
+    console.log('[OrderDetailsPage] Order Items State Change:', {
+        areItemsLoading,
+        orderItems,
+        itemsError,
+    });
+  }, [isOrderLoading, order, orderError, areItemsLoading, orderItems, itemsError]);
+
 
   const isLoading = isOrderLoading || areItemsLoading;
 
-  // Use this check to decide when to show the 404 page.
-  // It should only trigger if loading is complete AND the order still isn't found.
   if (!isLoading && !order) {
+    console.error('[OrderDetailsPage] Condition met: Not loading and no order found. Triggering 404.');
     notFound();
   }
 
-  // Show a skeleton or loading state while data is being fetched.
   if (isLoading) {
     return <OrderDetailsSkeleton />;
   }
 
-  // At this point, if there's no order, the `notFound()` would have already been called.
-  // We can safely assume `order` exists.
   const currentStatusIndex = statusSteps.findIndex(step => step.status === order!.status);
 
   return (
