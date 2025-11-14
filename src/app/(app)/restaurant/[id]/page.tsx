@@ -17,36 +17,32 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
   const { toast } = useToast();
   const { dispatch } = useCart();
   const firestore = useFirestore();
-  const [restaurant, setRestaurant] = useState<any>(null);
-  const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!firestore) return;
 
     const fetchData = async () => {
+      setIsLoading(true);
       try {
-        console.log('[Direct Fetch] Fetching restaurant:', id);
-        
-        // Fetch restaurant directly
-        const restaurantDoc = await getDoc(doc(firestore, 'restaurants', id));
-        console.log('[Direct Fetch] Restaurant exists:', restaurantDoc.exists());
-        console.log('[Direct Fetch] Restaurant data:', restaurantDoc.data());
-        
+        const restaurantDocRef = doc(firestore, 'restaurants', id);
+        const restaurantDoc = await getDoc(restaurantDocRef);
+
         if (restaurantDoc.exists()) {
-          setRestaurant({ id: restaurantDoc.id, ...restaurantDoc.data() });
+          setRestaurant({ id: restaurantDoc.id, ...restaurantDoc.data() } as Restaurant);
         } else {
-          console.log('[Direct Fetch] Restaurant document does not exist');
+          setRestaurant(null);
         }
 
-        // Fetch menu items directly
-        const menuItemsSnapshot = await getDocs(collection(firestore, 'restaurants', id, 'menuItems'));
-        console.log('[Direct Fetch] Menu items count:', menuItemsSnapshot.size);
-        console.log('[Direct Fetch] Menu items:', menuItemsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        
-        setMenuItems(menuItemsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const menuItemsCollectionRef = collection(firestore, 'restaurants', id, 'menuItems');
+        const menuItemsSnapshot = await getDocs(menuItemsCollectionRef);
+        setMenuItems(menuItemsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MenuItem)));
+
       } catch (error) {
-        console.error('[Direct Fetch] Error:', error);
+        console.error("Error fetching restaurant data:", error);
+        setRestaurant(null); // Ensure not found on error
       } finally {
         setIsLoading(false);
       }
@@ -54,10 +50,6 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
 
     fetchData();
   }, [firestore, id]);
-
-  if (!isLoading && !restaurant) {
-    notFound();
-  }
 
   const handleAddToCart = (item: MenuItem) => {
     dispatch({ type: 'ADD_ITEM', payload: { ...item, image: { id: item.id, imageUrl: item.imageUrl, description: item.name, imageHint: 'food' } } });
@@ -67,9 +59,13 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
     });
   };
 
+  if (!isLoading && !restaurant) {
+    notFound();
+  }
+
   return (
     <div>
-      {isLoading ? (
+      {isLoading || !restaurant ? (
         <>
           <Skeleton className="h-64 w-full" />
           <div className="container py-8 px-4 sm:px-8">
@@ -82,7 +78,7 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
             </div>
           </div>
         </>
-      ) : restaurant && (
+      ) : (
         <>
           <div className="relative h-64 w-full">
             <Image
