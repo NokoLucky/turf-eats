@@ -70,7 +70,6 @@ function OrderDetailsSkeleton() {
 }
 
 export default function OrderDetailsPage({ params }: { params: { id: string } }) {
-  console.log('[OrderDetailsPage] Rendering with Order ID Param:', params.id);
   const firestore = useFirestore();
   const [order, setOrder] = useState<Order | null>(null);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -86,7 +85,6 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
     const unsubscribe = onSnapshot(orderRef, 
       (docSnap) => {
         if (docSnap.exists()) {
-          console.log('[OrderDetailsPage] Order document found:', docSnap.data());
           const orderData = { id: docSnap.id, ...docSnap.data() } as Order;
           setOrder(orderData);
 
@@ -105,12 +103,10 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
           const itemsRef = collection(firestore, 'orders', params.id, 'orderItems');
           getDocs(itemsRef).then(itemsSnap => {
             const items = itemsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as OrderItem));
-            console.log('[OrderDetailsPage] Order items found:', items);
             setOrderItems(items);
           });
 
         } else {
-          console.log('[OrderDetailsPage] No such order document!');
           setOrder(null);
         }
         setIsLoading(false);
@@ -131,7 +127,6 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
   }
 
   if (!order) {
-    console.error('[OrderDetailsPage] Condition met: Not loading and no order found. Triggering 404.');
     notFound();
   }
 
@@ -153,7 +148,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
               <CardTitle>Live Tracking</CardTitle>
             </CardHeader>
             <CardContent>
-              <OrderTrackingMap />
+              <OrderTrackingMap order={order} restaurant={restaurant} />
             </CardContent>
           </Card>
         </div>
