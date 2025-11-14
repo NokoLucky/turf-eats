@@ -56,7 +56,7 @@ export default function CartPage() {
                   {state.items.map((item) => (
                     <li key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 sm:p-6">
                       <Image
-                        src={item.image.imageUrl}
+                        src={item.image.imageUrl.trim()}
                         alt={item.image.description}
                         data-ai-hint={item.image.imageHint}
                         width={80}
