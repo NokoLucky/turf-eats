@@ -21,6 +21,7 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
 
   // Sync internal value with the `value` prop from the parent form
   useEffect(() => {
+    console.log('[Autocomplete] Syncing internal state with prop value:', value);
     if (value !== internalValue) {
       setInternalValue(value || '');
     }
@@ -28,33 +29,41 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
 
   // Debounced search effect
   useEffect(() => {
+    console.log(`[Autocomplete] Search effect triggered. Internal value: "${internalValue}"`);
+
     if (!internalValue || internalValue.length < 3) {
+      console.log('[Autocomplete] Value too short. Clearing suggestions.');
       setSuggestions([]);
       setShowSuggestions(false);
       return;
     }
 
     const timer = setTimeout(async () => {
+      console.log(`[Autocomplete] Debounce timer fired. Fetching for: "${internalValue}"`);
       setIsLoading(true);
+      const url = `/api/places?input=${encodeURIComponent(internalValue)}`;
+      console.log(`[Autocomplete] Fetching URL: ${url}`);
       try {
-        // Call our local API route instead of Google directly
-        const response = await fetch(`/api/places?input=${encodeURIComponent(internalValue)}`);
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        console.log('[Autocomplete] Received data from proxy:', data);
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Network response was not ok');
+          throw new Error(data.error || 'Network response was not ok');
         }
 
-        const data = await response.json();
         if (data.predictions) {
+          console.log(`[Autocomplete] Setting ${data.predictions.length} suggestions.`);
           setSuggestions(data.predictions);
           setShowSuggestions(true);
         } else {
+          console.log('[Autocomplete] No predictions in response. Clearing suggestions.');
           setSuggestions([]);
           setShowSuggestions(false);
         }
       } catch (error: any) {
-        console.error('Error fetching address suggestions:', error);
+        console.error('[Autocomplete] Error fetching address suggestions:', error);
         toast({
           variant: 'destructive',
           title: 'Autocomplete Error',
@@ -62,6 +71,7 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
         });
       } finally {
         setIsLoading(false);
+        console.log('[Autocomplete] Finished fetching.');
       }
     }, 500);
 
@@ -82,6 +92,7 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
   }, []);
 
   const handleSelectSuggestion = (description: string) => {
+    console.log(`[Autocomplete] Suggestion selected: "${description}"`);
     onChange(description);
     setInternalValue(description);
     setShowSuggestions(false);
@@ -89,8 +100,10 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
   };
 
   const handleUseCurrentLocation = () => {
+     console.log('[Autocomplete] "Use Current Location" clicked.');
     if (!navigator.geolocation) {
        const message = "Your browser does not support geolocation.";
+       console.error(`[Autocomplete] Geolocation error: ${message}`);
        toast({ variant: 'destructive', title: 'Geolocation Error', description: message });
        return;
     }
@@ -99,14 +112,18 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
+          console.log(`[Autocomplete] Geolocation success. Lat: ${latitude}, Lng: ${longitude}`);
           const response = await fetch(`/api/places?lat=${latitude}&lng=${longitude}`);
+           console.log('[Autocomplete] Geocoding proxy response:', response);
           if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || 'Failed to geocode location.');
           }
           const data = await response.json();
+          console.log('[Autocomplete] Geocoding proxy data:', data);
           if (data.results && data.results[0]) {
             const address = data.results[0].formatted_address;
+            console.log(`[Autocomplete] Geocoded address: "${address}"`);
             onChange(address);
             setInternalValue(address);
             toast({ title: 'Location Updated', description: 'Your current location has been set.' });
@@ -114,10 +131,12 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
              throw new Error(data.details || 'Could not find address for your location.');
           }
         } catch (error: any) {
+           console.error('[Autocomplete] Geocoding fetch error:', error);
           toast({ variant: 'destructive', title: 'Geocoding Error', description: error.message });
         }
       },
       (error) => {
+        console.error('[Autocomplete] Geolocation permission denied:', error);
         toast({ variant: 'destructive', title: 'Location Access Denied', description: 'Please enable location permissions in your browser.' });
       }
     );
@@ -125,8 +144,9 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
+    console.log(`[Autocomplete] Input changed. New value: "${newValue}"`);
     setInternalValue(newValue);
-    onChange(newValue);
+    onChange(newValue); // Keep the form state in sync as the user types
   }
 
   return (
