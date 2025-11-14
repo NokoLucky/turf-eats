@@ -14,7 +14,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center">
+      <div className="container flex h-16 items-center px-4 sm:px-8">
         <Logo />
         <div className="ml-auto flex items-center gap-4">
           <Button asChild size="icon" className="relative bg-accent text-accent-foreground hover:bg-accent/90">
