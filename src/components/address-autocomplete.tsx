@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useMapsLibrary } from '@vis.gl/react-google-maps';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Search, MapPin } from 'lucide-react';
@@ -14,8 +13,7 @@ interface AddressAutocompleteProps {
 
 export default function AddressAutocomplete({ onChange, value }: AddressAutocompleteProps) {
   const { toast } = useToast();
-  const geocodingApi = useMapsLibrary('geocoding');
-  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [internalValue, setInternalValue] = useState(value || '');
@@ -91,29 +89,33 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
   };
 
   const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation || !geocodingApi) {
-       const message = "Your browser does not support geolocation or the maps library is not ready.";
+    if (!navigator.geolocation) {
+       const message = "Your browser does not support geolocation.";
        toast({ variant: 'destructive', title: 'Geolocation Error', description: message });
        return;
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const geocoder = new geocodingApi.Geocoder();
-        const latlng = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
-        geocoder.geocode({ location: latlng }, (results, status) => {
-          if (status === 'OK' && results && results[0]) {
-            const address = results[0].formatted_address;
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const response = await fetch(`/api/places?lat=${latitude}&lng=${longitude}`);
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to geocode location.');
+          }
+          const data = await response.json();
+          if (data.results && data.results[0]) {
+            const address = data.results[0].formatted_address;
             onChange(address);
             setInternalValue(address);
             toast({ title: 'Location Updated', description: 'Your current location has been set.' });
           } else {
-            toast({ variant: 'destructive', title: 'Geocoding Error', description: `Could not find address: ${status}` });
+             throw new Error(data.details || 'Could not find address for your location.');
           }
-        });
+        } catch (error: any) {
+          toast({ variant: 'destructive', title: 'Geocoding Error', description: error.message });
+        }
       },
       (error) => {
         toast({ variant: 'destructive', title: 'Location Access Denied', description: 'Please enable location permissions in your browser.' });
@@ -139,7 +141,6 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
             }}
             placeholder="Enter your delivery address..."
             className="pr-10"
-            disabled={!geocodingApi}
           />
           {isLoading && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -153,7 +154,6 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
           size="icon"
           onClick={handleUseCurrentLocation}
           title="Use current location"
-          disabled={!geocodingApi}
         >
           <MapPin className="h-4 w-4" />
         </Button>
