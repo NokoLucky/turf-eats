@@ -35,7 +35,7 @@ export default function AddressAutocomplete({ onAddressSelect, defaultValue }: A
 
   }, [places, onAddressSelect]);
   
-  // Update local state if the defaultValue changes from parent
+  // Update local state if the defaultValue from parent changes
   useEffect(() => {
     setLocalValue(defaultValue || '');
   }, [defaultValue]);
