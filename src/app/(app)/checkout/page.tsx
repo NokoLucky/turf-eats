@@ -10,8 +10,8 @@ import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { CreditCard, Landmark, Truck } from 'lucide-react';
-import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
-import { collection, addDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, addDoc, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
 
 export default function CheckoutPage() {
   const { state, dispatch } = useCart();
@@ -72,7 +72,7 @@ export default function CheckoutPage() {
       const orderItemsCollection = collection(firestore, `orders/${orderDocRef.id}/orderItems`);
 
       for (const item of state.items) {
-        const orderItemRef = collection(firestore, `orders/${orderDocRef.id}/orderItems`).doc();
+        const orderItemRef = doc(orderItemsCollection); // Correct way to get a new doc ref
         batch.set(orderItemRef, {
             orderId: orderDocRef.id,
             menuItemId: item.id,
