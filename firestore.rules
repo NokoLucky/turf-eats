@@ -34,10 +34,29 @@ service cloud.firestore {
       allow create, update, delete: if isRestaurantOwner(restaurantId);
     }
 
-    // A restaurant owner can query the global orders collection to find orders for their restaurant
+    // Orders collection
     match /orders/{orderId} {
-        allow list: if isSignedIn() && request.query.where.restaurantId == get(/databases/$(database)/documents/users/$(request.auth.uid)/storeOwners/$(request.auth.uid)).data.restaurantId;
-        allow read, update: if isRestaurantOwner(resource.data.restaurantId);
+      // Customer: Can list their own orders.
+      allow list: if isSignedIn() && request.query.where.customerId == request.auth.uid;
+      // Customer: Can create an order.
+      allow create: if isSignedIn();
+      // Customer: Can read, update, delete their own order.
+      allow read, update, delete: if isOwner(resource.data.customerId);
+
+      // Restaurant Owner: Can list orders for their restaurant.
+      allow list: if isSignedIn() && request.query.where.restaurantId == get(/databases/$(database)/documents/users/$(request.auth.uid)/storeOwners/$(request.auth.uid)).data.restaurantId;
+      // Restaurant Owner: Can read and update orders for their restaurant.
+      allow read, update: if isRestaurantOwner(resource.data.restaurantId);
+    }
+    
+    // OrderItems sub-collection
+    match /orders/{orderId}/orderItems/{orderItemId} {
+        // Access is inherited from the parent order document.
+        // If a user can read the order, they can read the items.
+        allow read: if get(/databases/$(database)/documents/orders/$(orderId)).data.customerId == request.auth.uid ||
+                       isRestaurantOwner(get(/databases/$(database)/documents/orders/$(orderId)).data.restaurantId);
+        // Only the order creator can create items for it (done in a batch).
+        allow create: if get(/databases/$(database)/documents/orders/$(orderId)).data.customerId == request.auth.uid;
     }
   }
 }

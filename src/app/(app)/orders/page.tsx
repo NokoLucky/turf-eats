@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, where } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Order } from '@/lib/data';
@@ -32,9 +32,10 @@ export default function OrdersPage() {
 
     const ordersQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
-        // Query the sub-collection under the user's document
+        // Query the root 'orders' collection for documents where customerId matches the current user's ID.
         return query(
-            collection(firestore, `users/${user.uid}/orders`),
+            collection(firestore, `orders`),
+            where('customerId', '==', user.uid),
             orderBy('orderDate', 'desc')
         );
     }, [user, firestore]);

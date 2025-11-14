@@ -55,8 +55,8 @@ export default function CheckoutPage() {
     }
 
     try {
-      // 1. Create the main order document under the user's collection
-      const ordersCollection = collection(firestore, `users/${user.uid}/orders`);
+      // 1. Create the main order document in the root 'orders' collection
+      const ordersCollection = collection(firestore, 'orders');
       const orderDocRef = await addDoc(ordersCollection, {
         customerId: user.uid,
         restaurantId: restaurantId,
@@ -67,12 +67,12 @@ export default function CheckoutPage() {
         deliveryAddress: '123 University Road, Mankweng', // Placeholder
       });
 
-      // 2. Create order items in a batch
+      // 2. Create order items in a batch in a sub-collection of the order
       const batch = writeBatch(firestore);
-      const orderItemsCollection = collection(firestore, `users/${user.uid}/orders/${orderDocRef.id}/orderItems`);
+      const orderItemsCollection = collection(firestore, `orders/${orderDocRef.id}/orderItems`);
 
       for (const item of state.items) {
-        const orderItemRef = doc(orderItemsCollection); // Correct way to get a new doc ref
+        const orderItemRef = doc(orderItemsCollection); // Creates a ref with a new auto-ID
         batch.set(orderItemRef, {
             orderId: orderDocRef.id,
             menuItemId: item.id,
