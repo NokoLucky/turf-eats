@@ -14,21 +14,41 @@ import type { Restaurant, MenuItem } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function RestaurantMenuPage({ params: { id } }: { params: { id: string } }) {
+  console.log('[Page Load] Restaurant ID from URL params:', id);
   const { toast } = useToast();
   const { dispatch } = useCart();
   const firestore = useFirestore();
 
+  console.log('[State Check] Firestore instance available:', !!firestore);
+
   const restaurantRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'restaurants', id) : null),
+    () => {
+      if (!firestore) {
+        console.log('[Memo Check] Firestore not ready for restaurantRef');
+        return null;
+      }
+      console.log('[Memo Check] Creating restaurantRef with path:', `restaurants/${id}`);
+      return doc(firestore, 'restaurants', id);
+    },
     [firestore, id]
   );
   const menuItemsRef = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'restaurants', id, 'menuItems') : null),
+    () => {
+      if (!firestore) {
+        console.log('[Memo Check] Firestore not ready for menuItemsRef');
+        return null;
+      }
+      console.log('[Memo Check] Creating menuItemsRef with path:', `restaurants/${id}/menuItems`);
+      return collection(firestore, 'restaurants', id, 'menuItems');
+    },
     [firestore, id]
   );
 
   const { data: restaurant, isLoading: isRestaurantLoading, error: restaurantError } = useDoc<Omit<Restaurant, 'menu'>>(restaurantRef);
   const { data: menuItems, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsRef);
+
+  console.log('[useDoc Result - Restaurant]', { data: restaurant, isLoading: isRestaurantLoading, error: restaurantError });
+  console.log('[useCollection Result - Menu]', { data: menuItems, isLoading: isMenuLoading });
 
   useEffect(() => {
     if (restaurantError) {
@@ -37,8 +57,11 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
   }, [restaurantError]);
 
   const isLoading = !firestore || isRestaurantLoading || isMenuLoading;
+  console.log('[Loading State] Final isLoading value:', isLoading);
+
 
   if (!isLoading && !restaurant) {
+    console.error('Restaurant not found after loading. Triggering 404.');
     notFound();
   }
 
