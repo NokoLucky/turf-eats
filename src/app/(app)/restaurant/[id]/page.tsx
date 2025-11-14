@@ -13,8 +13,7 @@ import { doc, collection, getDoc, getDocs } from 'firebase/firestore';
 import type { Restaurant, MenuItem } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function RestaurantMenuPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function RestaurantMenuPage({ params: { id } }: { params: { id: string } }) {
   const { toast } = useToast();
   const { dispatch } = useCart();
   const firestore = useFirestore();
@@ -43,7 +42,7 @@ export default function RestaurantMenuPage({ params }: { params: { id: string } 
 
       } catch (error) {
         console.error("Error fetching restaurant data:", error);
-        setRestaurant(null); // Ensure not found on error
+        setRestaurant(null);
       } finally {
         setIsLoading(false);
       }
