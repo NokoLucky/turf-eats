@@ -17,6 +17,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking,
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { LogOut } from 'lucide-react';
+import AddressAutocomplete from '@/components/address-autocomplete';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -162,7 +163,12 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel>Delivery Address</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                           <AddressAutocomplete
+                              defaultValue={field.value}
+                              onAddressSelect={(address) => {
+                                field.onChange(address);
+                              }}
+                            />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

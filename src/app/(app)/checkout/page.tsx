@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,8 +11,9 @@ import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { CreditCard, Landmark, Truck } from 'lucide-react';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp, writeBatch, doc, getDoc } from 'firebase/firestore';
+import AddressAutocomplete from '@/components/address-autocomplete';
 
 export default function CheckoutPage() {
   const { state, dispatch } = useCart();
@@ -20,6 +21,22 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { user } = useUser();
   const firestore = useFirestore();
+
+  const customerRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, `users/${user.uid}/customers/${user.uid}`);
+  }, [user, firestore]);
+
+  const { data: customerData } = useDoc<{address: string}>(customerRef);
+
+  const [deliveryAddress, setDeliveryAddress] = useState(customerData?.address || '');
+
+  useEffect(() => {
+    if(customerData?.address) {
+      setDeliveryAddress(customerData.address);
+    }
+  }, [customerData]);
+
 
   useEffect(() => {
     // If cart is empty, redirect away from checkout.
@@ -45,6 +62,15 @@ export default function CheckoutPage() {
         variant: 'destructive',
         title: 'Error',
         description: 'You must be logged in to place an order.',
+      });
+      return;
+    }
+    
+    if (!deliveryAddress) {
+       toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Please select a delivery address.',
       });
       return;
     }
@@ -79,7 +105,7 @@ export default function CheckoutPage() {
         orderDate: serverTimestamp(),
         status: 'Placed',
         totalAmount: total,
-        deliveryAddress: '123 University Road, Mankweng', // Placeholder
+        deliveryAddress: deliveryAddress, 
       });
 
       // 2. Create order items in a batch
@@ -139,7 +165,10 @@ export default function CheckoutPage() {
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="address">Street Address</Label>
-                        <Input id="address" defaultValue="123 University Road, Mankweng" />
+                        <AddressAutocomplete 
+                          onAddressSelect={(address) => setDeliveryAddress(address)}
+                          defaultValue={deliveryAddress}
+                        />
                     </div>
                 </CardContent>
             </Card>
