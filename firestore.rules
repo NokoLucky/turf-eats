@@ -11,20 +11,20 @@ service cloud.firestore {
     }
 
     function isRestaurantOwner(restaurantId) {
-      // Note: This function can't be used in 'list' rules directly
-      // because get() is not allowed in list rules.
+      // This function works for get, create, update, delete rules.
+      // It cannot be used in list rules as get() is not allowed.
       return isSignedIn() && get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid;
     }
 
-    // User profiles are private to the owner
+    // User profiles (customer, driver, storeOwner) are private to the owner
     match /users/{userId}/{document=**} {
       allow read, write: if isOwner(userId);
     }
     
     // Restaurants - public read, owner write
     match /restaurants/{restaurantId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
+      allow get, list: if true; // Public can view all restaurants and menus
+      allow create: if isSignedIn(); // Any signed-in user can create a restaurant profile
       allow update, delete: if isRestaurantOwner(restaurantId);
     }
 
@@ -36,21 +36,25 @@ service cloud.firestore {
 
     // Orders
     match /orders/{orderId} {
-      // Allow a user to query for their own orders.
+      // Allow a user to query for their own orders. This requires a composite index.
       allow list: if isSignedIn() && request.query.where.customerId == request.auth.uid;
-      // Allow a user to read their own specific order.
-      allow get: if isSignedIn() && resource.data.customerId == request.auth.uid;
-      // Allow a restaurant owner to read orders for their restaurant.
-      allow get: if isRestaurantOwner(resource.data.restaurantId);
+      
+      // Allow a user to get their own specific order.
+      // Also allow a restaurant owner to get an order for their restaurant.
+      allow get: if (isSignedIn() && resource.data.customerId == request.auth.uid) || isRestaurantOwner(resource.data.restaurantId);
+
       // Allow create for any signed-in user.
       allow create: if isSignedIn();
-      // Allow update/delete only for the customer who created it or the restaurant owner.
-      allow update, delete: if (isSignedIn() && resource.data.customerId == request.auth.uid) || isRestaurantOwner(resource.data.restaurantId);
+
+      // Allow update only for the restaurant owner (e.g., to change status).
+      // Customers should not be able to change an order after it's placed.
+      allow update: if isRestaurantOwner(resource.data.restaurantId);
       
       // Order items can be read if the user can read the parent order.
       match /orderItems/{orderItemId} {
-        allow read, list: if isSignedIn() && (get(/databases/$(database)/documents/orders/$(orderId)).data.customerId == request.auth.uid || isRestaurantOwner(get(/databases/$(database)/documents/orders/$(orderId)).data.restaurantId));
-        allow create: if isSignedIn(); // Batch writes in app handle security
+        allow read, list: if get(/databases/$(database)/documents/orders/$(orderId)).data.customerId == request.auth.uid || isRestaurantOwner(get(/databases/$(database)/documents/orders/$(orderId)).data.restaurantId);
+        // Writes to orderItems should only happen when creating the order via batch.
+        allow write: if request.auth.uid == request.resource.data.customerId;
       }
     }
   }
