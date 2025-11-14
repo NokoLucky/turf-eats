@@ -3,65 +3,59 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { Star, Utensils, PlusCircle } from 'lucide-react';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useDoc, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { doc, collection, getDoc, getDocs } from 'firebase/firestore';
 import type { Restaurant, MenuItem } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function RestaurantMenuPage({ params: { id } }: { params: { id: string } }) {
-  console.log('[Page Load] Restaurant ID from URL params:', id);
   const { toast } = useToast();
   const { dispatch } = useCart();
   const firestore = useFirestore();
-
-  console.log('[State Check] Firestore instance available:', !!firestore);
-
-  const restaurantRef = useMemoFirebase(
-    () => {
-      if (!firestore) {
-        console.log('[Memo Check] Firestore not ready for restaurantRef');
-        return null;
-      }
-      console.log('[Memo Check] Creating restaurantRef with path:', `restaurants/${id}`);
-      return doc(firestore, 'restaurants', id);
-    },
-    [firestore, id]
-  );
-  const menuItemsRef = useMemoFirebase(
-    () => {
-      if (!firestore) {
-        console.log('[Memo Check] Firestore not ready for menuItemsRef');
-        return null;
-      }
-      console.log('[Memo Check] Creating menuItemsRef with path:', `restaurants/${id}/menuItems`);
-      return collection(firestore, 'restaurants', id, 'menuItems');
-    },
-    [firestore, id]
-  );
-
-  const { data: restaurant, isLoading: isRestaurantLoading, error: restaurantError } = useDoc<Omit<Restaurant, 'menu'>>(restaurantRef);
-  const { data: menuItems, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsRef);
-
-  console.log('[useDoc Result - Restaurant]', { data: restaurant, isLoading: isRestaurantLoading, error: restaurantError });
-  console.log('[useCollection Result - Menu]', { data: menuItems, isLoading: isMenuLoading });
+  const [restaurant, setRestaurant] = useState<any>(null);
+  const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (restaurantError) {
-      console.error("Firestore error fetching restaurant:", restaurantError);
-    }
-  }, [restaurantError]);
+    if (!firestore) return;
 
-  const isLoading = !firestore || isRestaurantLoading || isMenuLoading;
-  console.log('[Loading State] Final isLoading value:', isLoading);
+    const fetchData = async () => {
+      try {
+        console.log('[Direct Fetch] Fetching restaurant:', id);
+        
+        // Fetch restaurant directly
+        const restaurantDoc = await getDoc(doc(firestore, 'restaurants', id));
+        console.log('[Direct Fetch] Restaurant exists:', restaurantDoc.exists());
+        console.log('[Direct Fetch] Restaurant data:', restaurantDoc.data());
+        
+        if (restaurantDoc.exists()) {
+          setRestaurant({ id: restaurantDoc.id, ...restaurantDoc.data() });
+        } else {
+          console.log('[Direct Fetch] Restaurant document does not exist');
+        }
 
+        // Fetch menu items directly
+        const menuItemsSnapshot = await getDocs(collection(firestore, 'restaurants', id, 'menuItems'));
+        console.log('[Direct Fetch] Menu items count:', menuItemsSnapshot.size);
+        console.log('[Direct Fetch] Menu items:', menuItemsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        
+        setMenuItems(menuItemsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      } catch (error) {
+        console.error('[Direct Fetch] Error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [firestore, id]);
 
   if (!isLoading && !restaurant) {
-    console.error('Restaurant not found after loading. Triggering 404.');
     notFound();
   }
 
