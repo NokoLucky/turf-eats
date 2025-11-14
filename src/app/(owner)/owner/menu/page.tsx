@@ -49,7 +49,7 @@ function MenuItemDialog({
   open,
 }: {
   onSubmit: (data: MenuItemFormValues) => void;
-  menuItem?: MenuItem;
+  menuItem?: MenuItemFormValues;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 }) {
@@ -65,12 +65,10 @@ function MenuItemDialog({
   });
   
   useEffect(() => {
-    // Reset form when the menuItem prop changes
     form.reset(menuItem || { name: '', description: '', price: 0, imageUrl: '' });
   }, [menuItem, form]);
 
   const handleFormSubmit = (data: MenuItemFormValues) => {
-    console.log('[Dialog] Form submitted with data:', data);
     onSubmit(data);
     onOpenChange(false);
   }
@@ -79,7 +77,7 @@ function MenuItemDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{menuItem ? 'Edit Menu Item' : 'Add New Menu Item'}</DialogTitle>
+          <DialogTitle>{menuItem?.id ? 'Edit Menu Item' : 'Add New Menu Item'}</DialogTitle>
           <DialogDescription>Fill in the details for your menu item.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -153,14 +151,10 @@ export default function MenuManagementPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isDialogOpen, setDialogOpen] = useState(false);
-  const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | undefined>(undefined);
+  const [editingMenuItem, setEditingMenuItem] = useState<MenuItemFormValues | undefined>(undefined);
 
   const restaurantQuery = useMemoFirebase(() => {
-    if (!user || !firestore) {
-      console.log('DEBUG: User or Firestore not available for restaurantQuery.');
-      return null;
-    }
-    console.log('DEBUG: Creating restaurantQuery for user:', user.uid);
+    if (!user || !firestore) return null;
     return query(collection(firestore, 'restaurants'), where('storeOwnerId', '==', user.uid), limit(1));
   }, [user, firestore]);
 
@@ -169,69 +163,50 @@ export default function MenuManagementPage() {
   const restaurantId = restaurant?.id;
 
   const menuItemsRef = useMemoFirebase(() => {
-    if (!firestore || !restaurantId) {
-       console.log('DEBUG: Firestore or restaurantId not available for menuItemsRef.');
-      return null;
-    }
-    console.log('DEBUG: Creating menuItemsRef for restaurantId:', restaurantId);
+    if (!firestore || !restaurantId) return null;
     return collection(firestore, 'restaurants', restaurantId, 'menuItems');
   }, [firestore, restaurantId]);
 
   const { data: menuItems, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsRef);
 
-  useEffect(() => {
-    console.log('DEBUG: restaurant data:', restaurant);
-    console.log('DEBUG: restaurantId:', restaurantId);
-    console.log('DEBUG: menuItems data:', menuItems);
-  }, [restaurant, restaurantId, menuItems]);
-
 
   const handleSubmitMenuItem = (data: MenuItemFormValues) => {
-    console.log('[handleSubmitMenuItem] Received data:', data);
     if (!firestore || !restaurantId) {
-      console.error('[handleSubmitMenuItem] Firestore or restaurantId is missing.');
       toast({ title: 'Error', description: 'Could not find restaurant to save item to.', variant: 'destructive' });
       return;
     }
 
     const menuItemsCollectionRef = collection(firestore, 'restaurants', restaurantId, 'menuItems');
     
-    if (editingMenuItem?.id) {
-      console.log(`[handleSubmitMenuItem] Updating item ID: ${editingMenuItem.id}`);
-      const docRef = doc(menuItemsCollectionRef, editingMenuItem.id);
-      console.log('[handleSubmitMenuItem] Update doc path:', docRef.path);
-      setDocumentNonBlocking(docRef, data, { merge: true });
+    if (data.id) {
+      const docRef = doc(menuItemsCollectionRef, data.id);
+      const { id, ...updateData } = data; // Don't save the id inside the document
+      setDocumentNonBlocking(docRef, updateData, { merge: true });
       toast({ title: 'Menu item updated!' });
     } else {
-      console.log('[handleSubmitMenuItem] Adding new item.');
       addDocumentNonBlocking(menuItemsCollectionRef, { ...data, restaurantId });
       toast({ title: 'Menu item added!' });
     }
   };
 
   const handleEdit = (item: MenuItem) => {
-    console.log('[handleEdit] Editing item:', item);
     setEditingMenuItem(item);
     setDialogOpen(true);
   };
   
   const handleAddNew = () => {
-    console.log('[handleAddNew] Adding new item.');
     setEditingMenuItem(undefined);
     setDialogOpen(true);
   };
 
   const handleDelete = (itemId: string) => {
-    console.log(`[handleDelete] Attempting to delete item ID: ${itemId}`);
     if (!firestore || !restaurantId) {
-      console.error('[handleDelete] Firestore or restaurantId is missing.');
       toast({ title: 'Error', description: 'Could not find restaurant to delete item from.', variant: 'destructive' });
       return;
     }
     
     if (confirm('Are you sure you want to delete this item?')) {
       const docRef = doc(firestore, 'restaurants', restaurantId, 'menuItems', itemId);
-      console.log('[handleDelete] Delete doc path:', docRef.path);
       deleteDocumentNonBlocking(docRef);
       toast({
         title: "Item Deletion Initiated",
@@ -243,19 +218,18 @@ export default function MenuManagementPage() {
   
   const handleDialogChange = (open: boolean) => {
     if (!open) {
-      console.log('[handleDialogChange] Dialog closing, clearing editingMenuItem.');
       setEditingMenuItem(undefined);
     }
     setDialogOpen(open);
   }
 
-  const isLoading = isRestaurantLoading || isMenuLoading;
+  const isLoading = !firestore || isRestaurantLoading || isMenuLoading;
 
-  if (isRestaurantLoading) {
+  if (isRestaurantLoading && !restaurant) {
     return <div className="container py-12"><Skeleton className="h-8 w-64 mb-8" /><Skeleton className="h-10 w-40" /></div>
   }
 
-  if (!restaurant) {
+  if (!isRestaurantLoading && !restaurant) {
     return (
       <div className="container py-12 text-center">
         <ChefHat className="mx-auto h-16 w-16 text-muted-foreground" />
@@ -275,16 +249,16 @@ export default function MenuManagementPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-headline text-4xl font-bold">Manage Your Menu</h1>
-          <p className="mt-2 text-muted-foreground">Add, edit, or remove items for <span className="font-semibold text-primary">{restaurant.name}</span>.</p>
+          {restaurant && <p className="mt-2 text-muted-foreground">Add, edit, or remove items for <span className="font-semibold text-primary">{restaurant.name}</span>.</p>}
         </div>
-        <Button onClick={handleAddNew}>
+        <Button onClick={handleAddNew} disabled={!restaurantId}>
           <PlusCircle className="mr-2" />
           Add New Item
         </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {isMenuLoading && Array.from({length: 4}).map((_, i) => <Card key={i}><CardContent className="p-4 space-y-2"><Skeleton className="aspect-video w-full" /><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-1/2" /></CardContent></Card>)}
+        {isLoading && Array.from({length: 4}).map((_, i) => <Card key={i}><CardContent className="p-4 space-y-2"><Skeleton className="aspect-video w-full" /><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-1/2" /></CardContent></Card>)}
 
         {menuItems?.map((item) => (
           <Card key={item.id}>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { collection, doc, query, where, limit, addDoc } from 'firebase/firestore';
+import { collection, doc, query, where, limit } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -64,7 +64,7 @@ export default function RestaurantDetailsPage() {
     return query(collection(firestore, 'restaurants'), where('storeOwnerId', '==', user.uid), limit(1));
   }, [user, firestore]);
 
-  const { data: restaurantData, isLoading } = useCollection<Restaurant>(restaurantQuery);
+  const { data: restaurantData, isLoading: isRestaurantLoading } = useCollection<Restaurant>(restaurantQuery);
   const existingRestaurant = restaurantData?.[0];
 
   const form = useForm<RestaurantFormValues>({
@@ -124,6 +124,8 @@ export default function RestaurantDetailsPage() {
     router.refresh();
   };
 
+  const isLoading = !firestore || isRestaurantLoading;
+
   return (
     <div className="container py-12">
       <div className="mx-auto max-w-2xl">
@@ -139,7 +141,7 @@ export default function RestaurantDetailsPage() {
             <CardDescription>This information will be visible to customers.</CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading && !form.formState.isDirty ? ( // Show skeleton only on initial load
+            {isLoading && !form.formState.isDirty ? (
               <div className="space-y-4 pt-4">
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />

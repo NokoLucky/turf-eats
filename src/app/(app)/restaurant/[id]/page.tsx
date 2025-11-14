@@ -18,8 +18,6 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
   const { dispatch } = useCart();
   const firestore = useFirestore();
 
-  console.log('Restaurant ID from URL params:', id);
-
   const restaurantRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'restaurants', id) : null),
     [firestore, id]
@@ -29,16 +27,18 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
     [firestore, id]
   );
 
-  const { data: restaurant, isLoading: isRestaurantLoading } = useDoc<Omit<Restaurant, 'menu'>>(restaurantRef);
+  const { data: restaurant, isLoading: isRestaurantLoading, error: restaurantError } = useDoc<Omit<Restaurant, 'menu'>>(restaurantRef);
   const { data: menuItems, isLoading: isMenuLoading } = useCollection<MenuItem>(menuItemsRef);
 
   useEffect(() => {
-    console.log('Restaurant data fetched from Firestore:', restaurant);
-    console.log('Is restaurant loading:', isRestaurantLoading);
-  }, [restaurant, isRestaurantLoading]);
-  
-  if (!isRestaurantLoading && !restaurant) {
-    console.error('Restaurant not found after loading. Triggering 404.');
+    if (restaurantError) {
+      console.error("Firestore error fetching restaurant:", restaurantError);
+    }
+  }, [restaurantError]);
+
+  const isLoading = !firestore || isRestaurantLoading || isMenuLoading;
+
+  if (!isLoading && !restaurant) {
     notFound();
   }
 
@@ -50,15 +50,14 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
     });
   };
 
-  const isLoading = isRestaurantLoading || isMenuLoading;
-
   return (
     <div>
       {isLoading ? (
         <>
           <Skeleton className="h-64 w-full" />
           <div className="container py-8 px-4 sm:px-8">
-            <Skeleton className="h-8 w-1/3 mb-8" />
+            <Skeleton className="h-12 w-1/3 mb-4" />
+            <Skeleton className="h-6 w-1/4 mb-8" />
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <Card key={i}><CardHeader><Skeleton className="aspect-video w-full" /></CardHeader><CardContent className="mt-6 space-y-2"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-full" /><Skeleton className="h-10 w-1/2 ml-auto" /></CardContent></Card>
