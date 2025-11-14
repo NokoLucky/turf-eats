@@ -224,6 +224,10 @@
           "type": "string",
           "description": "Reference to the Restaurant. (Relationship: Restaurant 1:N Order)"
         },
+        "storeOwnerId": {
+          "type": "string",
+          "description": "Denormalized reference to the StoreOwner for query authorization."
+        },
         "driverId": {
           "type": "string",
           "description": "Reference to the Driver. (Relationship: Driver 1:N Order)"
@@ -250,6 +254,7 @@
         "id",
         "customerId",
         "restaurantId",
+        "storeOwnerId",
         "orderDate",
         "status",
         "totalAmount",

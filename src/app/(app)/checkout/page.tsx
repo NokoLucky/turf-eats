@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { CreditCard, Landmark, Truck } from 'lucide-react';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, writeBatch, doc, getDoc } from 'firebase/firestore';
 
 export default function CheckoutPage() {
   const { state, dispatch } = useCart();
@@ -43,7 +43,6 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Assume all items are from the same restaurant
     const restaurantId = state.items[0]?.restaurantId;
     if (!restaurantId) {
        toast({
@@ -55,11 +54,21 @@ export default function CheckoutPage() {
     }
 
     try {
-      // 1. Create the main order document in the root 'orders' collection
+      // Get storeOwnerId from the restaurant document
+      const restaurantRef = doc(firestore, 'restaurants', restaurantId);
+      const restaurantSnap = await getDoc(restaurantRef);
+      if (!restaurantSnap.exists()) {
+        throw new Error("Restaurant not found!");
+      }
+      const restaurantData = restaurantSnap.data();
+      const storeOwnerId = restaurantData.storeOwnerId;
+
+      // 1. Create the main order document
       const ordersCollection = collection(firestore, 'orders');
       const orderDocRef = await addDoc(ordersCollection, {
         customerId: user.uid,
         restaurantId: restaurantId,
+        storeOwnerId: storeOwnerId, // Denormalize storeOwnerId
         driverId: null, // To be assigned later
         orderDate: serverTimestamp(),
         status: 'Placed',
@@ -67,9 +76,9 @@ export default function CheckoutPage() {
         deliveryAddress: '123 University Road, Mankweng', // Placeholder
       });
 
-      // 2. Create order items in a batch in a sub-collection of the order
+      // 2. Create order items in a batch
       const batch = writeBatch(firestore);
-      const orderItemsCollection = collection(firestore, `orders/${orderDocRef.id}/orderItems`);
+      const orderItemsCollection = collection(orderDocRef, 'orderItems');
 
       for (const item of state.items) {
         const orderItemRef = doc(orderItemsCollection); // Creates a ref with a new auto-ID
@@ -78,7 +87,7 @@ export default function CheckoutPage() {
             menuItemId: item.id,
             quantity: item.quantity,
             itemPrice: item.price,
-            name: item.name, // Denormalize for easier display
+            name: item.name,
         });
       }
 
@@ -97,7 +106,7 @@ export default function CheckoutPage() {
       toast({
         variant: "destructive",
         title: "Uh oh! Something went wrong.",
-        description: "Could not place your order. Please try again.",
+        description: error.message || "Could not place your order. Please try again.",
       });
     }
   };

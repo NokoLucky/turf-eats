@@ -23,26 +23,12 @@ type EnrichedOrder = Order & { customerName?: string };
 export default function OwnerOrdersPage() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
 
-  // 1. Get the owner's restaurant
-  const restaurantQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return query(collection(firestore, 'restaurants'), where('storeOwnerId', '==', user.uid), limit(1));
-  }, [user, firestore]);
-  const { data: restaurantData, isLoading: isRestaurantLoading } = useCollection<Restaurant>(restaurantQuery);
-
-  useEffect(() => {
-    if (restaurantData && restaurantData.length > 0) {
-      setRestaurant(restaurantData[0]);
-    }
-  }, [restaurantData]);
-
-  // 2. Get orders for that restaurant
+  // Get orders for that restaurant, filtering by storeOwnerId
   const ordersQuery = useMemoFirebase(() => {
-    if (!restaurant || !firestore) return null;
-    return query(collection(firestore, 'orders'), where('restaurantId', '==', restaurant.id));
-  }, [restaurant, firestore]);
+    if (!user || !firestore) return null;
+    return query(collection(firestore, 'orders'), where('storeOwnerId', '==', user.uid));
+  }, [user, firestore]);
   const { data: orders, isLoading: areOrdersLoading } = useCollection<EnrichedOrder>(ordersQuery);
 
   const handleUpdateStatus = async (orderId: string, newStatus: Order['status']) => {
@@ -50,14 +36,12 @@ export default function OwnerOrdersPage() {
     const orderRef = doc(firestore, 'orders', orderId);
     await updateDoc(orderRef, { status: newStatus });
   };
-  
-  const isLoading = isRestaurantLoading || areOrdersLoading;
 
   return (
     <div className="container py-12">
         <div className="mb-8">
             <h1 className="font-headline text-4xl font-bold">Incoming Orders</h1>
-            <p className="text-muted-foreground mt-2">Manage and track all orders for {restaurant ? <span className='font-semibold text-primary'>{restaurant.name}</span> : 'your restaurant'}.</p>
+            <p className="text-muted-foreground mt-2">Manage and track all orders for your restaurant.</p>
         </div>
         <Card>
             <CardHeader>
@@ -76,7 +60,7 @@ export default function OwnerOrdersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                {isLoading && Array.from({length: 3}).map((_, i) => (
+                {areOrdersLoading && Array.from({length: 3}).map((_, i) => (
                     <TableRow key={i}>
                         <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                         <TableCell><Skeleton className="h-5 w-32" /></TableCell>
@@ -85,7 +69,7 @@ export default function OwnerOrdersPage() {
                         <TableCell className="text-right"><Skeleton className="h-9 w-9 ml-auto" /></TableCell>
                     </TableRow>
                 ))}
-                {!isLoading && orders?.map((order) => (
+                {!areOrdersLoading && orders?.map((order) => (
                     <TableRow key={order.id}>
                     <TableCell className="font-medium">#{order.id.slice(0, 6)}...</TableCell>
                     <TableCell>{order.orderDate ? format(order.orderDate.toDate(), 'PPP') : 'N/A'}</TableCell>
@@ -120,7 +104,7 @@ export default function OwnerOrdersPage() {
                 ))}
                 </TableBody>
             </Table>
-            {!isLoading && (!orders || orders.length === 0) && (
+            {!areOrdersLoading && (!orders || orders.length === 0) && (
               <div className='text-center py-16 text-muted-foreground'>
                 <p>No orders found for your restaurant yet.</p>
               </div>
