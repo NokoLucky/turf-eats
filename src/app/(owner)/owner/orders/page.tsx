@@ -1,56 +1,130 @@
 'use client';
+
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where, limit, doc, updateDoc } from 'firebase/firestore';
+import type { Order, Restaurant } from '@/lib/data';
+import { format } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { MoreHorizontal } from 'lucide-react';
 
-const recentOrders = [
-  { id: 'ORD-001', customer: 'John Doe', total: 17.49, status: 'Preparing' },
-  { id: 'ORD-006', customer: 'Jane Smith', total: 9.99, status: 'New' },
-  { id: 'ORD-007', customer: 'Sam Wilson', total: 25.48, status: 'New' },
-];
+type EnrichedOrder = Order & { customerName?: string };
 
 export default function OwnerOrdersPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+
+  // 1. Get the owner's restaurant
+  const restaurantQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collection(firestore, 'restaurants'), where('storeOwnerId', '==', user.uid), limit(1));
+  }, [user, firestore]);
+  const { data: restaurantData, isLoading: isRestaurantLoading } = useCollection<Restaurant>(restaurantQuery);
+
+  useEffect(() => {
+    if (restaurantData && restaurantData.length > 0) {
+      setRestaurant(restaurantData[0]);
+    }
+  }, [restaurantData]);
+
+  // 2. Get orders for that restaurant
+  const ordersQuery = useMemoFirebase(() => {
+    if (!restaurant || !firestore) return null;
+    return query(collection(firestore, 'orders'), where('restaurantId', '==', restaurant.id));
+  }, [restaurant, firestore]);
+  const { data: orders, isLoading: areOrdersLoading } = useCollection<EnrichedOrder>(ordersQuery);
+
+  const handleUpdateStatus = async (orderId: string, newStatus: Order['status']) => {
+    if (!firestore) return;
+    const orderRef = doc(firestore, 'orders', orderId);
+    await updateDoc(orderRef, { status: newStatus });
+  };
+  
+  const isLoading = isRestaurantLoading || areOrdersLoading;
+
   return (
     <div className="container py-12">
         <div className="mb-8">
             <h1 className="font-headline text-4xl font-bold">Incoming Orders</h1>
-            <p className="text-muted-foreground mt-2">Manage and track all orders for your restaurant.</p>
+            <p className="text-muted-foreground mt-2">Manage and track all orders for {restaurant ? <span className='font-semibold text-primary'>{restaurant.name}</span> : 'your restaurant'}.</p>
         </div>
         <Card>
             <CardHeader>
-            <CardTitle>All Orders</CardTitle>
-            <CardDescription>A list of all incoming orders.</CardDescription>
+              <CardTitle>All Orders</CardTitle>
+              <CardDescription>A list of all incoming orders.</CardDescription>
             </CardHeader>
             <CardContent>
             <Table>
                 <TableHeader>
-                <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                </TableRow>
+                  <TableRow>
+                      <TableHead>Order ID</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
                 </TableHeader>
                 <TableBody>
-                {recentOrders.map((order) => (
+                {isLoading && Array.from({length: 3}).map((_, i) => (
+                    <TableRow key={i}>
+                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                        <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-9 w-9 ml-auto" /></TableCell>
+                    </TableRow>
+                ))}
+                {!isLoading && orders?.map((order) => (
                     <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.id}</TableCell>
-                    <TableCell>{order.customer}</TableCell>
-                    <TableCell>R{order.total.toFixed(2)}</TableCell>
+                    <TableCell className="font-medium">#{order.id.slice(0, 6)}...</TableCell>
+                    <TableCell>{order.orderDate ? format(order.orderDate.toDate(), 'PPP') : 'N/A'}</TableCell>
+                    <TableCell>R{order.totalAmount.toFixed(2)}</TableCell>
                     <TableCell>
-                        <Badge variant={order.status === 'New' ? 'destructive' : 'outline'}>{order.status}</Badge>
+                        <Badge variant={order.status === 'Placed' ? 'destructive' : 'outline'}>{order.status}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                        <Button variant="outline" size="sm">
-                        View Order
-                        </Button>
+                       <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem onSelect={() => handleUpdateStatus(order.id, 'Preparing')}>
+                               Mark as Preparing
+                            </DropdownMenuItem>
+                             <DropdownMenuItem onSelect={() => handleUpdateStatus(order.id, 'Out for Delivery')}>
+                               Mark as Out for Delivery
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleUpdateStatus(order.id, 'Delivered')}>
+                               Mark as Delivered
+                            </DropdownMenuItem>
+                             <DropdownMenuItem onSelect={() => handleUpdateStatus(order.id, 'Cancelled')} className="text-destructive focus:text-destructive">
+                               Cancel Order
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                     </TableCell>
                     </TableRow>
                 ))}
                 </TableBody>
             </Table>
+            {!isLoading && (!orders || orders.length === 0) && (
+              <div className='text-center py-16 text-muted-foreground'>
+                <p>No orders found for your restaurant yet.</p>
+              </div>
+            )}
             </CardContent>
         </Card>
     </div>

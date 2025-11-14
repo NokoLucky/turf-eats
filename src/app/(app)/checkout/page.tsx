@@ -10,11 +10,15 @@ import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { CreditCard, Landmark, Truck } from 'lucide-react';
+import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection, addDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 
 export default function CheckoutPage() {
   const { state, dispatch } = useCart();
   const { toast } = useToast();
   const router = useRouter();
+  const { user } = useUser();
+  const firestore = useFirestore();
 
   if (state.items.length === 0) {
     // Redirect to dashboard if cart is empty
@@ -29,14 +33,73 @@ export default function CheckoutPage() {
   const deliveryFee = 5.0;
   const total = subtotal + serviceFee + deliveryFee;
 
-  const handleConfirmOrder = () => {
-    // Mock order placement
-    toast({
-        title: "Order Placed!",
-        description: "Thank you for your order. You can track it in the 'My Orders' section.",
-    });
-    dispatch({ type: 'CLEAR_CART' });
-    router.push('/orders');
+  const handleConfirmOrder = async () => {
+    if (!user || !firestore) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'You must be logged in to place an order.',
+      });
+      return;
+    }
+
+    // Assume all items are from the same restaurant
+    const restaurantId = state.items[0]?.restaurantId;
+    if (!restaurantId) {
+       toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not determine the restaurant for this order.',
+      });
+      return;
+    }
+
+    try {
+      // 1. Create the main order document
+      const ordersCollection = collection(firestore, 'orders');
+      const orderDocRef = await addDoc(ordersCollection, {
+        customerId: user.uid,
+        restaurantId: restaurantId,
+        driverId: null, // To be assigned later
+        orderDate: serverTimestamp(),
+        status: 'Placed',
+        totalAmount: total,
+        deliveryAddress: '123 University Road, Mankweng', // Placeholder
+      });
+
+      // 2. Create order items in a batch
+      const batch = writeBatch(firestore);
+      const orderItemsCollection = collection(firestore, `orders/${orderDocRef.id}/orderItems`);
+
+      for (const item of state.items) {
+        const orderItemRef = collection(firestore, `orders/${orderDocRef.id}/orderItems`).doc();
+        batch.set(orderItemRef, {
+            orderId: orderDocRef.id,
+            menuItemId: item.id,
+            quantity: item.quantity,
+            itemPrice: item.price,
+            name: item.name, // Denormalize for easier display
+        });
+      }
+
+      await batch.commit();
+
+      toast({
+          title: "Order Placed!",
+          description: "Thank you for your order. You can track it in the 'My Orders' section.",
+      });
+
+      dispatch({ type: 'CLEAR_CART' });
+      router.push('/orders');
+
+    } catch (error: any) {
+      console.error("Error placing order:", error);
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description: "Could not place your order. Please try again.",
+      });
+    }
   };
 
   return (
@@ -52,11 +115,11 @@ export default function CheckoutPage() {
                     <div className='grid sm:grid-cols-2 gap-4'>
                         <div className="space-y-2">
                             <Label htmlFor="name">Full Name</Label>
-                            <Input id="name" defaultValue="Turfloop User" />
+                            <Input id="name" defaultValue={user?.displayName || "Turfloop User"} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="phone">Phone Number</Label>
-                            <Input id="phone" defaultValue="+27 72 123 4567" />
+                            <Input id="phone" defaultValue={user?.phoneNumber || "+27 72 123 4567"} />
                         </div>
                     </div>
                      <div className="space-y-2">

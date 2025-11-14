@@ -1,5 +1,7 @@
 import type { ImagePlaceholder } from './placeholder-images';
 import { PlaceHolderImages } from './placeholder-images';
+import type { Timestamp } from 'firebase/firestore';
+
 
 const findImage = (id: string): ImagePlaceholder => {
   const image = PlaceHolderImages.find((img) => img.id === id);
@@ -36,15 +38,26 @@ export type OrderStatus = 'Placed' | 'Preparing' | 'Out for Delivery' | 'Deliver
 
 export type Order = {
   id: string;
-  restaurantName: string;
-  date: string;
-  total: number;
+  customerId: string;
+  restaurantId: string;
+  driverId: string | null;
+  orderDate: Timestamp;
   status: OrderStatus;
-  items: { name: string; quantity: number }[];
+  totalAmount: number;
+  deliveryAddress: string;
+  // This is a denormalized field for easier display on the customer side.
+  // It won't be fetched on the owner side.
+  restaurantName?: string;
 };
 
-export const orders: Order[] = [
-    { id: 'ORD-001', restaurantName: 'The Golden Spatula', date: '2024-07-29', total: 17.49, status: 'Out for Delivery', items: [{name: 'Classic Burger', quantity: 1}, {name: 'Pancakes', quantity: 1}]},
-    { id: 'ORD-002', restaurantName: 'Pizza Palace', date: '2024-07-28', total: 15.99, status: 'Delivered', items: [{name: 'Pepperoni Pizza', quantity: 1}] },
-    { id: 'ORD-003', restaurantName: 'The Green Leaf', date: '2024-07-27', total: 12.00, status: 'Delivered', items: [{name: 'Kale Salad', quantity: 1}] },
-];
+export type OrderItem = {
+    id: string;
+    orderId: string;
+    menuItemId: string;
+    quantity: number;
+    itemPrice: number;
+    name: string; // Denormalized for display
+};
+
+// This is placeholder and will be removed from pages that use it.
+export const orders: any[] = [];
