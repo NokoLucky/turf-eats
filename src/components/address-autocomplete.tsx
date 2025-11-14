@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useMapsLibrary } from '@vis.gl/react-google-maps';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
-import { Search, MapPin } from 'lucide-react';
+import { Search, MapPin, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AddressAutocompleteProps {
@@ -13,78 +14,65 @@ interface AddressAutocompleteProps {
 
 export default function AddressAutocomplete({ onChange, value }: AddressAutocompleteProps) {
   const { toast } = useToast();
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const places = useMapsLibrary('places');
+  const geocoding = useMapsLibrary('geocoding');
+
+  const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
+  const [geocoder, setGeocoder] = useState<google.maps.Geocoder | null>(null);
+
+  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [internalValue, setInternalValue] = useState(value || '');
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Sync internal value with the `value` prop from the parent form
   useEffect(() => {
-    console.log('[Autocomplete] Syncing internal state with prop value:', value);
+    if (places && !autocompleteService) {
+      setAutocompleteService(new places.AutocompleteService());
+    }
+     if (geocoding && !geocoder) {
+      setGeocoder(new geocoding.Geocoder());
+    }
+  }, [places, autocompleteService, geocoding, geocoder]);
+  
+  useEffect(() => {
     if (value !== internalValue) {
       setInternalValue(value || '');
     }
   }, [value]);
 
-  // Debounced search effect
   useEffect(() => {
-    console.log(`[Autocomplete] Search effect triggered. Internal value: "${internalValue}"`);
-
-    if (!internalValue || internalValue.length < 3) {
-      console.log('[Autocomplete] Value too short. Clearing suggestions.');
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      console.log(`[Autocomplete] Debounce timer fired. Fetching for: "${internalValue}"`);
-      setIsLoading(true);
-      const url = `/api/places?input=${encodeURIComponent(internalValue)}`;
-      console.log(`[Autocomplete] Fetching URL: ${url}`);
-      try {
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        console.log('[Autocomplete] Received data from proxy:', data);
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Network response was not ok');
-        }
-
-        if (data.predictions) {
-          console.log(`[Autocomplete] Setting ${data.predictions.length} suggestions.`);
-          setSuggestions(data.predictions);
-          setShowSuggestions(true);
-        } else {
-          console.log('[Autocomplete] No predictions in response. Clearing suggestions.');
-          setSuggestions([]);
-          setShowSuggestions(false);
-        }
-      } catch (error: any) {
-        console.error('[Autocomplete] Error fetching address suggestions:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Autocomplete Error',
-          description: error.message || 'Could not fetch address suggestions.',
-        });
-      } finally {
-        setIsLoading(false);
-        console.log('[Autocomplete] Finished fetching.');
+    const timer = setTimeout(() => {
+      if (!autocompleteService || internalValue.length < 3) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
       }
+      setIsLoading(true);
+      autocompleteService.getPlacePredictions(
+        { input: internalValue, componentRestrictions: { country: 'za' } },
+        (predictions, status) => {
+          setIsLoading(false);
+          if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+            setSuggestions(predictions);
+            setShowSuggestions(true);
+          } else {
+            setSuggestions([]);
+            setShowSuggestions(false);
+          }
+        }
+      );
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [internalValue, toast]);
-  
-  // Click outside handler
+  }, [internalValue, autocompleteService]);
+
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
       }
-    }
+    };
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -92,62 +80,50 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
   }, []);
 
   const handleSelectSuggestion = (description: string) => {
-    console.log(`[Autocomplete] Suggestion selected: "${description}"`);
     onChange(description);
     setInternalValue(description);
     setShowSuggestions(false);
     setSuggestions([]);
   };
-
+  
   const handleUseCurrentLocation = () => {
-     console.log('[Autocomplete] "Use Current Location" clicked.');
+    if (!geocoder) {
+       toast({ variant: 'destructive', title: 'Error', description: 'Geocoding service is not ready.' });
+       return;
+    }
     if (!navigator.geolocation) {
-       const message = "Your browser does not support geolocation.";
-       console.error(`[Autocomplete] Geolocation error: ${message}`);
-       toast({ variant: 'destructive', title: 'Geolocation Error', description: message });
+       toast({ variant: 'destructive', title: 'Geolocation Error', description: "Your browser does not support geolocation." });
        return;
     }
 
     navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          console.log(`[Autocomplete] Geolocation success. Lat: ${latitude}, Lng: ${longitude}`);
-          const response = await fetch(`/api/places?lat=${latitude}&lng=${longitude}`);
-           console.log('[Autocomplete] Geocoding proxy response:', response);
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to geocode location.');
-          }
-          const data = await response.json();
-          console.log('[Autocomplete] Geocoding proxy data:', data);
-          if (data.results && data.results[0]) {
-            const address = data.results[0].formatted_address;
-            console.log(`[Autocomplete] Geocoded address: "${address}"`);
+      (position) => {
+        const latLng = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        geocoder.geocode({ location: latLng }, (results, status) => {
+          if (status === 'OK' && results && results[0]) {
+            const address = results[0].formatted_address;
             onChange(address);
             setInternalValue(address);
             toast({ title: 'Location Updated', description: 'Your current location has been set.' });
           } else {
-             throw new Error(data.details || 'Could not find address for your location.');
+            toast({ variant: 'destructive', title: 'Geocoding Error', description: `Could not find address. Status: ${status}` });
           }
-        } catch (error: any) {
-           console.error('[Autocomplete] Geocoding fetch error:', error);
-          toast({ variant: 'destructive', title: 'Geocoding Error', description: error.message });
-        }
+        });
       },
-      (error) => {
-        console.error('[Autocomplete] Geolocation permission denied:', error);
-        toast({ variant: 'destructive', title: 'Location Access Denied', description: 'Please enable location permissions in your browser.' });
+      () => {
+        toast({ variant: 'destructive', title: 'Location Access Denied', description: 'Please enable location permissions.' });
       }
     );
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    console.log(`[Autocomplete] Input changed. New value: "${newValue}"`);
     setInternalValue(newValue);
-    onChange(newValue); // Keep the form state in sync as the user types
-  }
+    onChange(newValue);
+  };
 
   return (
     <div className="relative" ref={containerRef}>
@@ -161,10 +137,11 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
             }}
             placeholder="Enter your delivery address..."
             className="pr-10"
+            disabled={!autocompleteService}
           />
           {isLoading && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+              <Loader2 className="animate-spin h-4 w-4 text-primary" />
             </div>
           )}
         </div>
@@ -174,6 +151,7 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
           size="icon"
           onClick={handleUseCurrentLocation}
           title="Use current location"
+          disabled={!geocoder}
         >
           <MapPin className="h-4 w-4" />
         </Button>
