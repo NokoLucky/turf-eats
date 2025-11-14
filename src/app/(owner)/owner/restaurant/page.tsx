@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { collection, doc, query, where, limit } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import FreeAddressAutocomplete from '@/components/free-address-autocomplete';
 
 const restaurantSchema = z.object({
   name: z.string().min(2, 'Name is too short'),
@@ -29,13 +30,6 @@ const restaurantSchema = z.object({
 
 type RestaurantFormValues = z.infer<typeof restaurantSchema>;
 
-const timeOptions = Array.from({ length: 48 }, (_, i) => {
-    const hours = Math.floor(i / 2);
-    const minutes = i % 2 === 0 ? '00' : '30';
-    const period = hours < 12 ? 'AM' : 'PM';
-    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-    return `${displayHours}:${minutes} ${period}`;
-});
 
 const categories = [
     'Fast Food',
@@ -66,6 +60,14 @@ export default function RestaurantDetailsPage() {
 
   const { data: restaurantData, isLoading: isRestaurantLoading } = useCollection<Restaurant>(restaurantQuery);
   const existingRestaurant = restaurantData?.[0];
+
+  const timeOptions = useMemo(() => Array.from({ length: 48 }, (_, i) => {
+    const hours = Math.floor(i / 2);
+    const minutes = i % 2 === 0 ? '00' : '30';
+    const period = hours < 12 ? 'AM' : 'PM';
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    return `${displayHours}:${minutes} ${period}`;
+  }), []);
 
   const form = useForm<RestaurantFormValues>({
     resolver: zodResolver(restaurantSchema),
@@ -193,7 +195,10 @@ export default function RestaurantDetailsPage() {
                       <FormItem>
                         <FormLabel>Address</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                           <FreeAddressAutocomplete
+                              value={field.value}
+                              onChange={field.onChange}
+                            />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
