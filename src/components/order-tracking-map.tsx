@@ -1,12 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
+import { Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
 import { useGeocoding } from '@/hooks/use-geocoding';
 import type { Order, Restaurant } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
-
-const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 
 // Simple linear interpolation for mock movement
 function lerp(start: number, end: number, t: number) {
@@ -48,14 +46,6 @@ export default function OrderTrackingMap({ order, restaurant }: OrderTrackingMap
     }, [restaurantPosition, customerPosition, progress]);
 
 
-    if (!API_KEY) {
-        return (
-            <div className="flex aspect-video w-full items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                <p>Google Maps API key is missing.</p>
-            </div>
-        );
-    }
-    
     if (isRestaurantGeocoding || isCustomerGeocoding) {
         return <Skeleton className="aspect-video w-full" />
     }
@@ -69,27 +59,25 @@ export default function OrderTrackingMap({ order, restaurant }: OrderTrackingMap
     }
     
     return (
-        <APIProvider apiKey={API_KEY}>
-            <div className="aspect-video w-full">
-                <Map
-                    defaultCenter={restaurantPosition}
-                    defaultZoom={13}
-                    mapId="turf-eats-map"
-                    disableDefaultUI={true}
-                >
-                    <AdvancedMarker position={restaurantPosition} title={restaurant?.name || 'Restaurant'}>
-                        <Pin background={'#A1C181'} glyphColor={'#fff'} borderColor={'#A1C181'} />
+        <div className="aspect-video w-full">
+            <Map
+                defaultCenter={restaurantPosition}
+                defaultZoom={13}
+                mapId="turf-eats-map"
+                disableDefaultUI={true}
+            >
+                <AdvancedMarker position={restaurantPosition} title={restaurant?.name || 'Restaurant'}>
+                    <Pin background={'#A1C181'} glyphColor={'#fff'} borderColor={'#A1C181'} />
+                </AdvancedMarker>
+                <AdvancedMarker position={customerPosition} title="You">
+                     <Pin background={'#1E88E5'} glyphColor={'#fff'} borderColor={'#1E88E5'} />
+                </AdvancedMarker>
+                {driverPosition && (
+                    <AdvancedMarker position={driverPosition} title="Driver">
+                        <Pin background={'#FF914D'} glyphColor={'#fff'} borderColor={'#FF914D'} />
                     </AdvancedMarker>
-                    <AdvancedMarker position={customerPosition} title="You">
-                         <Pin background={'#1E88E5'} glyphColor={'#fff'} borderColor={'#1E88E5'} />
-                    </AdvancedMarker>
-                    {driverPosition && (
-                        <AdvancedMarker position={driverPosition} title="Driver">
-                            <Pin background={'#FF914D'} glyphColor={'#fff'} borderColor={'#FF914D'} />
-                        </AdvancedMarker>
-                    )}
-                </Map>
-            </div>
-        </APIProvider>
+                )}
+            </Map>
+        </div>
     );
 }

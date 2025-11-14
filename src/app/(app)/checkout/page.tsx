@@ -29,7 +29,7 @@ export default function CheckoutPage() {
 
   const { data: customerData } = useDoc<{address: string}>(customerRef);
 
-  const [deliveryAddress, setDeliveryAddress] = useState(customerData?.address || '');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
 
   useEffect(() => {
     if(customerData?.address) {

@@ -13,7 +13,6 @@ interface AddressAutocompleteProps {
 }
 
 export default function AddressAutocomplete({ onChange, value }: AddressAutocompleteProps) {
-  console.log('[AddressAutocomplete] Component rendered.');
   const { toast } = useToast();
   const places = useMapsLibrary('places');
   const geocoding = useMapsLibrary('geocoding');
@@ -26,20 +25,12 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
   const [internalValue, setInternalValue] = useState(value);
 
   useEffect(() => {
-    console.log('[AddressAutocomplete] External value prop changed:', value);
     setInternalValue(value);
   }, [value]);
 
-  useEffect(() => {
-    console.log('[AddressAutocomplete] Libraries status -> places:', places ? 'Loaded' : 'Not Loaded', 'geocoding:', geocoding ? 'Loaded' : 'Not Loaded');
-  }, [places, geocoding]);
-
-
   // Debounced search function using the Places API
   useEffect(() => {
-    console.log(`[AddressAutocomplete] Search effect triggered. Places lib ready: ${!!places}. Internal value: "${internalValue}"`);
     if (!places || !internalValue || internalValue.length < 3) {
-      console.log('[AddressAutocomplete] Search condition not met. Clearing suggestions.');
       setSuggestions([]);
       setShowSuggestions(false);
       return;
@@ -47,20 +38,16 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
 
     const autocompleteService = new places.AutocompleteService();
     const timer = setTimeout(() => {
-      console.log(`[AddressAutocomplete] Timer fired. Fetching predictions for: "${internalValue}"`);
       setIsLoading(true);
       autocompleteService.getPlacePredictions({
         input: internalValue,
         componentRestrictions: { country: 'za' }, // South Africa
       }, (predictions, status) => {
         setIsLoading(false);
-        console.log(`[AddressAutocomplete] API response received with status: ${status}`);
         if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-          console.log('[AddressAutocomplete] Predictions received:', predictions);
           setSuggestions(predictions);
           setShowSuggestions(true);
         } else {
-          console.log(`[AddressAutocomplete] No predictions or error. Status: ${status}`);
           setSuggestions([]);
           setShowSuggestions(false);
         }
@@ -74,7 +61,6 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
         if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-            console.log('[AddressAutocomplete] Clicked outside. Hiding suggestions.');
             setShowSuggestions(false);
         }
     }
@@ -85,7 +71,6 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
   }, [containerRef]);
 
   const handleSelectSuggestion = (description: string) => {
-    console.log('[AddressAutocomplete] Suggestion selected:', description);
     onChange(description);
     setInternalValue(description);
     setShowSuggestions(false);
@@ -93,38 +78,31 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
   };
 
   const handleUseCurrentLocation = () => {
-    console.log('[AddressAutocomplete] "Use Current Location" clicked.');
     if (!navigator.geolocation || !geocoding) {
        const message = "Your browser does not support geolocation or the maps library is not ready.";
-       console.error(`[AddressAutocomplete] Geolocation error: ${message}`);
        toast({ variant: "destructive", title: "Geolocation not supported", description: message });
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        console.log('[AddressAutocomplete] Geolocation success:', position.coords);
         const geocoder = new geocoding.Geocoder();
         const latlng = {
           lat: position.coords.latitude,
           lng: position.coords.longitude
         };
         geocoder.geocode({ location: latlng }, (results, status) => {
-          console.log(`[AddressAutocomplete] Reverse geocode status: ${status}`);
           if (status === 'OK' && results && results[0]) {
             const address = results[0].formatted_address;
-            console.log('[AddressAutocomplete] Reverse geocode success:', address);
             onChange(address);
             setInternalValue(address);
             toast({ title: "Location Updated", description: "Your current location has been set." });
           } else {
-            console.error(`[AddressAutocomplete] Reverse geocoding failed: ${status}`);
             toast({ variant: "destructive", title: "Could not find address", description: `Reverse geocoding failed: ${status}` });
           }
         });
       },
       (error) => {
-        console.error('[AddressAutocomplete] Error getting location:', error);
         toast({ variant: "destructive", title: "Location Access Denied", description: "Please enable location permissions." });
       }
     );
@@ -132,7 +110,6 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    console.log(`[AddressAutocomplete] Input changed. New value: "${newValue}"`);
     setInternalValue(newValue);
     onChange(newValue); // Propagate change up immediately
   }
@@ -145,7 +122,6 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
             value={internalValue || ''}
             onChange={handleInputChange}
             onFocus={() => { 
-                console.log('[AddressAutocomplete] Input focused.');
                 if (suggestions.length > 0) setShowSuggestions(true); 
             }}
             placeholder="Enter your delivery address..."
@@ -170,7 +146,6 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
 
       {showSuggestions && suggestions.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto">
-          {console.log(`[AddressAutocomplete] Rendering ${suggestions.length} suggestions.`)}
           {suggestions.map((suggestion) => (
             <button
               key={suggestion.place_id}
