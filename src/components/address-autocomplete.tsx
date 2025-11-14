@@ -14,59 +14,65 @@ interface AddressAutocompleteProps {
 
 export default function AddressAutocomplete({ onChange, value }: AddressAutocompleteProps) {
   const { toast } = useToast();
-  const places = useMapsLibrary('places');
+  // Only need the geocoding library for the "current location" feature.
   const geocoding = useMapsLibrary('geocoding');
 
   const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [internalValue, setInternalValue] = useState(value || '');
   const containerRef = useRef<HTMLDivElement>(null);
-  
-  const [internalValue, setInternalValue] = useState(value);
 
   useEffect(() => {
-    setInternalValue(value);
+    setInternalValue(value || '');
   }, [value]);
 
-  // Debounced search function using the Places API
+  // Debounced search function using a direct fetch call to the Places API
   useEffect(() => {
-    if (!places || !internalValue || internalValue.length < 3) {
+    if (!internalValue || internalValue.length < 3) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
     }
 
-    const autocompleteService = new places.AutocompleteService();
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       setIsLoading(true);
-      autocompleteService.getPlacePredictions({
-        input: internalValue,
-        componentRestrictions: { country: 'za' }, // South Africa
-      }, (predictions, status) => {
-        setIsLoading(false);
-        if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-          setSuggestions(predictions);
-          setShowSuggestions(true);
-        } else {
-          setSuggestions([]);
-          setShowSuggestions(false);
+      try {
+        const response = await fetch(
+          `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(internalValue)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&components=country:za`
+        );
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
         }
-      });
+        const data = await response.json();
+        if (data.predictions) {
+            setSuggestions(data.predictions);
+            setShowSuggestions(true);
+        } else {
+            setSuggestions([]);
+            setShowSuggestions(false);
+        }
+      } catch (error) {
+        console.error('Error fetching address suggestions:', error);
+        toast({ variant: "destructive", title: "Autocomplete Error", description: "Could not fetch address suggestions." });
+      } finally {
+        setIsLoading(false);
+      }
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [internalValue, places]);
+  }, [internalValue, toast]);
   
   // Click outside handler
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-            setShowSuggestions(false);
-        }
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
-        document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [containerRef]);
 
@@ -81,7 +87,7 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
     if (!navigator.geolocation || !geocoding) {
        const message = "Your browser does not support geolocation or the maps library is not ready.";
        toast({ variant: "destructive", title: "Geolocation not supported", description: message });
-      return;
+       return;
     }
 
     navigator.geolocation.getCurrentPosition(
@@ -119,10 +125,10 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
       <div className="flex gap-2">
         <div className="flex-1 relative">
           <Input
-            value={internalValue || ''}
+            value={internalValue}
             onChange={handleInputChange}
             onFocus={() => { 
-                if (suggestions.length > 0) setShowSuggestions(true); 
+              if (suggestions.length > 0) setShowSuggestions(true); 
             }}
             placeholder="Enter your delivery address..."
             className="pr-10"
