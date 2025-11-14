@@ -1,73 +1,55 @@
-/**
- * @fileoverview Firestore Security Rules for Turf Eats application.
- *
- * Core Philosophy:
- * This ruleset enforces a role-based and ownership-based access control model.
- * User profiles (Customer, Driver, StoreOwner) are strictly private and accessible only to the authenticated user.
- * Restaurants and MenuItems have public read access, but writes are restricted to the owning StoreOwner.
- * Orders and OrderItems have access control based on the associated Customer, Restaurant, or Driver.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
+    // TEMPORARY RULES FOR DEBUGGING - ALLOW ALL ACCESS FOR LOGGED-IN USERS
+    // REMOVE THESE AFTER TESTING AND REPLACE WITH PROPER RULES
+    
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // User profile collections are private to the user.
-    match /users/{userId}/customers/{customerId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
-    }
-    match /users/{userId}/drivers/{driverId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
-    }
-    match /users/{userId}/storeOwners/{storeOwnerId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
-    }
-
-    // Function to check if the user owns the restaurant.
-    function isRestaurantOwner(restaurantId) {
-      return get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid;
+    // Allow everything for signed-in users, deny for anonymous
+    match /users/{userId} {
+      allow read, write: if isSignedIn();
     }
     
-    // Restaurants are public to read, but only the owner can write.
+    match /users/{userId}/customers/{customerId} {
+      allow read, write: if isSignedIn();
+    }
+    
+    match /users/{userId}/drivers/{driverId} {
+      allow read, write: if isSignedIn();
+    }
+    
+    match /users/{userId}/storeOwners/{storeOwnerId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Restaurants - public read, any signed-in user can write
     match /restaurants/{restaurantId} {
-        allow get, list: if true;
-        allow create: if isSignedIn() && request.resource.data.storeOwnerId == request.auth.uid;
-        allow update, delete: if isSignedIn() && isRestaurantOwner(restaurantId);
+      allow get, list: if true; // Public read
+      allow create, update, delete: if isSignedIn(); // Any signed-in user can modify
     }
 
-    // Menu items are public to read, but only the owner of the parent restaurant can write.
+    // Menu items - public read, any signed-in user can write
     match /restaurants/{restaurantId}/menuItems/{menuItemId} {
-        allow get, list: if true;
-        allow create, update, delete: if isSignedIn() && isRestaurantOwner(restaurantId);
+      allow get, list: if true; // Public read
+      allow create, update, delete: if isSignedIn(); // Any signed-in user can modify
     }
 
-    // Orders can only be read by participants. Only customers can create/delete their own orders.
+    // Orders - any signed-in user can do everything
     match /orders/{orderId} {
-      function isOrderParticipant() {
-        return request.auth.uid == resource.data.customerId ||
-               request.auth.uid == get(/databases/$(database)/documents/restaurants/$(resource.data.restaurantId)).data.storeOwnerId ||
-               request.auth.uid == resource.data.driverId;
-      }
-
-      allow get: if isSignedIn() && isOrderParticipant();
-      allow list: if false; // Deny broad listing of orders for security.
-      allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
-      allow update: if isSignedIn() && isOrderParticipant();
-      allow delete: if isSignedIn() && resource.data.customerId == request.auth.uid; // Only customer can cancel.
+      allow read, write: if isSignedIn();
     }
 
-    // OrderItems can be accessed by anyone involved in the parent order.
+    // Order items - any signed-in user can do everything
     match /orders/{orderId}/orderItems/{orderItemId} {
-      function isParentOrderParticipant() {
-        let order = get(/databases/$(database)/documents/orders/$(orderId)).data;
-        return request.auth.uid == order.customerId ||
-               request.auth.uid == get(/databases/$(database)/documents/restaurants/$(order.restaurantId)).data.storeOwnerId ||
-               request.auth.uid == order.driverId;
-      }
-      allow read, write: if isSignedIn() && isParentOrderParticipant();
+      allow read, write: if isSignedIn();
+    }
+
+    // Catch-all for any other documents - allow for signed-in users
+    match /{document=**} {
+      allow read, write: if isSignedIn();
     }
   }
 }
