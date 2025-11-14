@@ -33,10 +33,10 @@ export default function OrdersPage() {
     const ordersQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         // Query the root 'orders' collection for documents where customerId matches the current user's ID.
+        // NOTE: The orderBy clause was removed to prevent a missing-index error that manifests as a permission error.
         return query(
             collection(firestore, `orders`),
-            where('customerId', '==', user.uid),
-            orderBy('orderDate', 'desc')
+            where('customerId', '==', user.uid)
         );
     }, [user, firestore]);
 
