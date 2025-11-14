@@ -16,7 +16,7 @@ service cloud.firestore {
       return isSignedIn() && get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid;
     }
 
-    // User profiles (customer, driver, storeOwner) are private to the owner
+    // User profiles (customer, driver, storeOwner) and their sub-collections are private to the owner
     match /users/{userId}/{document=**} {
       allow read, write: if isOwner(userId);
     }
@@ -34,28 +34,10 @@ service cloud.firestore {
       allow create, update, delete: if isRestaurantOwner(restaurantId);
     }
 
-    // Orders
+    // A restaurant owner can query the global orders collection to find orders for their restaurant
     match /orders/{orderId} {
-      // Allow a user to query for their own orders. This requires a composite index.
-      allow list: if isSignedIn() && request.query.where.customerId == request.auth.uid;
-      
-      // Allow a user to get their own specific order.
-      // Also allow a restaurant owner to get an order for their restaurant.
-      allow get: if (isSignedIn() && resource.data.customerId == request.auth.uid) || isRestaurantOwner(resource.data.restaurantId);
-
-      // Allow create for any signed-in user.
-      allow create: if isSignedIn();
-
-      // Allow update only for the restaurant owner (e.g., to change status).
-      // Customers should not be able to change an order after it's placed.
-      allow update: if isRestaurantOwner(resource.data.restaurantId);
-      
-      // Order items can be read if the user can read the parent order.
-      match /orderItems/{orderItemId} {
-        allow read, list: if get(/databases/$(database)/documents/orders/$(orderId)).data.customerId == request.auth.uid || isRestaurantOwner(get(/databases/$(database)/documents/orders/$(orderId)).data.restaurantId);
-        // Writes to orderItems should only happen when creating the order via batch.
-        allow write: if request.auth.uid == request.resource.data.customerId;
-      }
+        allow list: if isSignedIn() && request.query.where.restaurantId == get(/databases/$(database)/documents/users/$(request.auth.uid)/storeOwners/$(request.auth.uid)).data.restaurantId;
+        allow read, update: if isRestaurantOwner(resource.data.restaurantId);
     }
   }
 }
