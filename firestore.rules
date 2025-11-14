@@ -30,8 +30,10 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      // Combined list rule for customers and owners.
-      allow list: if isSignedIn() && (request.query.where.customerId == request.auth.uid || request.query.where.storeOwnerId == request.auth.uid);
+      // Customer can list their own orders. Owner can list orders for their restaurant.
+      // Firestore rules for list operations require that the query constraints match the rule.
+      // This is more restrictive than document-level access.
+      allow list: if (request.query.where.customerId == request.auth.uid && isSignedIn()) || (request.query.where.storeOwnerId == request.auth.uid && isSignedIn());
       
       // Customer: Can create an order.
       allow create: if isSignedIn();
