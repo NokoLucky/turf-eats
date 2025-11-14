@@ -15,7 +15,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Specific rules for user profile subcollections
+    // User profile collections are private to the user.
     match /users/{userId}/customers/{customerId} {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
@@ -26,39 +26,45 @@ service cloud.firestore {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
     }
 
+    // Restaurants are public to read, but only the owner can write.
     match /restaurants/{restaurantId} {
         allow get, list: if true;
-        allow create, update: if isSignedIn() && request.auth.uid == request.resource.data.storeOwnerId;
-        allow delete: if isSignedIn() && request.auth.uid == resource.data.storeOwnerId;
+        allow create, update: if isSignedIn() && request.resource.data.storeOwnerId == request.auth.uid;
+        allow delete: if isSignedIn() && resource.data.storeOwnerId == request.auth.uid;
     }
 
+    // Menu items are public to read, but only the owner of the parent restaurant can write.
     match /restaurants/{restaurantId}/menuItems/{menuItemId} {
         allow get, list: if true;
-        allow create, update, delete: if isSignedIn() && get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid;
+        function isRestaurantOwner() {
+          return get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid;
+        }
+        allow create, update, delete: if isSignedIn() && isRestaurantOwner();
     }
 
+    // Orders can only be read by participants. Only customers can create/delete their own orders.
     match /orders/{orderId} {
       function isOrderParticipant() {
-        return request.auth.uid == resource.data.customerId || 
-               request.auth.uid == resource.data.restaurantId || 
+        return request.auth.uid == resource.data.customerId ||
+               request.auth.uid == get(/databases/$(database)/documents/restaurants/$(resource.data.restaurantId)).data.storeOwnerId ||
                request.auth.uid == resource.data.driverId;
       }
-      
+
       allow get: if isSignedIn() && isOrderParticipant();
-      allow list: if false; // Deny broad listing of orders for security
+      allow list: if false; // Deny broad listing of orders for security.
       allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
       allow update: if isSignedIn() && isOrderParticipant();
-      allow delete: if isSignedIn() && request.auth.uid == resource.data.customerId; // Only customer can delete
+      allow delete: if isSignedIn() && resource.data.customerId == request.auth.uid; // Only customer can cancel.
     }
 
+    // OrderItems can be accessed by anyone involved in the parent order.
     match /orders/{orderId}/orderItems/{orderItemId} {
       function isParentOrderParticipant() {
         let order = get(/databases/$(database)/documents/orders/$(orderId)).data;
-        return request.auth.uid == order.customerId || 
-               request.auth.uid == order.restaurantId || 
+        return request.auth.uid == order.customerId ||
+               request.auth.uid == get(/databases/$(database)/documents/restaurants/$(order.restaurantId)).data.storeOwnerId ||
                request.auth.uid == order.driverId;
       }
-
       allow read, write: if isSignedIn() && isParentOrderParticipant();
     }
   }
