@@ -14,20 +14,21 @@ interface AddressAutocompleteProps {
 
 export default function AddressAutocomplete({ onChange, value }: AddressAutocompleteProps) {
   const { toast } = useToast();
-  // Only need the geocoding library for the "current location" feature.
-  const geocoding = useMapsLibrary('geocoding');
-
+  const geocodingApi = useMapsLibrary('geocoding');
   const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [internalValue, setInternalValue] = useState(value || '');
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Sync internal value with the `value` prop from the parent form
   useEffect(() => {
-    setInternalValue(value || '');
+    if (value !== internalValue) {
+      setInternalValue(value || '');
+    }
   }, [value]);
 
-  // Debounced search function using a direct fetch call to the Places API
+  // Debounced search effect
   useEffect(() => {
     if (!internalValue || internalValue.length < 3) {
       setSuggestions([]);
@@ -38,23 +39,29 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
     const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(
-          `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(internalValue)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&components=country:za`
-        );
+        // Call our local API route instead of Google directly
+        const response = await fetch(`/api/places?input=${encodeURIComponent(internalValue)}`);
+
         if (!response.ok) {
-          throw new Error('Network response was not ok');
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Network response was not ok');
         }
+
         const data = await response.json();
         if (data.predictions) {
-            setSuggestions(data.predictions);
-            setShowSuggestions(true);
+          setSuggestions(data.predictions);
+          setShowSuggestions(true);
         } else {
-            setSuggestions([]);
-            setShowSuggestions(false);
+          setSuggestions([]);
+          setShowSuggestions(false);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching address suggestions:', error);
-        toast({ variant: "destructive", title: "Autocomplete Error", description: "Could not fetch address suggestions." });
+        toast({
+          variant: 'destructive',
+          title: 'Autocomplete Error',
+          description: error.message || 'Could not fetch address suggestions.',
+        });
       } finally {
         setIsLoading(false);
       }
@@ -70,11 +77,11 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
         setShowSuggestions(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [containerRef]);
+  }, []);
 
   const handleSelectSuggestion = (description: string) => {
     onChange(description);
@@ -84,15 +91,15 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
   };
 
   const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation || !geocoding) {
+    if (!navigator.geolocation || !geocodingApi) {
        const message = "Your browser does not support geolocation or the maps library is not ready.";
-       toast({ variant: "destructive", title: "Geolocation not supported", description: message });
+       toast({ variant: 'destructive', title: 'Geolocation Error', description: message });
        return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const geocoder = new geocoding.Geocoder();
+        const geocoder = new geocodingApi.Geocoder();
         const latlng = {
           lat: position.coords.latitude,
           lng: position.coords.longitude
@@ -102,14 +109,14 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
             const address = results[0].formatted_address;
             onChange(address);
             setInternalValue(address);
-            toast({ title: "Location Updated", description: "Your current location has been set." });
+            toast({ title: 'Location Updated', description: 'Your current location has been set.' });
           } else {
-            toast({ variant: "destructive", title: "Could not find address", description: `Reverse geocoding failed: ${status}` });
+            toast({ variant: 'destructive', title: 'Geocoding Error', description: `Could not find address: ${status}` });
           }
         });
       },
       (error) => {
-        toast({ variant: "destructive", title: "Location Access Denied", description: "Please enable location permissions." });
+        toast({ variant: 'destructive', title: 'Location Access Denied', description: 'Please enable location permissions in your browser.' });
       }
     );
   };
@@ -117,7 +124,7 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInternalValue(newValue);
-    onChange(newValue); // Propagate change up immediately
+    onChange(newValue);
   }
 
   return (
@@ -132,6 +139,7 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
             }}
             placeholder="Enter your delivery address..."
             className="pr-10"
+            disabled={!geocodingApi}
           />
           {isLoading && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -145,6 +153,7 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
           size="icon"
           onClick={handleUseCurrentLocation}
           title="Use current location"
+          disabled={!geocodingApi}
         >
           <MapPin className="h-4 w-4" />
         </Button>
