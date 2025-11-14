@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useMapsLibrary } from '@vis.gl/react-google-maps';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Search, MapPin } from 'lucide-react';
@@ -13,7 +14,10 @@ interface AddressAutocompleteProps {
 
 export default function AddressAutocomplete({ onChange, value }: AddressAutocompleteProps) {
   const { toast } = useToast();
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const places = useMapsLibrary('places');
+  const geocoding = useMapsLibrary('geocoding');
+
+  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -25,32 +29,37 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
     setInternalValue(value);
   }, [value]);
 
-  // Debounced search function
+  // Debounced search function using the Places API
   useEffect(() => {
-    if (!internalValue || internalValue.length < 3) {
+    if (!places || !internalValue || internalValue.length < 3) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
     }
 
-    const timer = setTimeout(async () => {
+    const autocompleteService = new places.AutocompleteService();
+    const timer = setTimeout(() => {
       setIsLoading(true);
-      try {
-        const response = await fetch(
-          `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(internalValue)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&components=country:za`
-        );
-        const data = await response.json();
-        setSuggestions(data.predictions || []);
-        setShowSuggestions(true);
-      } catch (error) {
-        console.error('Error fetching address suggestions:', error);
-      } finally {
+      autocompleteService.getPlacePredictions({
+        input: internalValue,
+        componentRestrictions: { country: 'za' }, // South Africa
+      }, (predictions, status) => {
         setIsLoading(false);
-      }
+        if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+          setSuggestions(predictions);
+          setShowSuggestions(true);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+          if (status !== google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+             console.error(`[AddressAutocomplete] Places API error: ${status}`);
+          }
+        }
+      });
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [internalValue]);
+  }, [internalValue, places]);
   
   // Click outside handler
   useEffect(() => {
@@ -65,63 +74,48 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
     };
   }, [containerRef]);
 
-  const handleSelectSuggestion = async (placeId: string, description: string) => {
-    try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&fields=formatted_address`
-      );
-      const data = await response.json();
-      
-      const fullAddress = data.result?.formatted_address || description;
-      onChange(fullAddress);
-      setInternalValue(fullAddress); // update internal state as well
-      setShowSuggestions(false);
-      setSuggestions([]);
-    } catch (error) {
-      console.error('Error fetching place details:', error);
-      onChange(description); // fallback to description
-      setInternalValue(description);
-      setShowSuggestions(false);
-      setSuggestions([]);
-    }
+  const handleSelectSuggestion = (description: string) => {
+    onChange(description);
+    setInternalValue(description);
+    setShowSuggestions(false);
+    setSuggestions([]);
   };
 
   const handleUseCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          try {
-            const response = await fetch(
-              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
-            );
-            const data = await response.json();
-            if (data.results && data.results[0]) {
-              const address = data.results[0].formatted_address;
-              onChange(address);
-              setInternalValue(address);
-              toast({ title: "Location Updated", description: "Your current location has been set as the address." });
-            } else {
-               toast({ variant: "destructive", title: "Could not find address", description: "Reverse geocoding failed." });
-            }
-          } catch (error) {
-            console.error('Error reverse geocoding:', error);
-            toast({ variant: "destructive", title: "Error", description: "Could not fetch address details." });
-          }
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          toast({ variant: "destructive", title: "Location Access Denied", description: "Please enable location permissions in your browser." });
-        }
-      );
-    } else {
-        toast({ variant: "destructive", title: "Geolocation not supported", description: "Your browser does not support geolocation." });
+    if (!navigator.geolocation || !geocoding) {
+       toast({ variant: "destructive", title: "Geolocation not supported", description: "Your browser does not support geolocation or the maps library is not ready." });
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const geocoder = new geocoding.Geocoder();
+        const latlng = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        geocoder.geocode({ location: latlng }, (results, status) => {
+          if (status === 'OK' && results && results[0]) {
+            const address = results[0].formatted_address;
+            onChange(address);
+            setInternalValue(address);
+            toast({ title: "Location Updated", description: "Your current location has been set." });
+          } else {
+            toast({ variant: "destructive", title: "Could not find address", description: `Reverse geocoding failed: ${status}` });
+          }
+        });
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        toast({ variant: "destructive", title: "Location Access Denied", description: "Please enable location permissions." });
+      }
+    );
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInternalValue(e.target.value);
-    onChange(e.target.value);
+    const newValue = e.target.value;
+    setInternalValue(newValue);
+    onChange(newValue); // Propagate change up immediately
   }
 
   return (
@@ -129,7 +123,7 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
       <div className="flex gap-2">
         <div className="flex-1 relative">
           <Input
-            value={internalValue}
+            value={internalValue || ''}
             onChange={handleInputChange}
             onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
             placeholder="Enter your delivery address..."
@@ -159,7 +153,7 @@ export default function AddressAutocomplete({ onChange, value }: AddressAutocomp
               key={suggestion.place_id}
               type="button"
               className="w-full text-left px-4 py-2 hover:bg-accent hover:text-accent-foreground transition-colors"
-              onClick={() => handleSelectSuggestion(suggestion.place_id, suggestion.description)}
+              onClick={() => handleSelectSuggestion(suggestion.description)}
             >
               <div className="flex items-start gap-2">
                 <Search className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
