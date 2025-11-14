@@ -164,10 +164,8 @@ export default function ProfilePage() {
                         <FormLabel>Delivery Address</FormLabel>
                         <FormControl>
                            <AddressAutocomplete
-                              defaultValue={field.value}
-                              onAddressSelect={(address) => {
-                                field.onChange(address);
-                              }}
+                              value={field.value}
+                              onChange={field.onChange}
                             />
                         </FormControl>
                         <FormMessage />

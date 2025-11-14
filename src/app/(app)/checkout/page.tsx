@@ -166,8 +166,8 @@ export default function CheckoutPage() {
                      <div className="space-y-2">
                         <Label htmlFor="address">Street Address</Label>
                         <AddressAutocomplete 
-                          onAddressSelect={(address) => setDeliveryAddress(address)}
-                          defaultValue={deliveryAddress}
+                          onChange={(address) => setDeliveryAddress(address)}
+                          value={deliveryAddress}
                         />
                     </div>
                 </CardContent>
