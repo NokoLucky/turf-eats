@@ -1,55 +1,51 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // TEMPORARY RULES FOR DEBUGGING - ALLOW ALL ACCESS FOR LOGGED-IN USERS
-    // REMOVE THESE AFTER TESTING AND REPLACE WITH PROPER RULES
-    
+
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Allow everything for signed-in users, deny for anonymous
-    match /users/{userId} {
-      allow read, write: if isSignedIn();
-    }
-    
-    match /users/{userId}/customers/{customerId} {
-      allow read, write: if isSignedIn();
-    }
-    
-    match /users/{userId}/drivers/{driverId} {
-      allow read, write: if isSignedIn();
-    }
-    
-    match /users/{userId}/storeOwners/{storeOwnerId} {
-      allow read, write: if isSignedIn();
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
 
-    // Restaurants - public read, any signed-in user can write
+    function isRestaurantOwner(restaurantId) {
+      return isSignedIn() && get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid;
+    }
+
+    // User profiles are private to the owner
+    match /users/{userId}/{document=**} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Restaurants - public read, owner write
     match /restaurants/{restaurantId} {
-      allow get, list: if true; // Public read
-      allow create, update, delete: if isSignedIn(); // Any signed-in user can modify
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isRestaurantOwner(restaurantId);
     }
 
-    // Menu items - public read, any signed-in user can write
+    // Menu items - public read, owner write
     match /restaurants/{restaurantId}/menuItems/{menuItemId} {
-      allow get, list: if true; // Public read
-      allow create, update, delete: if isSignedIn(); // Any signed-in user can modify
+      allow get, list: if true;
+      allow create, update, delete: if isRestaurantOwner(restaurantId);
     }
 
-    // Orders - any signed-in user can do everything
+    // Orders
     match /orders/{orderId} {
-      allow read, write: if isSignedIn();
-    }
-
-    // Order items - any signed-in user can do everything
-    match /orders/{orderId}/orderItems/{orderItemId} {
-      allow read, write: if isSignedIn();
-    }
-
-    // Catch-all for any other documents - allow for signed-in users
-    match /{document=**} {
-      allow read, write: if isSignedIn();
+      // Allow list/read only if the order belongs to the user
+      allow list, get: if isSignedIn() && resource.data.customerId == request.auth.uid;
+      // Allow create for any signed-in user
+      allow create: if isSignedIn();
+      // Allow update/delete only for the customer who created it or the restaurant owner
+      allow update, delete: if (isSignedIn() && resource.data.customerId == request.auth.uid) || isRestaurantOwner(resource.data.restaurantId);
+      
+      // Order items can be read if the user can read the parent order
+      match /orderItems/{orderItemId} {
+        allow read, list: if isSignedIn() && get(/databases/$(database)/documents/orders/$(orderId)).data.customerId == request.auth.uid;
+        allow create: if isSignedIn(); // Batch writes in app handle security
+      }
     }
   }
 }
