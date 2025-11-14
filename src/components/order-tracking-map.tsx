@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
+import { Map, AdvancedMarker, Pin, APIProvider } from '@vis.gl/react-google-maps';
 import { useGeocoding } from '@/hooks/use-geocoding';
 import type { Order, Restaurant } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
+
+const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 
 // Simple linear interpolation for mock movement
 function lerp(start: number, end: number, t: number) {
@@ -16,7 +18,7 @@ interface OrderTrackingMapProps {
     restaurant: Restaurant | null;
 }
 
-export default function OrderTrackingMap({ order, restaurant }: OrderTrackingMapProps) {
+function OrderTrackingMapContent({ order, restaurant }: OrderTrackingMapProps) {
     const { position: restaurantPosition, isLoading: isRestaurantGeocoding } = useGeocoding(restaurant?.address || null);
     const { position: customerPosition, isLoading: isCustomerGeocoding } = useGeocoding(order?.deliveryAddress || null);
     
@@ -80,4 +82,12 @@ export default function OrderTrackingMap({ order, restaurant }: OrderTrackingMap
             </Map>
         </div>
     );
+}
+
+export default function OrderTrackingMap(props: OrderTrackingMapProps) {
+    return (
+        <APIProvider apiKey={API_KEY} version="beta" libraries={['places', 'geocoding']}>
+            <OrderTrackingMapContent {...props} />
+        </APIProvider>
+    )
 }
