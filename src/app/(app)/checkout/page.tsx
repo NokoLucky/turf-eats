@@ -13,7 +13,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { CreditCard, Landmark, Truck } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp, writeBatch, doc, getDoc } from 'firebase/firestore';
-import AddressAutocomplete from '@/components/address-autocomplete';
+import DirectAddressAutocomplete from '@/components/direct-address-autocomplete';
 
 export default function CheckoutPage() {
   const { state, dispatch } = useCart();
@@ -165,7 +165,7 @@ export default function CheckoutPage() {
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="address">Street Address</Label>
-                        <AddressAutocomplete 
+                        <DirectAddressAutocomplete 
                           onChange={(address) => setDeliveryAddress(address)}
                           value={deliveryAddress}
                         />
