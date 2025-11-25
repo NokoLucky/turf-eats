@@ -31,10 +31,18 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      // This is the key fix: A single 'list' rule that covers both customers and owners.
-      // It allows a query if the query constrains either 'customerId' OR 'storeOwnerId' to the user's UID.
-      // Firestore enforces that the query made by the client MUST match one of these conditions.
-      allow list: if isSignedIn() && (request.query.where.customerId == request.auth.uid || request.query.where.storeOwnerId == request.auth.uid);
+      // A consolidated 'list' rule for all roles.
+      // - Customers can list their own orders.
+      // - Owners can list orders for their restaurants.
+      // - Drivers can list their assigned deliveries.
+      // - Any signed-in user can see orders that are ready for pickup.
+      allow list: if isSignedIn() && 
+                    (
+                      (request.query.where.customerId == request.auth.uid) ||
+                      (request.query.where.storeOwnerId == request.auth.uid) ||
+                      (request.query.where.driverId == request.auth.uid) ||
+                      (request.query.where.status == 'Preparing' && request.query.where.driverId == null)
+                    );
       
       // Customer: Can create an order for themselves.
       allow create: if isOwner(request.resource.data.customerId);
