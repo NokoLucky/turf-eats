@@ -46,7 +46,8 @@ service cloud.firestore {
       
       // Customer can read their own order.
       // Owner can read orders for their restaurant.
-      allow read: if isOwner(resource.data.customerId) || isOwner(resource.data.storeOwnerId);
+      // Driver can read orders they are assigned to.
+      allow read: if isOwner(resource.data.customerId) || isOwner(resource.data.storeOwnerId) || isOwner(resource.data.driverId);
 
       // Customer, Owner, or Driver can update an order (e.g., status change).
       allow update: if isOwner(resource.data.customerId) || isOwner(resource.data.storeOwnerId) || isOwner(resource.data.driverId);
