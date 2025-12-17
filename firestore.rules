@@ -35,9 +35,13 @@ service cloud.firestore {
       // The query's `where` clause must match one of these allowed patterns.
       // This is not a filter, but a validation of the query itself.
       allow list: if isSignedIn() && (
+          // Customer can list their own orders.
           (request.query.keys().hasAll(['customerId']) && request.query.customerId == request.auth.uid) ||
+          // Owner can list orders for their restaurant.
           (request.query.keys().hasAll(['storeOwnerId']) && request.query.storeOwnerId == request.auth.uid) ||
+          // Driver can list orders they have accepted.
           (request.query.keys().hasAll(['driverId', 'status']) && request.query.driverId == request.auth.uid) ||
+          // Driver can list available orders for pickup.
           (request.query.keys().hasAll(['status', 'driverId']) && request.query.status == 'Preparing' && request.query.driverId == null)
       );
       
