@@ -11,13 +11,15 @@ service cloud.firestore {
     }
 
     function isRestaurantOwner(restaurantId) {
-      // This function can only be used for document-level (get, create, update, delete) rules, not list rules.
       return isSignedIn() && get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid;
     }
 
-    function getOrderData() {
-      // Helper to get order data safely
-      return resource.data;
+    function isOrderParticipant(orderData) {
+      return isSignedIn() && (
+        orderData.customerId == request.auth.uid ||
+        orderData.storeOwnerId == request.auth.uid ||
+        orderData.driverId == request.auth.uid
+      );
     }
     
     match /users/{userId}/{document=**} {
@@ -36,24 +38,19 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      // Allow authenticated users to list orders with various query patterns
+      // LIST RULES - These validate the query patterns
       allow list: if isSignedIn() && (
-        // ADMIN/DEBUG: Allow listing all orders (you might want to restrict this)
-        // Remove this if you want more strict rules
-        request.auth.uid in ['admin-uid-here'] ||
+        // Driver can list their assigned orders
+        (request.query.keys().hasAll(['driverId', 'status']) && 
+         request.query.driverId == request.auth.uid) ||
         
-        // Customer can list their own orders
+        // Driver can list available orders for pickup (simplified rule)
+        (request.query.keys().hasAll(['status']) && 
+         request.query.status == 'Preparing') ||
+        
+        // Allow other queries (customer/owner) if they match their ID
         (request.query.keys().hasAny(['customerId']) && request.query.customerId == request.auth.uid) ||
-        
-        // Owner can list orders for their restaurant
-        (request.query.keys().hasAny(['storeOwnerId']) && request.query.storeOwnerId == request.auth.uid) ||
-        
-        // Driver can list orders they have accepted
-        (request.query.keys().hasAny(['driverId']) && request.query.driverId == request.auth.uid) ||
-        
-        // Driver can list available orders for pickup (no driver assigned)
-        (request.query.keys().hasAny(['status']) && request.query.status == 'Preparing' && 
-         (!request.query.keys().hasAny(['driverId']) || request.query.driverId == null))
+        (request.query.keys().hasAny(['storeOwnerId']) && request.query.storeOwnerId == request.auth.uid)
       );
       
       // Customer: Can create an order for themselves.
@@ -63,26 +60,33 @@ service cloud.firestore {
       allow read: if isSignedIn() && (
         resource.data.customerId == request.auth.uid ||
         resource.data.storeOwnerId == request.auth.uid ||
-        (resource.data.driverId != null && resource.data.driverId == request.auth.uid)
+        resource.data.driverId == request.auth.uid
       );
 
-      // Update access based on role and allowed fields
+      // Update access with field validation
       allow update: if isSignedIn() && (
-        // Customer can only update certain fields (like cancel)
+        // Customer can cancel order
         (resource.data.customerId == request.auth.uid && 
          request.resource.data.keys().hasOnly(['status']) && 
          request.resource.data.status in ['Cancelled']) ||
         
-        // Restaurant owner can update order status
+        // Restaurant owner can update status
         (resource.data.storeOwnerId == request.auth.uid && 
          request.resource.data.keys().hasOnly(['status', 'estimatedTime', 'readyTime'])) ||
         
-        // Driver can accept or update delivery status
+        // Driver can accept order (set driverId and update status)
         (request.auth.uid == request.resource.data.driverId && 
-         request.resource.data.keys().hasOnly(['status', 'driverId', 'deliveryTime']))
+         resource.data.driverId == null &&
+         request.resource.data.keys().hasAll(['driverId', 'status']) &&
+         request.resource.data.status in ['Out for Delivery']) ||
+        
+        // Driver can mark as delivered
+        (resource.data.driverId == request.auth.uid &&
+         request.resource.data.keys().hasOnly(['status']) &&
+         request.resource.data.status == 'Delivered')
       );
       
-      // Customer can cancel/delete their own order
+      // Customer can delete/cancel their own order
       allow delete: if isSignedIn() && resource.data.customerId == request.auth.uid;
 
       match /orderItems/{orderItemId} {
@@ -96,12 +100,6 @@ service cloud.firestore {
         allow create: if isSignedIn() && 
           get(/databases/$(database)/documents/orders/$(orderId)).data.customerId == request.auth.uid;
       }
-    }
-
-    // Add specific driver collection if needed
-    match /driverLocations/{driverId} {
-      allow read: if isSignedIn();
-      allow write: if isOwner(driverId);
     }
   }
 }

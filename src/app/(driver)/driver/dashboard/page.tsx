@@ -39,13 +39,12 @@ export default function DriverDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  // Query for orders that are ready for pickup
+  // Query for orders that are ready for pickup (simplified query)
   const availableOrdersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
       collection(firestore, 'orders'),
-      where('status', '==', 'Preparing'),
-      where('driverId', '==', null)
+      where('status', '==', 'Preparing')
     );
   }, [firestore]);
 
@@ -59,8 +58,13 @@ export default function DriverDashboard() {
     );
   }, [user, firestore]);
 
-  const { data: availableOrders, isLoading: isLoadingAvailable } = useCollection<Order>(availableOrdersQuery);
+  const { data: allPreparingOrders, isLoading: isLoadingAvailable } = useCollection<Order>(availableOrdersQuery);
   const { data: myDeliveries, isLoading: isLoadingMine } = useCollection<Order>(myDeliveriesQuery);
+
+  // Client-side filter for available orders
+  const availableOrders = useMemoFirebase(() => {
+    return allPreparingOrders?.filter(order => order.driverId === null) || [];
+  }, [allPreparingOrders]);
 
   const handleAcceptOrder = async (orderId: string) => {
     if (!user || !firestore) return;
