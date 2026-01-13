@@ -40,28 +40,36 @@ export default function DriverDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  // Query for orders that are ready for pickup
+  // Query for orders that are ready for pickup (simplified query)
   const availableOrdersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
       collection(firestore, 'orders'),
-      where('status', '==', 'Preparing'),
-      where('driverId', '==', null)
+      where('status', '==', 'Preparing')
     );
   }, [firestore]);
 
-  // Query for orders assigned to the current driver
+  // Query for orders assigned to the current driver (simplified query)
   const myDeliveriesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(
       collection(firestore, 'orders'),
-      where('driverId', '==', user.uid),
-      where('status', '==', 'Out for Delivery')
+      where('driverId', '==', user.uid)
     );
   }, [user, firestore]);
 
-  const { data: availableOrders, isLoading: isLoadingAvailable } = useCollection<Order>(availableOrdersQuery);
-  const { data: myDeliveries, isLoading: isLoadingMine } = useCollection<Order>(myDeliveriesQuery);
+  const { data: allPreparingOrders, isLoading: isLoadingAvailable } = useCollection<Order>(availableOrdersQuery);
+  const { data: allMyOrders, isLoading: isLoadingMine } = useCollection<Order>(myDeliveriesQuery);
+
+  // Client-side filtering
+  const availableOrders = useMemo(() => {
+    return allPreparingOrders?.filter(order => !order.driverId) || [];
+  }, [allPreparingOrders]);
+  
+  const myDeliveries = useMemo(() => {
+      return allMyOrders?.filter(order => order.status === 'Out for Delivery') || [];
+  }, [allMyOrders]);
+
 
   const handleAcceptOrder = async (orderId: string) => {
     if (!user || !firestore) return;
