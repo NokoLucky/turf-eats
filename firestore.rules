@@ -54,13 +54,13 @@ service cloud.firestore {
         (resource.data.storeOwnerId == request.auth.uid && 
          request.resource.data.keys().hasOnly(['status', 'estimatedTime', 'readyTime'])) ||
         
-        // Driver can accept order (set driverId and update status)
-        (request.resource.data.driverId == request.auth.uid && 
-         resource.data.driverId == null &&
+        // Driver can accept an order
+        (resource.data.driverId == null &&
+         request.resource.data.driverId == request.auth.uid &&
          request.resource.data.keys().hasAll(['driverId', 'status']) &&
          request.resource.data.status == 'Out for Delivery') ||
         
-        // Driver can mark as delivered
+        // Driver can mark their accepted order as delivered
         (resource.data.driverId == request.auth.uid &&
          request.resource.data.keys().hasOnly(['status']) &&
          request.resource.data.status == 'Delivered')
