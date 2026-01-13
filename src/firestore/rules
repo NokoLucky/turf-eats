@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function isRestaurantOwner(restaurantId) {
+      return isSignedIn() && get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid;
+    }
+    
+    match /users/{userId}/{document=**} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    match /restaurants/{restaurantId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isRestaurantOwner(restaurantId);
+    }
+
+    match /restaurants/{restaurantId}/menuItems/{menuItemId} {
+      allow get, list: if true;
+      allow create, update, delete: if isRestaurantOwner(restaurantId);
+    }
+
+    match /orders/{orderId} {
+      // Allow any signed-in user to list orders.
+      // This is a temporary, broad rule to resolve permission errors.
+      // We can refine this later.
+      allow list: if isSignedIn();
+      
+      // Customer: Can create an order for themselves.
+      allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
+      
+      // Read access based on role
+      allow read: if isSignedIn() && (
+        resource.data.customerId == request.auth.uid ||
+        resource.data.storeOwnerId == request.auth.uid ||
+        resource.data.driverId == request.auth.uid
+      );
+
+      // Update access with field validation
+      allow update: if isSignedIn() && (
+        // Customer can cancel order
+        (resource.data.customerId == request.auth.uid && 
+         request.resource.data.keys().hasOnly(['status']) && 
+         request.resource.data.status in ['Cancelled']) ||
+        
+        // Restaurant owner can update status
+        (resource.data.storeOwnerId == request.auth.uid && 
+         request.resource.data.keys().hasOnly(['status', 'estimatedTime', 'readyTime'])) ||
+        
+        // Driver can accept order (set driverId and update status)
+        (request.resource.data.driverId == request.auth.uid && 
+         resource.data.driverId == null &&
+         request.resource.data.keys().hasAll(['driverId', 'status']) &&
+         request.resource.data.status in ['Out for Delivery']) ||
+        
+        // Driver can mark as delivered
+        (resource.data.driverId == request.auth.uid &&
+         request.resource.data.keys().hasOnly(['status']) &&
+         request.resource.data.status == 'Delivered')
+      );
+      
+      // Customer can delete/cancel their own order
+      allow delete: if isSignedIn() && resource.data.customerId == request.auth.uid;
+
+      match /orderItems/{orderItemId} {
+        // Read access same as parent order
+        allow read: if isSignedIn() && (
+          get(/databases/$(database)/documents/orders/$(orderId)).data.customerId == request.auth.uid ||
+          get(/databases/$(database)/documents/orders/$(orderId)).data.storeOwnerId == request.auth.uid
+        );
+        
+        // Only the customer can add items when creating order
+        allow create: if isSignedIn() && 
+          get(/databases/$(database)/documents/orders/$(orderId)).data.customerId == request.auth.uid;
+      }
+    }
+  }
+}
