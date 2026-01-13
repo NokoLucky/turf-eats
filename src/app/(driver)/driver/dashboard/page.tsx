@@ -165,7 +165,7 @@ export default function DriverDashboard() {
                   <Card key={order.id} className="p-4 flex justify-between items-center">
                     <div>
                       <p className="font-semibold">Order #{order.id.slice(0, 6)}</p>
-                      <p className="text-sm text-muted-foreground truncate max-w-xs">{order.deliveryAddress}</p>
+                      <p className="text-sm text-muted-foreground truncate max-w-[200px]">{order.deliveryAddress}</p>
                     </div>
                      <Button variant="outline" size="sm" onClick={() => handleAcceptOrder(order.id)}>
                         <Hand className="mr-2 h-4 w-4" />
@@ -225,7 +225,7 @@ export default function DriverDashboard() {
                       <Card key={delivery.id} className="p-4 flex justify-between items-center">
                         <div>
                           <p className="font-semibold">Order #{delivery.id.slice(0, 6)}</p>
-                          <p className="text-sm text-muted-foreground truncate max-w-xs">{delivery.deliveryAddress}</p>
+                          <p className="text-sm text-muted-foreground truncate max-w-[200px]">{delivery.deliveryAddress}</p>
                         </div>
                         <Button variant="default" size="sm" onClick={() => handleMarkDelivered(delivery.id)}>
                           <PackageCheck className="mr-2 h-4 w-4" />
