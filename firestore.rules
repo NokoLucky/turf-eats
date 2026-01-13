@@ -44,9 +44,10 @@ service cloud.firestore {
         (request.query.keys().hasAll(['driverId', 'status']) && 
          request.query.driverId == request.auth.uid) ||
         
-        // Driver can list available orders for pickup (simplified rule)
-        (request.query.keys().hasAll(['status']) && 
-         request.query.status == 'Preparing') ||
+        // Driver can list available orders for pickup
+        (request.query.keys().hasAll(['status', 'driverId']) &&
+         request.query.status == 'Preparing' &&
+         request.query.driverId == null) ||
         
         // Allow other queries (customer/owner) if they match their ID
         (request.query.keys().hasAny(['customerId']) && request.query.customerId == request.auth.uid) ||

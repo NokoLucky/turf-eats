@@ -10,6 +10,7 @@ import { collection, doc, query, where, updateDoc } from 'firebase/firestore';
 import type { Order } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { useMemo } from 'react';
 
 function DeliveryTableSkeleton() {
   return (
@@ -39,12 +40,13 @@ export default function DriverDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  // Query for orders that are ready for pickup (simplified query)
+  // Query for orders that are ready for pickup
   const availableOrdersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
       collection(firestore, 'orders'),
-      where('status', '==', 'Preparing')
+      where('status', '==', 'Preparing'),
+      where('driverId', '==', null)
     );
   }, [firestore]);
 
@@ -58,13 +60,8 @@ export default function DriverDashboard() {
     );
   }, [user, firestore]);
 
-  const { data: allPreparingOrders, isLoading: isLoadingAvailable } = useCollection<Order>(availableOrdersQuery);
+  const { data: availableOrders, isLoading: isLoadingAvailable } = useCollection<Order>(availableOrdersQuery);
   const { data: myDeliveries, isLoading: isLoadingMine } = useCollection<Order>(myDeliveriesQuery);
-
-  // Client-side filter for available orders
-  const availableOrders = useMemoFirebase(() => {
-    return allPreparingOrders?.filter(order => order.driverId === null) || [];
-  }, [allPreparingOrders]);
 
   const handleAcceptOrder = async (orderId: string) => {
     if (!user || !firestore) return;
