@@ -11,6 +11,8 @@ import type { Order } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useMemo } from 'react';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 function DeliveryTableSkeleton() {
   return (
@@ -40,7 +42,7 @@ export default function DriverDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  // Query for orders that are ready for pickup (simplified query)
+  // Query for orders that are ready for pickup
   const availableOrdersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -49,7 +51,7 @@ export default function DriverDashboard() {
     );
   }, [firestore]);
 
-  // Query for orders assigned to the current driver (simplified query)
+  // Query for orders assigned to the current driver
   const myDeliveriesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(
@@ -63,56 +65,62 @@ export default function DriverDashboard() {
 
   // Client-side filtering
   const availableOrders = useMemo(() => {
+    // Also filter out any orders that might already have a driverId, just in case
     return allPreparingOrders?.filter(order => !order.driverId) || [];
   }, [allPreparingOrders]);
   
   const myDeliveries = useMemo(() => {
+      // Only show orders that are actively out for delivery
       return allMyOrders?.filter(order => order.status === 'Out for Delivery') || [];
   }, [allMyOrders]);
 
 
-  const handleAcceptOrder = async (orderId: string) => {
+  const handleAcceptOrder = (orderId: string) => {
     if (!user || !firestore) return;
 
     const orderRef = doc(firestore, 'orders', orderId);
-    try {
-      await updateDoc(orderRef, {
-        driverId: user.uid,
-        status: 'Out for Delivery',
+    const updateData = {
+      driverId: user.uid,
+      status: 'Out for Delivery',
+    };
+
+    updateDoc(orderRef, updateData)
+      .then(() => {
+        toast({
+          title: 'Order Accepted!',
+          description: 'The delivery has been added to your active deliveries.',
+        });
+      })
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: orderRef.path,
+          operation: 'update',
+          requestResourceData: updateData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
-      toast({
-        title: 'Order Accepted!',
-        description: 'The delivery has been added to your active deliveries.',
-      });
-    } catch (error: any) {
-      console.error('Error accepting order:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Could not accept the order.',
-      });
-    }
   };
 
-  const handleMarkDelivered = async (orderId: string) => {
+  const handleMarkDelivered = (orderId: string) => {
     if (!firestore) return;
      const orderRef = doc(firestore, 'orders', orderId);
-    try {
-      await updateDoc(orderRef, {
-        status: 'Delivered',
+     const updateData = { status: 'Delivered' };
+     
+    updateDoc(orderRef, updateData)
+      .then(() => {
+        toast({
+          title: 'Delivery Complete!',
+          description: 'Great job! The order has been marked as delivered.',
+        });
+      })
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: orderRef.path,
+          operation: 'update',
+          requestResourceData: updateData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
-      toast({
-        title: 'Delivery Complete!',
-        description: 'Great job! The order has been marked as delivered.',
-      });
-    } catch (error: any) {
-      console.error('Error completing delivery:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Could not update the order status.',
-      });
-    }
   };
 
   return (
