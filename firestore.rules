@@ -30,7 +30,8 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      // Simplified list rule to unblock development
+      // Simplified list rule to unblock development.
+      // We will rely on client-side filtering and specific read rules.
       allow list: if isSignedIn();
       
       // Customer: Can create an order for themselves.
@@ -54,14 +55,16 @@ service cloud.firestore {
         (resource.data.storeOwnerId == request.auth.uid && 
          request.resource.data.keys().hasOnly(['status', 'estimatedTime', 'readyTime'])) ||
         
-        // Driver can accept an order
-        (resource.data.driverId == null &&
+        // Driver can accept an order (update from Preparing to Out for Delivery)
+        (resource.data.status == 'Preparing' &&
+         resource.data.driverId == null &&
          request.resource.data.driverId == request.auth.uid &&
          request.resource.data.keys().hasAll(['driverId', 'status']) &&
          request.resource.data.status == 'Out for Delivery') ||
         
         // Driver can mark their accepted order as delivered
         (resource.data.driverId == request.auth.uid &&
+         resource.data.status == 'Out for Delivery' &&
          request.resource.data.keys().hasOnly(['status']) &&
          request.resource.data.status == 'Delivered')
       );
