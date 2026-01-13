@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useEffect, useState } from 'react';
-import { notFound } from 'next/navigation';
+import React from 'react';
+import { notFound, useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { CheckCircle, Bike, Pizza, Circle, ShoppingBag } from 'lucide-react';
@@ -69,17 +69,19 @@ function OrderDetailsSkeleton() {
   )
 }
 
-export default function OrderDetailsPage({ params }: { params: { id: string } }) {
+export default function OrderDetailsPage() {
+  const params = useParams();
+  const orderId = params.id as string;
   const firestore = useFirestore();
-  const [order, setOrder] = useState<Order | null>(null);
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [order, setOrder] = React.useState<Order | null>(null);
+  const [restaurant, setRestaurant] = React.useState<Restaurant | null>(null);
+  const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  useEffect(() => {
-    if (!firestore || !params.id) return;
+  React.useEffect(() => {
+    if (!firestore || !orderId) return;
 
-    const orderRef = doc(firestore, 'orders', params.id);
+    const orderRef = doc(firestore, 'orders', orderId);
     
     // Set up a real-time listener for the main order document to get status updates
     const unsubscribe = onSnapshot(orderRef, 
@@ -100,7 +102,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
           }
 
           // Fetch order items
-          const itemsRef = collection(firestore, 'orders', params.id, 'orderItems');
+          const itemsRef = collection(firestore, 'orders', orderId, 'orderItems');
           getDocs(itemsRef).then(itemsSnap => {
             const items = itemsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as OrderItem));
             setOrderItems(items);
@@ -119,7 +121,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
     );
 
     return () => unsubscribe(); // Cleanup the listener on unmount
-  }, [firestore, params.id]);
+  }, [firestore, orderId]);
 
 
   if (isLoading) {
