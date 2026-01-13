@@ -122,7 +122,7 @@ export default function DriverDashboard() {
         <p className="text-muted-foreground mt-2">Find and manage your delivery tasks.</p>
       </div>
       
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-8">
         <Card>
           <CardHeader>
             <CardTitle className='flex items-center gap-2'><PackageOpen className="text-primary"/>Available for Pickup</CardTitle>
@@ -132,29 +132,49 @@ export default function DriverDashboard() {
             {isLoadingAvailable ? (
               <DeliveryTableSkeleton />
             ) : availableOrders && availableOrders.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Destination</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {availableOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">#{order.id.slice(0, 6)}...</TableCell>
-                      <TableCell className="truncate max-w-xs">{order.deliveryAddress}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => handleAcceptOrder(order.id)}>
-                          <Hand className="mr-2 h-4 w-4" />
-                          Accept
-                        </Button>
-                      </TableCell>
+            <>
+              {/* Desktop Table */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order ID</TableHead>
+                      <TableHead>Destination</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {availableOrders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">#{order.id.slice(0, 6)}...</TableCell>
+                        <TableCell className="truncate max-w-xs">{order.deliveryAddress}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="outline" size="sm" onClick={() => handleAcceptOrder(order.id)}>
+                            <Hand className="mr-2 h-4 w-4" />
+                            Accept
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {/* Mobile Card List */}
+              <div className="sm:hidden space-y-4">
+                {availableOrders.map((order) => (
+                  <Card key={order.id} className="p-4 flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold">Order #{order.id.slice(0, 6)}</p>
+                      <p className="text-sm text-muted-foreground truncate max-w-xs">{order.deliveryAddress}</p>
+                    </div>
+                     <Button variant="outline" size="sm" onClick={() => handleAcceptOrder(order.id)}>
+                        <Hand className="mr-2 h-4 w-4" />
+                        Accept
+                      </Button>
+                  </Card>
+                ))}
+              </div>
+            </>
             ) : (
                 <div className="text-center text-muted-foreground py-12">
                     <p>No available deliveries right now. Check back soon!</p>
@@ -172,29 +192,49 @@ export default function DriverDashboard() {
             {isLoadingMine ? (
                <DeliveryTableSkeleton />
             ) : myDeliveries && myDeliveries.length > 0 ? (
-               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Destination</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {myDeliveries.map((delivery) => (
-                    <TableRow key={delivery.id}>
-                      <TableCell className="font-medium">#{delivery.id.slice(0, 6)}...</TableCell>
-                      <TableCell className="truncate max-w-xs">{delivery.deliveryAddress}</TableCell>
-                      <TableCell className="text-right">
+              <>
+                {/* Desktop Table */}
+                <div className="hidden sm:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Order ID</TableHead>
+                        <TableHead>Destination</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {myDeliveries.map((delivery) => (
+                        <TableRow key={delivery.id}>
+                          <TableCell className="font-medium">#{delivery.id.slice(0, 6)}...</TableCell>
+                          <TableCell className="truncate max-w-xs">{delivery.deliveryAddress}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="default" size="sm" onClick={() => handleMarkDelivered(delivery.id)}>
+                              <PackageCheck className="mr-2 h-4 w-4" />
+                              Delivered
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                 {/* Mobile Card List */}
+                <div className="sm:hidden space-y-4">
+                   {myDeliveries.map((delivery) => (
+                      <Card key={delivery.id} className="p-4 flex justify-between items-center">
+                        <div>
+                          <p className="font-semibold">Order #{delivery.id.slice(0, 6)}</p>
+                          <p className="text-sm text-muted-foreground truncate max-w-xs">{delivery.deliveryAddress}</p>
+                        </div>
                         <Button variant="default" size="sm" onClick={() => handleMarkDelivered(delivery.id)}>
                           <PackageCheck className="mr-2 h-4 w-4" />
                           Delivered
                         </Button>
-                      </TableCell>
-                    </TableRow>
+                      </Card>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              </>
             ) : (
                 <div className="text-center text-muted-foreground py-12">
                     <p>You have no active deliveries.</p>
