@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, ChangeEvent } from 'react';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -8,7 +9,6 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Image as ImageIcon, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { uploadFile } from '@/ai/flows/upload-file-flow';
 
 interface ImageUploaderProps {
   onUploadComplete: (url: string) => void;
@@ -19,60 +19,71 @@ interface ImageUploaderProps {
 export default function ImageUploader({ onUploadComplete, initialImageUrl, folderName }: ImageUploaderProps) {
   const { toast } = useToast();
 
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialImageUrl || null);
   
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    console.log('[Uploader] File input changed.');
     const file = event.target.files?.[0];
     if (!file) {
       return;
     }
+    console.log(`[Uploader] File selected: ${file.name} (size: ${file.size} bytes)`);
 
     const reader = new FileReader();
-    
-    // Show preview immediately
     reader.onload = (e) => {
       setPreviewUrl(e.target?.result as string);
     };
     reader.readAsDataURL(file);
 
-    // Prepare for server-side upload
-    const serverReader = new FileReader();
-    serverReader.onload = async (e) => {
-      try {
-        setIsUploading(true);
-        const base64DataUrl = e.target?.result as string;
-        
-        const result = await uploadFile({
-          fileDataUrl: base64DataUrl,
-          folderName: folderName,
-          fileName: file.name
-        });
+    try {
+      setIsUploading(true);
+      const storage = getStorage();
+      console.log('[Uploader] Firebase Storage instance obtained.');
 
-        if (result.downloadURL) {
-          onUploadComplete(result.downloadURL);
-          setPreviewUrl(result.downloadURL);
+      const storageRef = ref(storage, `${folderName}/${new Date().getTime()}-${file.name}`);
+      console.log(`[Uploader] Created storage reference at path: ${storageRef.fullPath}`);
+
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      uploadTask.on('state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log('[Uploader] Upload is ' + progress + '% done');
+          setUploadProgress(progress);
+        },
+        (error) => {
+          console.error('[Uploader] Upload failed:', error);
           toast({
-            title: 'Upload Complete!',
-            description: 'Your image has been successfully uploaded.',
+            variant: 'destructive',
+            title: 'Upload Failed',
+            description: error.message,
           });
-        } else {
-          throw new Error('Upload did not return a URL.');
+          setIsUploading(false);
+          setPreviewUrl(initialImageUrl || null);
+        },
+        () => {
+          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+            console.log('[Uploader] File available at', downloadURL);
+            onUploadComplete(downloadURL);
+            setIsUploading(false);
+            toast({
+              title: 'Upload Complete!',
+              description: 'Your image has been successfully uploaded.',
+            });
+          });
         }
-
-      } catch (error: any) {
-        console.error('[Uploader] Upload failed:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Upload Failed',
-          description: error.message || 'An unexpected error occurred during upload.',
+      );
+    } catch (error: any) {
+        console.error('[Uploader] An unexpected error occurred during setup:', error);
+         toast({
+            variant: 'destructive',
+            title: 'Upload Error',
+            description: 'Could not start the upload process.',
         });
-        setPreviewUrl(initialImageUrl || null); // Revert to initial
-      } finally {
         setIsUploading(false);
-      }
-    };
-    serverReader.readAsDataURL(file);
+    }
   };
 
   const handleRemoveImage = () => {
@@ -118,8 +129,8 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
 
       {isUploading && (
         <div className="space-y-2">
-            <Progress value={100} className="animate-pulse" />
-            <p className="text-sm text-center text-muted-foreground">Uploading...</p>
+            <Progress value={uploadProgress} />
+            <p className="text-sm text-center text-muted-foreground">Uploading... ({Math.round(uploadProgress)}%)</p>
         </div>
       )}
     </div>

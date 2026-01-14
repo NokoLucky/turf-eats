@@ -1,2 +1,2 @@
-// Flows will be imported for their side effects in this file.
-import './flows/upload-file-flow';
+// This file is intentionally blank.
+// Genkit flows are imported for their side effects.
