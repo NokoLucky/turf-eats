@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 const categories = [
   { name: 'All', icon: <ChefHat /> },
@@ -45,6 +46,28 @@ export default function CustomerDashboardPage() {
   );
   const { data: restaurants, isLoading } = useCollection<Omit<Restaurant, 'menu'>>(restaurantsRef);
 
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [selectedCategory, setSelectedCategory] = React.useState('All');
+
+  const filteredRestaurants = React.useMemo(() => {
+    if (!restaurants) return [];
+    
+    return restaurants
+      .filter(restaurant => {
+        if (selectedCategory === 'All') return true;
+        // This handles cases where a restaurant might have multiple categories, e.g. "Pizza, Italian"
+        return restaurant.category.split(',').map(c => c.trim()).includes(selectedCategory);
+      })
+      .filter(restaurant => {
+        if (!searchTerm) return true;
+        const lowercasedTerm = searchTerm.toLowerCase();
+        return (
+          restaurant.name.toLowerCase().includes(lowercasedTerm) ||
+          restaurant.category.toLowerCase().includes(lowercasedTerm)
+        );
+      });
+  }, [restaurants, searchTerm, selectedCategory]);
+
   return (
     <div className="bg-muted/20">
       <div className="container py-8 px-4 sm:px-8">
@@ -58,9 +81,14 @@ export default function CustomerDashboardPage() {
           <div className="mt-6 max-w-2xl mx-auto flex flex-col sm:flex-row gap-2">
             <div className="relative flex-grow">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input placeholder="Search restaurants or cuisines..." className="pl-10 bg-card h-12" />
+              <Input
+                placeholder="Search restaurants or cuisines..."
+                className="pl-10 bg-card h-12"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-            <Button size="lg" className="h-12 font-bold">Search</Button>
+            <Button size="lg" className="h-12 font-bold" type="button">Search</Button>
           </div>
         </div>
 
@@ -68,7 +96,14 @@ export default function CustomerDashboardPage() {
             <h2 className="font-headline text-2xl font-bold mb-4">Categories</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {categories.map((category) => (
-                    <Card key={category.name} className="flex flex-col items-center justify-center p-4 sm:p-6 hover:bg-primary/5 hover:shadow-md transition-all cursor-pointer">
+                    <Card 
+                        key={category.name}
+                        className={cn(
+                            "flex flex-col items-center justify-center p-4 sm:p-6 hover:bg-primary/10 hover:shadow-md transition-all cursor-pointer",
+                            selectedCategory === category.name && "ring-2 ring-primary bg-primary/10 shadow-lg"
+                        )}
+                        onClick={() => setSelectedCategory(category.name)}
+                    >
                         <div className="p-3 rounded-full bg-primary/10 mb-2 text-primary">
                             {React.cloneElement(category.icon, { className: "h-6 w-6 sm:h-8 sm:w-8" })}
                         </div>
@@ -79,52 +114,69 @@ export default function CustomerDashboardPage() {
         </div>
 
         <div>
-            <h2 className="font-headline text-2xl font-bold mb-4">Popular Restaurants</h2>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {isLoading && Array.from({ length: 4 }).map((_, i) => <RestaurantCardSkeleton key={i} />)}
-            {restaurants?.map((restaurant) => (
-            <Link href={`/restaurant/${restaurant.id}`} key={restaurant.id} className="group">
-                <Card className="overflow-hidden h-full transition-shadow duration-300 hover:shadow-lg">
-                <CardHeader className="p-0">
-                    <div className="relative h-48 w-full">
-                    <Image
-                        src={restaurant.bannerUrl || 'https://picsum.photos/seed/placeholder/1200/400'}
-                        alt={`A promotional image for ${restaurant.name}`}
-                        data-ai-hint="restaurant food"
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                    </div>
-                </CardHeader>
-                <CardContent className="p-4">
-                    <div className="flex items-start gap-4">
-                    <Image
-                        src={restaurant.logoUrl || 'https://picsum.photos/seed/logo/100/100'}
-                        alt={`Logo for ${restaurant.name}`}
-                        data-ai-hint="restaurant logo"
-                        width={48}
-                        height={48}
-                        className="rounded-md border-2 border-background shadow-sm -mt-10 bg-card p-1 object-cover"
-                    />
-                    <div className="flex-1">
-                        <h3 className="font-headline text-lg font-bold truncate">{restaurant.name}</h3>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                            <Star className="h-4 w-4 text-primary fill-primary" />
-                            <span>{(restaurant.rating || 0).toFixed(1)}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <Utensils className="h-4 w-4" />
-                            <span>{restaurant.category}</span>
-                        </div>
-                        </div>
-                    </div>
-                    </div>
-                </CardContent>
-                </Card>
-            </Link>
-            ))}
-            </div>
+            <h2 className="font-headline text-2xl font-bold mb-4">
+                {selectedCategory === 'All' ? 'Popular Restaurants' : `${selectedCategory} Restaurants`}
+            </h2>
+            
+            {isLoading && (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, i) => <RestaurantCardSkeleton key={i} />)}
+              </div>
+            )}
+
+            {!isLoading && filteredRestaurants.length > 0 && (
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {filteredRestaurants.map((restaurant) => (
+                    <Link href={`/restaurant/${restaurant.id}`} key={restaurant.id} className="group">
+                        <Card className="overflow-hidden h-full transition-shadow duration-300 hover:shadow-lg">
+                        <CardHeader className="p-0">
+                            <div className="relative h-48 w-full">
+                            <Image
+                                src={restaurant.bannerUrl || 'https://picsum.photos/seed/placeholder/1200/400'}
+                                alt={`A promotional image for ${restaurant.name}`}
+                                data-ai-hint="restaurant food"
+                                fill
+                                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-4">
+                            <div className="flex items-start gap-4">
+                            <Image
+                                src={restaurant.logoUrl || 'https://picsum.photos/seed/logo/100/100'}
+                                alt={`Logo for ${restaurant.name}`}
+                                data-ai-hint="restaurant logo"
+                                width={48}
+                                height={48}
+                                className="rounded-md border-2 border-background shadow-sm -mt-10 bg-card p-1 object-cover"
+                            />
+                            <div className="flex-1">
+                                <h3 className="font-headline text-lg font-bold truncate">{restaurant.name}</h3>
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                    <Star className="h-4 w-4 text-primary fill-primary" />
+                                    <span>{(restaurant.rating || 0).toFixed(1)}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <Utensils className="h-4 w-4" />
+                                    <span>{restaurant.category}</span>
+                                </div>
+                                </div>
+                            </div>
+                            </div>
+                        </CardContent>
+                        </Card>
+                    </Link>
+                    ))}
+                </div>
+            )}
+
+            {!isLoading && filteredRestaurants.length === 0 && (
+                <div className="text-center py-20 bg-card rounded-lg">
+                    <h3 className="text-2xl font-bold">No Restaurants Found</h3>
+                    <p className="text-muted-foreground mt-2">Try adjusting your search or category selection.</p>
+                </div>
+            )}
         </div>
       </div>
     </div>
