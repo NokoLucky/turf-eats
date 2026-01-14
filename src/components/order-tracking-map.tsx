@@ -5,12 +5,14 @@ import { Map, AdvancedMarker, Pin, APIProvider } from '@vis.gl/react-google-maps
 import { useGeocoding } from '@/hooks/use-geocoding';
 import type { Order, Restaurant } from '@/lib/data';
 import { Skeleton } from './ui/skeleton';
+import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 
-// Simple linear interpolation for mock movement
-function lerp(start: number, end: number, t: number) {
-    return start * (1 - t) + end * t;
+type DriverLocation = {
+  lat: number;
+  lng: number;
 }
 
 interface OrderTrackingMapProps {
@@ -19,36 +21,21 @@ interface OrderTrackingMapProps {
 }
 
 function OrderTrackingMapContent({ order, restaurant }: OrderTrackingMapProps) {
+    const firestore = useFirestore();
     const { position: restaurantPosition, isLoading: isRestaurantGeocoding } = useGeocoding(restaurant?.address || null);
     const { position: customerPosition, isLoading: isCustomerGeocoding } = useGeocoding(order?.deliveryAddress || null);
-    
-    const [driverPosition, setDriverPosition] = useState(restaurantPosition);
-    const [progress, setProgress] = useState(0);
 
-    // Effect to start driver simulation once both points are geocoded
-    useEffect(() => {
-        if (restaurantPosition && customerPosition && progress === 0) {
-            setDriverPosition(restaurantPosition); // Start driver at the restaurant
-            const interval = setInterval(() => {
-                setProgress(prev => {
-                    const newProgress = prev + 0.01;
-                    if (newProgress >= 1) {
-                        clearInterval(interval);
-                        return 1;
-                    }
-                    const newLat = lerp(restaurantPosition.lat, customerPosition.lat, newProgress);
-                    const newLng = lerp(restaurantPosition.lng, customerPosition.lng, newProgress);
-                    setDriverPosition({ lat: newLat, lng: newLng });
-                    return newProgress;
-                });
-            }, 500);
+    const driverLocationRef = useMemoFirebase(() => {
+        if (!firestore || !order?.driverId) return null;
+        return doc(firestore, 'locations', order.driverId);
+    }, [firestore, order?.driverId]);
 
-            return () => clearInterval(interval);
-        }
-    }, [restaurantPosition, customerPosition, progress]);
+    const { data: driverLocation } = useDoc<DriverLocation>(driverLocationRef);
 
+    const center = driverLocation || restaurantPosition || customerPosition;
+    const isLoading = isRestaurantGeocoding || isCustomerGeocoding;
 
-    if (isRestaurantGeocoding || isCustomerGeocoding) {
+    if (isLoading) {
         return <Skeleton className="aspect-video w-full" />
     }
 
@@ -63,8 +50,8 @@ function OrderTrackingMapContent({ order, restaurant }: OrderTrackingMapProps) {
     return (
         <div className="aspect-video w-full">
             <Map
-                defaultCenter={restaurantPosition}
-                defaultZoom={13}
+                center={center || { lat: 0, lng: 0 }}
+                zoom={13}
                 mapId="turf-eats-map"
                 disableDefaultUI={true}
             >
@@ -74,8 +61,8 @@ function OrderTrackingMapContent({ order, restaurant }: OrderTrackingMapProps) {
                 <AdvancedMarker position={customerPosition} title="You">
                      <Pin background={'#1E88E5'} glyphColor={'#fff'} borderColor={'#1E88E5'} />
                 </AdvancedMarker>
-                {driverPosition && (
-                    <AdvancedMarker position={driverPosition} title="Driver">
+                {driverLocation && (
+                    <AdvancedMarker position={driverLocation} title="Driver">
                         <Pin background={'#FF914D'} glyphColor={'#fff'} borderColor={'#FF914D'} />
                     </AdvancedMarker>
                 )}
@@ -91,3 +78,5 @@ export default function OrderTrackingMap(props: OrderTrackingMapProps) {
         </APIProvider>
     )
 }
+
+    

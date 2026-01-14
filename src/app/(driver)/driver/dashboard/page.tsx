@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Hand, MapPin, PackageCheck, PackageOpen } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -13,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMemo } from 'react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { useDriverLocationTracking } from '@/hooks/use-driver-location-tracking';
 
 function DeliveryTableSkeleton() {
   return (
@@ -42,7 +42,6 @@ export default function DriverDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  // Query for orders that are ready for pickup
   const availableOrdersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -51,7 +50,6 @@ export default function DriverDashboard() {
     );
   }, [firestore]);
 
-  // Query for orders assigned to the current driver
   const myDeliveriesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(
@@ -63,17 +61,15 @@ export default function DriverDashboard() {
   const { data: allPreparingOrders, isLoading: isLoadingAvailable } = useCollection<Order>(availableOrdersQuery);
   const { data: allMyOrders, isLoading: isLoadingMine } = useCollection<Order>(myDeliveriesQuery);
 
-  // Client-side filtering
   const availableOrders = useMemo(() => {
-    // Also filter out any orders that might already have a driverId, just in case
     return allPreparingOrders?.filter(order => !order.driverId) || [];
   }, [allPreparingOrders]);
   
   const myDeliveries = useMemo(() => {
-      // Only show orders that are actively out for delivery
       return allMyOrders?.filter(order => order.status === 'Out for Delivery') || [];
   }, [allMyOrders]);
 
+  const { isTracking } = useDriverLocationTracking(myDeliveries.length > 0);
 
   const handleAcceptOrder = (orderId: string) => {
     if (!user || !firestore) return;
@@ -128,6 +124,7 @@ export default function DriverDashboard() {
       <div className="mb-8">
         <h1 className="font-headline text-4xl font-bold">Delivery Dashboard</h1>
         <p className="text-muted-foreground mt-2">Find and manage your delivery tasks.</p>
+        {isTracking && <p className="text-sm text-green-600 mt-2 font-semibold">● Live location tracking is active</p>}
       </div>
       
       <div className="grid grid-cols-1 gap-8">
@@ -254,3 +251,5 @@ export default function DriverDashboard() {
     </div>
   );
 }
+
+    

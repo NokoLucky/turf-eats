@@ -9,7 +9,35 @@ service cloud.firestore {
     // Allow read and write access to all documents for any signed-in user.
     // This is a permissive rule for development and should be secured before production.
     match /{document=**} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn();
+    }
+    
+    match /users/{userId}/{document=**} {
+        allow write: if request.auth.uid == userId;
+    }
+
+    match /restaurants/{restaurantId} {
+        allow write: if request.auth.uid == request.resource.data.storeOwnerId;
+    }
+
+    match /restaurants/{restaurantId}/menuItems/{menuItemId} {
+        allow write: if get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId == request.auth.uid;
+    }
+    
+    match /orders/{orderId} {
+        allow create: if isSignedIn();
+        allow update: if isSignedIn();
+    }
+    
+     match /orders/{orderId}/orderItems/{orderItemId} {
+        allow create: if isSignedIn();
+    }
+    
+    match /locations/{driverId} {
+      allow read: if isSignedIn();
+      allow write: if request.auth.uid == driverId;
     }
   }
 }
+
+    
