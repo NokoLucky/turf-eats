@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import FreeAddressAutocomplete from '@/components/free-address-autocomplete';
+import ImageUploader from '@/components/image-uploader';
 
 const restaurantSchema = z.object({
   name: z.string().min(2, 'Name is too short'),
@@ -24,8 +25,8 @@ const restaurantSchema = z.object({
   category: z.string({ required_error: 'Please select a category.' }),
   openingTime: z.string({ required_error: 'Please select an opening time.' }),
   closingTime: z.string({ required_error: 'Please select a closing time.' }),
-  logoUrl: z.string().url('Must be a valid URL'),
-  bannerUrl: z.string().url('Must be a valid URL'),
+  logoUrl: z.string().url('A logo upload is required.').min(1, 'A logo upload is required.'),
+  bannerUrl: z.string().url('A banner upload is required.').min(1, 'A banner upload is required.'),
 });
 
 type RestaurantFormValues = z.infer<typeof restaurantSchema>;
@@ -152,7 +153,7 @@ export default function RestaurantDetailsPage() {
               </div>
             ) : (
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pt-4">
                   <FormField
                     control={form.control}
                     name="name"
@@ -255,12 +256,16 @@ export default function RestaurantDetailsPage() {
                     name="logoUrl"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Logo Image URL</FormLabel>
+                        <FormLabel>Logo Image</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="https://example.com/logo.png" />
+                          <ImageUploader 
+                            onUploadComplete={(url) => field.onChange(url)}
+                            initialImageUrl={field.value}
+                            folderName="restaurant-logos"
+                           />
                         </FormControl>
                          <FormDescription>
-                            Provide a link to a hosted image. You can use a free service like Imgur.
+                            Upload your restaurant's logo.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -271,12 +276,16 @@ export default function RestaurantDetailsPage() {
                     name="bannerUrl"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Banner Image URL</FormLabel>
+                        <FormLabel>Banner Image</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="https://example.com/banner.png" />
+                           <ImageUploader 
+                            onUploadComplete={(url) => field.onChange(url)}
+                            initialImageUrl={field.value}
+                            folderName="restaurant-banners"
+                           />
                         </FormControl>
                          <FormDescription>
-                            Provide a link to a hosted image. This will appear at the top of your restaurant page.
+                            This will appear at the top of your restaurant page.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

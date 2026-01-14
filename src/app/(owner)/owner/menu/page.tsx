@@ -31,13 +31,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import ImageUploader from '@/components/image-uploader';
 
 const menuItemSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, 'Name is too short'),
   description: z.string().min(10, 'Description is too short'),
   price: z.preprocess((a) => parseFloat(z.string().parse(a)), z.number().positive('Price must be positive')),
-  imageUrl: z.string().url('Must be a valid image URL'),
+  imageUrl: z.string().url('An image upload is required.').min(1, 'An image upload is required.'),
 });
 
 type MenuItemFormValues = z.infer<typeof menuItemSchema>;
@@ -83,6 +84,23 @@ function MenuItemDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
             <FormField
+                control={form.control}
+                name="imageUrl"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Item Image</FormLabel>
+                    <FormControl>
+                    <ImageUploader
+                        onUploadComplete={(url) => field.onChange(url)}
+                        initialImageUrl={field.value}
+                        folderName="menu-items"
+                    />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
@@ -121,19 +139,7 @@ function MenuItemDialog({
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Image URL</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="https://example.com/image.jpg" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            
             <DialogFooter>
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? 'Saving...' : 'Save Item'}
