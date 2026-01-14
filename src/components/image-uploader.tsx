@@ -2,7 +2,7 @@
 
 import { useState, ChangeEvent } from 'react';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { useStorage, useUser } from '@/firebase';
+import { useStorage } from '@/firebase';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -19,7 +19,6 @@ interface ImageUploaderProps {
 
 export default function ImageUploader({ onUploadComplete, initialImageUrl, folderName }: ImageUploaderProps) {
   const storage = useStorage();
-  const { user } = useUser();
   const { toast } = useToast();
 
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -28,7 +27,7 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
   
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user) return;
+    if (!file) return;
 
     // Show preview immediately
     const reader = new FileReader();
@@ -40,7 +39,7 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
     setIsUploading(true);
     setUploadProgress(0);
 
-    const storageRef = ref(storage, `${folderName}/${user.uid}/${file.name}`);
+    const storageRef = ref(storage, `${folderName}/${new Date().getTime()}-${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     uploadTask.on(
