@@ -5,3 +5,14 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+cors:
+  - origin: https://6000-firebase-studio-1762418539929.cluster-lu4mup47g5gm4rtyvhzpwbfadi.cloudworkstations.dev
+    methods:
+      - GET
+      - POST
+      - HEAD
+      - PUT
+      - DELETE
+    allowedHeaders:
+      - Content-Type
+      - Access-Control-Allow-Origin
