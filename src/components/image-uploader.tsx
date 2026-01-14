@@ -24,11 +24,18 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialImageUrl || null);
   
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    console.log('[Uploader] File input changed.');
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log('[Uploader] No file selected. Bailing out.');
+      return;
+    }
+    console.log(`[Uploader] File selected: ${file.name} (size: ${file.size} bytes)`);
 
     // Get storage instance right when it's needed
     const storage = getStorage();
+    console.log('[Uploader] Firebase Storage instance obtained.');
+
 
     // Show preview immediately
     const reader = new FileReader();
@@ -41,26 +48,31 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
     setUploadProgress(0);
 
     const storageRef = ref(storage, `${folderName}/${new Date().getTime()}-${file.name}`);
+    console.log(`[Uploader] Created storage reference at path: ${storageRef.fullPath}`);
+
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     uploadTask.on(
       'state_changed',
       (snapshot) => {
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        console.log(`[Uploader] Upload is ${progress}% done`);
         setUploadProgress(progress);
       },
       (error) => {
-        console.error('Upload failed:', error);
+        console.error('[Uploader] Upload failed:', error);
         toast({
           variant: 'destructive',
           title: 'Upload Failed',
-          description: 'There was an error uploading your image.',
+          description: `Error: ${error.code} - ${error.message}`,
         });
         setIsUploading(false);
         setPreviewUrl(initialImageUrl || null); // Revert to initial
       },
       () => {
+        console.log('[Uploader] Upload successful. Getting download URL...');
         getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+          console.log(`[Uploader] Got download URL: ${downloadURL}`);
           onUploadComplete(downloadURL);
           setPreviewUrl(downloadURL); // Update preview to the final URL
           setIsUploading(false);
