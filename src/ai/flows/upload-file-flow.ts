@@ -7,7 +7,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
-import { initializeFirebase } from '@/firebase';
+import { initializeFirebase } from '@/firebase/init';
 
 // Ensure Firebase is initialized on the server
 initializeFirebase();
