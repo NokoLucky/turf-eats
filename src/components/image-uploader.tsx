@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, ChangeEvent } from 'react';
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -9,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Image as ImageIcon, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { uploadFile } from '@/ai/flows/upload-file-flow';
 
 interface ImageUploaderProps {
   onUploadComplete: (url: string) => void;
@@ -22,68 +22,65 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialImageUrl || null);
-  
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     console.log('[Uploader] File input changed.');
     const file = event.target.files?.[0];
     if (!file) {
       return;
     }
     console.log(`[Uploader] File selected: ${file.name} (size: ${file.size} bytes)`);
+    setIsUploading(true);
+    setUploadProgress(25); // Initial progress
 
+    // Read the file as a Data URL
     const reader = new FileReader();
-    reader.onload = (e) => {
-      setPreviewUrl(e.target?.result as string);
-    };
     reader.readAsDataURL(file);
 
-    try {
-      setIsUploading(true);
-      const storage = getStorage();
-      console.log('[Uploader] Firebase Storage instance obtained.');
+    reader.onload = async (e) => {
+      const fileDataUrl = e.target?.result as string;
+      setPreviewUrl(fileDataUrl);
+      setUploadProgress(50);
 
-      const storageRef = ref(storage, `${folderName}/${new Date().getTime()}-${file.name}`);
-      console.log(`[Uploader] Created storage reference at path: ${storageRef.fullPath}`);
+      try {
+        console.log('[Uploader] Calling server-side upload flow.');
+        const result = await uploadFile({
+          fileDataUrl,
+          folderName,
+          fileName: file.name,
+        });
+        setUploadProgress(100);
+        
+        console.log('[Uploader] Server-side upload complete. URL:', result.downloadURL);
+        onUploadComplete(result.downloadURL);
+        
+        toast({
+          title: 'Upload Complete!',
+          description: 'Your image has been successfully uploaded.',
+        });
 
-      const uploadTask = uploadBytesResumable(storageRef, file);
-
-      uploadTask.on('state_changed',
-        (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log('[Uploader] Upload is ' + progress + '% done');
-          setUploadProgress(progress);
-        },
-        (error) => {
-          console.error('[Uploader] Upload failed:', error);
-          toast({
+      } catch (error: any) {
+        console.error('[Uploader] Server-side upload failed:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Upload Failed',
+          description: error.message || 'Could not upload the file via the server.',
+        });
+        setPreviewUrl(initialImageUrl || null); // Revert on failure
+      } finally {
+        setIsUploading(false);
+      }
+    };
+    
+    reader.onerror = (error) => {
+        console.error('[Uploader] Error reading file:', error);
+        toast({
             variant: 'destructive',
-            title: 'Upload Failed',
-            description: error.message,
-          });
-          setIsUploading(false);
-          setPreviewUrl(initialImageUrl || null);
-        },
-        () => {
-          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-            console.log('[Uploader] File available at', downloadURL);
-            onUploadComplete(downloadURL);
-            setIsUploading(false);
-            toast({
-              title: 'Upload Complete!',
-              description: 'Your image has been successfully uploaded.',
-            });
-          });
-        }
-      );
-    } catch (error: any) {
-        console.error('[Uploader] An unexpected error occurred during setup:', error);
-         toast({
-            variant: 'destructive',
-            title: 'Upload Error',
-            description: 'Could not start the upload process.',
+            title: 'File Read Error',
+            description: 'Could not read the selected file.',
         });
         setIsUploading(false);
-    }
+    };
   };
 
   const handleRemoveImage = () => {
