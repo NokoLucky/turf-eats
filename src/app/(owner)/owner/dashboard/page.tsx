@@ -77,10 +77,10 @@ export default function OwnerDashboard() {
 
   const ordersQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
+    // Query without orderBy to avoid needing a composite index
     return query(
       collection(firestore, 'orders'), 
-      where('storeOwnerId', '==', user.uid),
-      orderBy('orderDate', 'desc')
+      where('storeOwnerId', '==', user.uid)
     );
   }, [user, firestore]);
 
@@ -112,7 +112,11 @@ export default function OwnerDashboard() {
   }, [orders]);
 
   const recentOrders = useMemo(() => {
-      return orders?.slice(0, 5) || [];
+      if (!orders) return [];
+      // Sort on the client side
+      return [...orders]
+        .sort((a, b) => b.orderDate.toDate().getTime() - a.orderDate.toDate().getTime())
+        .slice(0, 5);
   }, [orders]);
 
 
