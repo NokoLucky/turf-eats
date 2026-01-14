@@ -1,16 +1,25 @@
 'use server';
 /**
- * @fileOverview A flow for uploading files to Firebase Storage.
+ * @fileOverview A flow for uploading files to Firebase Storage using the Admin SDK.
  * This flow runs on the server and bypasses browser CORS restrictions.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
-import { initializeFirebase } from '@/firebase/init';
+import * as admin from 'firebase-admin';
+import { firebaseConfig } from '@/firebase/config';
 
-// Ensure Firebase is initialized on the server
-initializeFirebase();
+// Initialize Firebase Admin SDK if not already initialized
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp({
+      storageBucket: firebaseConfig.storageBucket,
+    });
+    console.log('Firebase Admin SDK initialized successfully.');
+  } catch (error: any) {
+    console.error('Firebase Admin SDK initialization error:', error);
+  }
+}
 
 const UploadFileInputSchema = z.object({
   fileDataUrl: z.string().describe("The file content as a Base64 data URL. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
@@ -34,17 +43,36 @@ const uploadFileFlow = ai.defineFlow(
   async (input) => {
     const { fileDataUrl, folderName, fileName } = input;
     
-    // Get the default storage instance
-    const storage = getStorage();
+    const bucket = admin.storage().bucket();
 
-    // Create a storage reference
-    const storageRef = ref(storage, `${folderName}/${new Date().getTime()}-${fileName}`);
-
-    // Upload the file from the Data URL
-    const snapshot = await uploadString(storageRef, fileDataUrl, 'data_url');
+    // Extract mime type and base64 data from data URL
+    const matches = fileDataUrl.match(/^data:(.+);base64,(.*)$/);
+    if (!matches || matches.length !== 3) {
+      throw new Error('Invalid fileDataUrl format.');
+    }
+    const mimeType = matches[1];
+    const base64Data = matches[2];
     
-    // Get the public download URL
-    const downloadURL = await getDownloadURL(snapshot.ref);
+    // Create a buffer from the base64 data
+    const buffer = Buffer.from(base64Data, 'base64');
+    
+    // Define the path in the bucket
+    const filePath = `${folderName}/${new Date().getTime()}-${fileName}`;
+    const file = bucket.file(filePath);
+    
+    // Upload the file
+    await file.save(buffer, {
+      metadata: {
+        contentType: mimeType,
+      },
+    });
+
+    // Make the file public and get the URL
+    // Note: This makes the file publicly readable.
+    // For production apps, signed URLs are a more secure alternative.
+    await file.makePublic();
+
+    const downloadURL = file.publicUrl();
 
     return { downloadURL };
   }
