@@ -13,6 +13,7 @@ import { firebaseConfig } from '@/firebase/config';
 if (!admin.apps.length) {
   try {
     admin.initializeApp({
+      projectId: firebaseConfig.projectId,
       storageBucket: firebaseConfig.storageBucket,
     });
     console.log('Firebase Admin SDK initialized successfully.');
