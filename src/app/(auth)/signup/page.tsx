@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Logo from '@/components/logo';
 import { useAuth } from '@/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 
 const emailSchema = z.object({
@@ -22,13 +23,32 @@ const emailSchema = z.object({
 });
 
 const phoneSchema = z.object({
-  phone: z.string().min(10, { message: 'Please enter a valid phone number.' }),
+  phone: z.string().min(10, { message: 'Please enter a valid phone number, including the country code (e.g. +27).' }),
 });
+
+const codeSchema = z.object({
+  code: z.string().length(6, { message: 'Verification code must be 6 digits.'})
+})
+
 
 export default function SignupPage() {
   const router = useRouter();
   const auth = useAuth();
   const { toast } = useToast();
+
+  const [phoneAuthState, setPhoneAuthState] = useState<'enter-phone' | 'enter-code'>('enter-phone');
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+
+  useEffect(() => {
+    if (!auth) return;
+    
+    // Set up reCAPTCHA for phone number verification
+    if (!(window as any).recaptchaVerifier) {
+      (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+      });
+    }
+  }, [auth]);
 
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
@@ -38,6 +58,11 @@ export default function SignupPage() {
   const phoneForm = useForm<z.infer<typeof phoneSchema>>({
     resolver: zodResolver(phoneSchema),
     defaultValues: { phone: '' },
+  });
+
+  const codeForm = useForm<z.infer<typeof codeSchema>>({
+    resolver: zodResolver(codeSchema),
+    defaultValues: { code: '' },
   });
 
   const handleSignup = async (values: z.infer<typeof emailSchema>) => {
@@ -53,10 +78,37 @@ export default function SignupPage() {
     }
   };
 
-  const handlePhoneSignup = () => {
-    // Mock signup handler
-    router.push('/role-selection');
+  const handlePhoneSignup = async (values: z.infer<typeof phoneSchema>) => {
+    try {
+      const verifier = (window as any).recaptchaVerifier;
+      const result = await signInWithPhoneNumber(auth, values.phone, verifier);
+      setConfirmationResult(result);
+      setPhoneAuthState('enter-code');
+      toast({ title: "Verification Code Sent", description: "Please enter the code sent to your phone to complete signup."});
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Could not send code',
+        description: error.message || 'Please check the phone number and try again.',
+      });
+    }
   };
+
+  const handleVerifyCode = async (values: z.infer<typeof codeSchema>) => {
+    if (!confirmationResult) return;
+    try {
+      await confirmationResult.confirm(values.code);
+      // On successful verification, the user is signed in.
+      router.push('/role-selection');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Verification Failed',
+        description: 'The code was incorrect. Please try again.',
+      });
+    }
+  }
+
 
   return (
     <div className="flex flex-col items-center gap-8">
@@ -108,28 +160,55 @@ export default function SignupPage() {
               </Form>
             </TabsContent>
             <TabsContent value="phone">
-              <Form {...phoneForm}>
-                <form onSubmit={phoneForm.handleSubmit(handlePhoneSignup)} className="space-y-4 pt-4">
-                  <FormField
-                    control={phoneForm.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <FormControl>
-                          <Input placeholder="(123) 456-7890" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" className="w-full font-bold">
-                    Sign Up with Phone
-                  </Button>
-                </form>
-              </Form>
+               {phoneAuthState === 'enter-phone' ? (
+                <Form {...phoneForm}>
+                  <form onSubmit={phoneForm.handleSubmit(handlePhoneSignup)} className="space-y-4 pt-4">
+                    <FormField
+                      control={phoneForm.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number</FormLabel>
+                          <FormControl>
+                            <Input placeholder="+27 12 345 6789" {...field} />
+                          </FormControl>
+                           <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" className="w-full font-bold">
+                      Send Verification Code
+                    </Button>
+                  </form>
+                </Form>
+               ) : (
+                <Form {...codeForm}>
+                  <form onSubmit={codeForm.handleSubmit(handleVerifyCode)} className="space-y-4 pt-4">
+                    <FormField
+                      control={codeForm.control}
+                      name="code"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Verification Code</FormLabel>
+                          <FormControl>
+                            <Input placeholder="123456" {...field} />
+                          </FormControl>
+                           <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" className="w-full font-bold">
+                      Verify & Sign Up
+                    </Button>
+                     <Button variant="link" type="button" onClick={() => setPhoneAuthState('enter-phone')} className="w-full">
+                      Use a different number
+                    </Button>
+                  </form>
+                </Form>
+               )}
             </TabsContent>
           </Tabs>
+          <div id="recaptcha-container" />
           <div className="mt-6 text-center text-sm">
             Already have an account?{' '}
             <Link href="/login" className="font-semibold text-primary underline-offset-4 hover:underline">
