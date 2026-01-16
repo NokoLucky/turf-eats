@@ -9,7 +9,6 @@ import { z } from 'zod';
 // Use modular imports for firebase-admin to prevent bundling issues
 import { initializeApp, getApps, App } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
-import { firebaseConfig } from '@/firebase/config';
 
 const UploadFileInputSchema = z.object({
   fileDataUrl: z.string().describe("The file content as a Base64 data URL. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
@@ -26,27 +25,19 @@ export type UploadFileOutput = z.infer<typeof UploadFileOutputSchema>;
 
 /**
  * Initializes and returns the Firebase Admin App instance, guaranteeing it's a singleton.
+ * In a Google Cloud environment, initializeApp() with no arguments will auto-discover
+ * the project configuration and credentials.
  */
 function getFirebaseAdminApp(): App {
-  // If the app is already initialized, return it.
   if (getApps().length > 0) {
     return getApps()[0];
   }
   
-  // Otherwise, initialize it.
   try {
-    // The user's `gcloud storage buckets list` output confirmed the correct bucket name.
-    // The name in `firebaseConfig` (`*.appspot.com`) is for older client SDKs, but the 
-    // Admin SDK requires the correct, modern `*.firebasestorage.app` name.
-    const correctBucketName = `${firebaseConfig.projectId}.appspot.com`;
-
-    return initializeApp({
-      storageBucket: correctBucketName,
-    });
+    return initializeApp();
   } catch (error: any) {
-     console.error('Firebase Admin SDK initialization error inside helper:', error);
-     // Re-throw a more specific error to be caught by the caller.
-     throw new Error(`Firebase Admin SDK initialization failed: ${error.message}`);
+     console.error('Firebase Admin SDK auto-initialization error:', error);
+     throw new Error(`Firebase Admin SDK auto-initialization failed: ${error.message}`);
   }
 }
 
@@ -63,7 +54,7 @@ const uploadFileFlow = ai.defineFlow(
     
     const { fileDataUrl, folderName, fileName } = input;
     
-    // Get the storage bucket from the initialized app.
+    // Get the default storage bucket from the initialized app.
     const bucket = getStorage(adminApp).bucket();
 
     // Extract mime type and base64 data from data URL
