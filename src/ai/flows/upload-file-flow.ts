@@ -35,8 +35,13 @@ function getFirebaseAdminApp(): App {
   
   // Otherwise, initialize it.
   try {
+    // The user's `gcloud storage buckets list` output confirmed the correct bucket name.
+    // The name in `firebaseConfig` (`*.appspot.com`) is for older client SDKs, but the 
+    // Admin SDK requires the correct, modern `*.firebasestorage.app` name.
+    const correctBucketName = `${firebaseConfig.projectId}.appspot.com`;
+
     return initializeApp({
-      storageBucket: firebaseConfig.storageBucket,
+      storageBucket: correctBucketName,
     });
   } catch (error: any) {
      console.error('Firebase Admin SDK initialization error inside helper:', error);
