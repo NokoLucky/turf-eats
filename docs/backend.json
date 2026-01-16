@@ -70,6 +70,10 @@
         "licenseNumber": {
           "type": "string",
           "description": "The driver's license number."
+        },
+        "vehicleRegistration": {
+          "type": "string",
+          "description": "The driver's vehicle registration number."
         }
       },
       "required": [

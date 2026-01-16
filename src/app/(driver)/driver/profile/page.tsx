@@ -23,6 +23,7 @@ const profileSchema = z.object({
   phoneNumber: z.string().optional(),
   vehicleType: z.string().min(2, { message: 'Vehicle type must be at least 2 characters.' }),
   licenseNumber: z.string().min(2, { message: 'License number must be at least 2 characters.' }),
+  vehicleRegistration: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -48,6 +49,7 @@ export default function DriverProfilePage() {
       phoneNumber: '',
       vehicleType: '',
       licenseNumber: '',
+      vehicleRegistration: '',
     },
   });
 
@@ -114,6 +116,7 @@ export default function DriverProfilePage() {
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
               </div>
             ) : (
               <Form {...form}>
@@ -165,6 +168,19 @@ export default function DriverProfilePage() {
                         <FormLabel>Driver's License Number</FormLabel>
                         <FormControl>
                           <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="vehicleRegistration"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vehicle Registration Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. ABC 123 GP" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

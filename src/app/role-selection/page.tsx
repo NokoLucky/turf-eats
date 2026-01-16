@@ -76,6 +76,7 @@ export default function RoleSelectionPage() {
             phoneNumber: phoneNumber || '',
             vehicleType: '',
             licenseNumber: '',
+            vehicleRegistration: '',
           };
           break;
         case 'storeOwner':
