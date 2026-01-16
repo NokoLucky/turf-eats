@@ -207,7 +207,6 @@ export default function LoginPage() {
               )}
             </TabsContent>
           </Tabs>
-          <div id="recaptcha-container" />
           <div className="mt-6 text-center text-sm">
             Don't have an account?{' '}
             <Link href="/signup" className="font-semibold text-primary underline-offset-4 hover:underline">
@@ -216,6 +215,7 @@ export default function LoginPage() {
           </div>
         </CardContent>
       </Card>
+      <div id="recaptcha-container" />
     </div>
   );
 }

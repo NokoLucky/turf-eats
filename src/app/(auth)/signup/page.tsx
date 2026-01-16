@@ -208,7 +208,6 @@ export default function SignupPage() {
                )}
             </TabsContent>
           </Tabs>
-          <div id="recaptcha-container" />
           <div className="mt-6 text-center text-sm">
             Already have an account?{' '}
             <Link href="/login" className="font-semibold text-primary underline-offset-4 hover:underline">
@@ -217,6 +216,7 @@ export default function SignupPage() {
           </div>
         </CardContent>
       </Card>
+      <div id="recaptcha-container" />
     </div>
   );
 }
