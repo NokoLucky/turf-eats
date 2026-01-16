@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { collection, query, where, limit } from 'firebase/firestore';
-import { LogOut, Store, Utensils as MenuIcon, Settings, User } from 'lucide-react';
+import { LogOut, Store, Settings, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -35,7 +35,7 @@ function OwnerHeader() {
             Dashboard
           </Link>
           <Link href="/owner/menu" className="transition-colors hover:text-primary">
-            Menu
+            Products
           </Link>
           <Link href="/owner/orders" className="transition-colors hover:text-primary">
             Orders
@@ -49,7 +49,7 @@ function OwnerHeader() {
                 {isLoading ? (
                   <Skeleton className="h-5 w-24" />
                 ) : (
-                  <span className='truncate max-w-xs'>{restaurant?.name || 'My Restaurant'}</span>
+                  <span className='truncate max-w-xs'>{restaurant?.name || 'My Store'}</span>
                 )}
               </Button>
             </DropdownMenuTrigger>
@@ -57,13 +57,13 @@ function OwnerHeader() {
               <DropdownMenuItem asChild>
                 <Link href="/owner/restaurant">
                   <Settings className="mr-2 h-4 w-4" />
-                  <span>Restaurant Details</span>
+                  <span>Store Settings</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/owner/menu">
-                  <MenuIcon className="mr-2 h-4 w-4" />
-                  <span>Manage Menu</span>
+                  <Package className="mr-2 h-4 w-4" />
+                  <span>Manage Products</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

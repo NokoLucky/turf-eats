@@ -1,7 +1,14 @@
+'use client';
 import Link from 'next/link';
 import { LogOut, Bike, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
 import Logo from '@/components/logo';
 
 function DriverHeader() {
@@ -13,16 +20,26 @@ function DriverHeader() {
           <Link href="/driver/dashboard" className="transition-colors hover:text-primary font-semibold text-primary">
             My Deliveries
           </Link>
+          <Link href="/driver/profile" className="transition-colors hover:text-primary">
+            Profile
+          </Link>
         </nav>
         <div className="ml-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2">
                 <Bike className="h-5 w-5 text-primary"/>
-                <span>Driver</span>
+                <span>Driver Menu</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href="/driver/profile">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>My Profile</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/">
                   <LogOut className="mr-2 h-4 w-4" />

@@ -151,8 +151,8 @@ export default function OwnerDashboard() {
   return (
     <div className="container py-12">
       <div className="mb-8">
-        <h1 className="font-headline text-4xl font-bold">Restaurant Dashboard</h1>
-        <p className="text-muted-foreground mt-2">An overview of your restaurant's performance.</p>
+        <h1 className="font-headline text-4xl font-bold">Store Dashboard</h1>
+        <p className="text-muted-foreground mt-2">An overview of your store's performance.</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
@@ -252,7 +252,7 @@ export default function OwnerDashboard() {
                 <RecentOrdersSkeleton />
             ) : !orders || orders.length === 0 ? (
                 <div className="text-center py-16 text-muted-foreground">
-                    <p>No orders found for your restaurant yet.</p>
+                    <p>No orders found for your store yet.</p>
                 </div>
             ) : (
                 <Table>

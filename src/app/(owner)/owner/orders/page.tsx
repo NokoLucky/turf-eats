@@ -24,7 +24,7 @@ export default function OwnerOrdersPage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  // Get orders for that restaurant, filtering by storeOwnerId
+  // Get orders for that store, filtering by storeOwnerId
   const ordersQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(collection(firestore, 'orders'), where('storeOwnerId', '==', user.uid));
@@ -41,7 +41,7 @@ export default function OwnerOrdersPage() {
     <div className="container py-12">
         <div className="mb-8">
             <h1 className="font-headline text-4xl font-bold">Incoming Orders</h1>
-            <p className="text-muted-foreground mt-2">Manage and track all orders for your restaurant.</p>
+            <p className="text-muted-foreground mt-2">Manage and track all orders for your store.</p>
         </div>
         <Card>
             <CardHeader>
@@ -106,7 +106,7 @@ export default function OwnerOrdersPage() {
             </Table>
             {!areOrdersLoading && (!orders || orders.length === 0) && (
               <div className='text-center py-16 text-muted-foreground'>
-                <p>No orders found for your restaurant yet.</p>
+                <p>No orders found for your store yet.</p>
               </div>
             )}
             </CardContent>

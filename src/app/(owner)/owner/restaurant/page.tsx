@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import FreeAddressAutocomplete from '@/components/free-address-autocomplete';
 import ImageUploader from '@/components/image-uploader';
 
-const restaurantSchema = z.object({
+const storeSchema = z.object({
   name: z.string().min(2, 'Name is too short'),
   address: z.string().min(10, 'Address is too short'),
   category: z.string({ required_error: 'Please select a category.' }),
@@ -29,26 +29,18 @@ const restaurantSchema = z.object({
   bannerUrl: z.string().url('A banner upload is required.').min(1, 'A banner upload is required.'),
 });
 
-type RestaurantFormValues = z.infer<typeof restaurantSchema>;
+type StoreFormValues = z.infer<typeof storeSchema>;
 
 
 const categories = [
-    'Fast Food',
-    'Breakfast and Brunch',
-    'Pizza',
-    'Burgers',
-    'Healthy',
-    'Grocery',
-    'Diner',
-    'Cafe',
-    'Italian',
-    'Mexican',
-    'Japanese',
-    'Desserts',
+    'Restaurants',
+    'Groceries',
+    'Liquor',
+    'Pharmacy',
 ];
 
 
-export default function RestaurantDetailsPage() {
+export default function StoreDetailsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -60,7 +52,7 @@ export default function RestaurantDetailsPage() {
   }, [user, firestore]);
 
   const { data: restaurantData, isLoading: isRestaurantLoading } = useCollection<Restaurant>(restaurantQuery);
-  const existingRestaurant = restaurantData?.[0];
+  const existingStore = restaurantData?.[0];
 
   const timeOptions = useMemo(() => Array.from({ length: 48 }, (_, i) => {
     const hours = Math.floor(i / 2);
@@ -70,8 +62,8 @@ export default function RestaurantDetailsPage() {
     return `${displayHours}:${minutes} ${period}`;
   }), []);
 
-  const form = useForm<RestaurantFormValues>({
-    resolver: zodResolver(restaurantSchema),
+  const form = useForm<StoreFormValues>({
+    resolver: zodResolver(storeSchema),
     defaultValues: {
       name: '',
       address: '',
@@ -84,17 +76,17 @@ export default function RestaurantDetailsPage() {
   });
 
   useEffect(() => {
-    if (existingRestaurant) {
+    if (existingStore) {
         const dataWithHours = {
-            ...existingRestaurant,
-            openingTime: existingRestaurant.openingHours?.split(' - ')[0] || '9:00 AM',
-            closingTime: existingRestaurant.openingHours?.split(' - ')[1] || '10:00 PM'
+            ...existingStore,
+            openingTime: existingStore.openingHours?.split(' - ')[0] || '9:00 AM',
+            closingTime: existingStore.openingHours?.split(' - ')[1] || '10:00 PM'
         }
       form.reset(dataWithHours);
     }
-  }, [existingRestaurant, form]);
+  }, [existingStore, form]);
 
-  const onSubmit = (data: RestaurantFormValues) => {
+  const onSubmit = (data: StoreFormValues) => {
     if (!user || !firestore) return;
     
     const { openingTime, closingTime, ...restData } = data;
@@ -103,24 +95,24 @@ export default function RestaurantDetailsPage() {
         ...restData,
         storeOwnerId: user.uid, // Ensure owner ID is set
         openingHours: `${openingTime} - ${closingTime}`,
-        rating: existingRestaurant?.rating || Math.floor(Math.random() * 2) + 3.5, // Preserve or set default
+        rating: existingStore?.rating || Math.floor(Math.random() * 2) + 3.5, // Preserve or set default
     };
 
-    if (existingRestaurant) {
+    if (existingStore) {
         // Update existing restaurant
-        const restaurantRef = doc(firestore, 'restaurants', existingRestaurant.id);
+        const restaurantRef = doc(firestore, 'restaurants', existingStore.id);
         setDocumentNonBlocking(restaurantRef, submissionData, { merge: true });
         toast({
-            title: 'Restaurant Updated',
-            description: 'Your restaurant details have been saved.',
+            title: 'Store Updated',
+            description: 'Your store details have been saved.',
         });
     } else {
         // Create new restaurant
         const restaurantsCollectionRef = collection(firestore, 'restaurants');
         addDocumentNonBlocking(restaurantsCollectionRef, submissionData);
          toast({
-            title: 'Restaurant Created!',
-            description: 'Your new restaurant has been saved.',
+            title: 'Store Created!',
+            description: 'Your new store has been saved.',
         });
     }
 
@@ -133,14 +125,14 @@ export default function RestaurantDetailsPage() {
     <div className="container py-12">
       <div className="mx-auto max-w-2xl">
         <div className="mb-8">
-          <h1 className="font-headline text-4xl font-bold">My Restaurant</h1>
+          <h1 className="font-headline text-4xl font-bold">My Store</h1>
           <p className="mt-2 text-muted-foreground">
-            {existingRestaurant ? "Update your restaurant's public information." : "Create your restaurant profile."}
+            {existingStore ? "Update your store's public information." : "Create your store profile."}
           </p>
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>Restaurant Details</CardTitle>
+            <CardTitle>Store Details</CardTitle>
             <CardDescription>This information will be visible to customers.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -159,7 +151,7 @@ export default function RestaurantDetailsPage() {
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Restaurant Name</FormLabel>
+                        <FormLabel>Store Name</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -261,11 +253,11 @@ export default function RestaurantDetailsPage() {
                           <ImageUploader 
                             onUploadComplete={(url) => field.onChange(url)}
                             initialImageUrl={field.value}
-                            folderName="restaurant-logos"
+                            folderName="store-logos"
                            />
                         </FormControl>
                          <FormDescription>
-                            Upload your restaurant's logo.
+                            Upload your store's logo.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -281,11 +273,11 @@ export default function RestaurantDetailsPage() {
                            <ImageUploader 
                             onUploadComplete={(url) => field.onChange(url)}
                             initialImageUrl={field.value}
-                            folderName="restaurant-banners"
+                            folderName="store-banners"
                            />
                         </FormControl>
                          <FormDescription>
-                            This will appear at the top of your restaurant page.
+                            This will appear at the top of your store page.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
