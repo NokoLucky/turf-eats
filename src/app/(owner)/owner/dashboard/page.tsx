@@ -2,10 +2,11 @@
 
 import { useMemo } from 'react';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Order } from '@/lib/data';
 import Link from 'next/link';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DollarSign, ShoppingCart, Users, ArrowRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 
 const getStatusVariant = (status: Order['status']): "default" | "secondary" | "destructive" | "outline" => {
     switch(status) {
@@ -119,6 +121,32 @@ export default function OwnerDashboard() {
         .slice(0, 5);
   }, [orders]);
 
+  const chartData = useMemo(() => {
+    if (!orders) return [];
+    
+    const salesByDay = orders
+        .filter(order => order.status === 'Delivered')
+        .reduce((acc, order) => {
+            const date = format(order.orderDate.toDate(), 'yyyy-MM-dd');
+            if (!acc[date]) {
+                acc[date] = 0;
+            }
+            acc[date] += order.totalAmount;
+            return acc;
+        }, {} as Record<string, number>);
+
+    return Object.entries(salesByDay)
+        .map(([date, revenue]) => ({ date: format(new Date(date), "MMM d"), revenue: Math.round(revenue) }))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [orders]);
+
+  const chartConfig = {
+    revenue: {
+      label: "Revenue",
+      color: "hsl(var(--primary))",
+    },
+  } satisfies ChartConfig;
+
 
   return (
     <div className="container py-12">
@@ -169,6 +197,50 @@ export default function OwnerDashboard() {
         </>
        )}
       </div>
+
+       <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Revenue Over Time</CardTitle>
+          <CardDescription>Total revenue from delivered orders per day.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-52 w-full" />
+          ) : !chartData || chartData.length === 0 ? (
+             <div className="text-center py-16 text-muted-foreground">
+                <p>No revenue data available yet. Complete some orders!</p>
+            </div>
+          ) : (
+            <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+              <BarChart accessibilityLayer data={chartData}>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `R${value}`}
+                  width={80}
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent indicator="dot" />}
+                />
+                <Bar
+                  dataKey="revenue"
+                  fill="var(--color-revenue)"
+                  radius={4}
+                />
+              </BarChart>
+            </ChartContainer>
+          )}
+        </CardContent>
+      </Card>
+
 
       <Card>
         <CardHeader>
