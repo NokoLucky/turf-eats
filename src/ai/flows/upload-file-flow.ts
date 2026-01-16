@@ -9,19 +9,6 @@ import { z } from 'zod';
 import * as admin from 'firebase-admin';
 import { firebaseConfig } from '@/firebase/config';
 
-// Initialize Firebase Admin SDK if not already initialized
-if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      projectId: firebaseConfig.projectId,
-      storageBucket: firebaseConfig.storageBucket,
-    });
-    console.log('Firebase Admin SDK initialized successfully.');
-  } catch (error: any) {
-    console.error('Firebase Admin SDK initialization error:', error);
-  }
-}
-
 const UploadFileInputSchema = z.object({
   fileDataUrl: z.string().describe("The file content as a Base64 data URL. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
   folderName: z.string().describe('The name of the folder in Firebase Storage to upload the file to.'),
@@ -42,6 +29,21 @@ const uploadFileFlow = ai.defineFlow(
     outputSchema: UploadFileOutputSchema,
   },
   async (input) => {
+    // Initialize Firebase Admin SDK if not already initialized.
+    // This is done inside the flow to guarantee it runs on every invocation.
+    if (!admin.apps.length) {
+      try {
+        admin.initializeApp({
+          projectId: firebaseConfig.projectId,
+          storageBucket: firebaseConfig.storageBucket,
+        });
+        console.log('Firebase Admin SDK initialized successfully inside flow.');
+      } catch (error: any) {
+        console.error('Firebase Admin SDK initialization error inside flow:', error);
+        throw new Error(`Firebase Admin SDK initialization failed: ${error.message}`);
+      }
+    }
+
     const { fileDataUrl, folderName, fileName } = input;
     
     const bucket = admin.storage().bucket();
