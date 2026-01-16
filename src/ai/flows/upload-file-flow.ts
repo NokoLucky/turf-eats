@@ -6,7 +6,9 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import * as admin from 'firebase-admin';
+// Use modular imports for firebase-admin to prevent bundling issues
+import { initializeApp, getApps, App } from 'firebase-admin/app';
+import { getStorage } from 'firebase-admin/storage';
 import { firebaseConfig } from '@/firebase/config';
 
 const UploadFileInputSchema = z.object({
@@ -22,6 +24,28 @@ const UploadFileOutputSchema = z.object({
 export type UploadFileOutput = z.infer<typeof UploadFileOutputSchema>;
 
 
+/**
+ * Initializes and returns the Firebase Admin App instance, guaranteeing it's a singleton.
+ */
+function getFirebaseAdminApp(): App {
+  // If the app is already initialized, return it.
+  if (getApps().length > 0) {
+    return getApps()[0];
+  }
+  
+  // Otherwise, initialize it.
+  try {
+    return initializeApp({
+      storageBucket: firebaseConfig.storageBucket,
+    });
+  } catch (error: any) {
+     console.error('Firebase Admin SDK initialization error inside helper:', error);
+     // Re-throw a more specific error to be caught by the caller.
+     throw new Error(`Firebase Admin SDK initialization failed: ${error.message}`);
+  }
+}
+
+
 const uploadFileFlow = ai.defineFlow(
   {
     name: 'uploadFileFlow',
@@ -29,24 +53,13 @@ const uploadFileFlow = ai.defineFlow(
     outputSchema: UploadFileOutputSchema,
   },
   async (input) => {
-    // Initialize Firebase Admin SDK if not already initialized.
-    // This is done inside the flow to guarantee it runs on every invocation.
-    if (!admin.apps.length) {
-      try {
-        admin.initializeApp({
-          projectId: firebaseConfig.projectId,
-          storageBucket: firebaseConfig.storageBucket,
-        });
-        console.log('Firebase Admin SDK initialized successfully inside flow.');
-      } catch (error: any) {
-        console.error('Firebase Admin SDK initialization error inside flow:', error);
-        throw new Error(`Firebase Admin SDK initialization failed: ${error.message}`);
-      }
-    }
-
+    // Get the initialized admin app.
+    const adminApp = getFirebaseAdminApp();
+    
     const { fileDataUrl, folderName, fileName } = input;
     
-    const bucket = admin.storage().bucket();
+    // Get the storage bucket from the initialized app.
+    const bucket = getStorage(adminApp).bucket();
 
     // Extract mime type and base64 data from data URL
     const matches = fileDataUrl.match(/^data:(.+);base64,(.*)$/);
@@ -71,8 +84,6 @@ const uploadFileFlow = ai.defineFlow(
     });
 
     // Make the file public and get the URL
-    // Note: This makes the file publicly readable.
-    // For production apps, signed URLs are a more secure alternative.
     await file.makePublic();
 
     const downloadURL = file.publicUrl();
