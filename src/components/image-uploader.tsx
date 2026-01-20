@@ -1,15 +1,13 @@
 'use client';
 
-import { useState, ChangeEvent, useEffect, useRef } from 'react';
-import { ref, uploadBytesResumable, getDownloadURL, UploadTask } from 'firebase/storage';
-import { useStorage } from '@/firebase';
-import { Input } from '@/components/ui/input';
+import { useState, ChangeEvent, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getApps, initializeApp } from 'firebase/app';
+import { firebaseConfig } from '@/firebase/config';
+import { Loader2, Upload, X } from 'lucide-react';
 import Image from 'next/image';
-import { ImageIcon, Upload, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface ImageUploaderProps {
   onUploadComplete: (url: string) => void;
@@ -18,205 +16,185 @@ interface ImageUploaderProps {
 }
 
 export default function ImageUploader({ onUploadComplete, initialImageUrl, folderName }: ImageUploaderProps) {
-  console.log('[Uploader] Component Rendered/Re-rendered');
   const { toast } = useToast();
-  const storage = useStorage();
-  
   const [isUploading, setIsUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialImageUrl || null);
-  
-  const uploadTaskRef = useRef<UploadTask | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    console.log('[Uploader Effect] initialImageUrl changed:', initialImageUrl);
     setPreviewUrl(initialImageUrl || null);
   }, [initialImageUrl]);
 
-  const clearUploadState = () => {
-      console.log('[Uploader] Clearing upload state.');
-      if (timeoutRef.current) {
-        console.log('[Uploader] Clearing timeout.');
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
+  const initializeStorage = () => {
+    try {
+      // Log the config
+      console.log('Firebase Config:', {
+        storageBucket: firebaseConfig.storageBucket,
+        projectId: firebaseConfig.projectId,
+      });
+
+      // Initialize Firebase
+      let app;
+      if (getApps().length === 0) {
+        console.log('Initializing Firebase with config:', firebaseConfig);
+        app = initializeApp(firebaseConfig);
+      } else {
+        app = getApps()[0];
       }
-      uploadTaskRef.current = null;
-      setIsUploading(false);
-      setProgress(0);
-  }
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    console.log('[Uploader] handleFileChange triggered.');
-    const file = event.target.files?.[0];
-    
-    if (!file) {
-        console.warn('[Uploader] No file selected.');
-        return;
+      // Get storage - IMPORTANT: Use the correct bucket
+      const storage = getStorage(app, `gs://studio-3640989321-ebeea.firebasestorage.app`);
+      
+      console.log('Storage initialized with bucket:', storage.app.options.storageBucket);
+      return storage;
+      
+    } catch (error) {
+      console.error('Storage initialization error:', error);
+      return null;
     }
-
-    if (!storage) {
-        console.error('[Uploader] Firebase Storage service is not available!');
-        toast({
-            variant: 'destructive',
-            title: 'Upload Failed',
-            description: 'Storage service is not available. Please try again later.',
-        });
-        return;
-    }
-
-    console.log('[Uploader] Selected file:', { name: file.name, size: file.size, type: file.type });
-    const localPreviewUrl = URL.createObjectURL(file);
-    setPreviewUrl(localPreviewUrl);
-    console.log('[Uploader] Set local preview URL:', localPreviewUrl);
-
-    const storagePath = `${folderName}/${new Date().getTime()}-${file.name}`;
-    console.log('[Uploader] Creating storage reference with path:', storagePath);
-    const storageRef = ref(storage, storagePath);
-    
-    console.log('[Uploader] Creating upload task.');
-    const uploadTask = uploadBytesResumable(storageRef, file);
-    uploadTaskRef.current = uploadTask;
-
-    setIsUploading(true);
-    setProgress(0);
-
-    console.log('[Uploader] Setting 8-second timeout for upload start.');
-    timeoutRef.current = setTimeout(() => {
-        if (progress === 0 && isUploading) {
-            console.error('[Uploader Timeout] Upload did not start within 8 seconds. Cancelling task.');
-            uploadTask.cancel();
-            toast({
-                variant: "destructive",
-                title: "Upload Timed Out",
-                description: "The upload did not start. This is likely a CORS configuration issue on your storage bucket. Please check the browser console for more details.",
-                duration: 10000,
-            });
-            clearUploadState();
-            setPreviewUrl(initialImageUrl || null);
-        }
-    }, 8000); // 8-second timeout
-
-    uploadTask.on('state_changed',
-      (snapshot) => {
-        const currentProgress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        console.log(`[Uploader Progress] State: ${snapshot.state}, Progress: ${currentProgress.toFixed(2)}%`);
-        setProgress(currentProgress);
-      },
-      (error) => {
-        console.error("[Uploader Error] Upload failed with error object:", error);
-        clearUploadState();
-        switch (error.code) {
-          case 'storage/unauthorized':
-            console.error('[Uploader Error] Reason: Permission Denied. Check your Firebase Storage rules.');
-            toast({
-              variant: 'destructive',
-              title: 'Permission Denied',
-              description: 'You do not have permission to upload files. Check your Storage Rules in the Firebase console.',
-            });
-            break;
-          case 'storage/canceled':
-            console.log("[Uploader Info] Upload canceled, likely due to timeout or user action.");
-            break;
-          case 'storage/unknown':
-             console.error('[Uploader Error] Reason: An unknown error occurred, often related to CORS policy. Ensure your bucket is configured to accept uploads from this origin.');
-             toast({
-              variant: 'destructive',
-              title: 'Upload Failed (CORS?)',
-              description: 'An unknown error occurred. This is often a CORS policy issue on the bucket.',
-            });
-            break;
-          default:
-            console.error(`[Uploader Error] Unhandled error code: ${error.code}`);
-            toast({
-              variant: 'destructive',
-              title: 'Upload Failed',
-              description: error.message,
-            });
-            break;
-        }
-
-        setPreviewUrl(initialImageUrl || null);
-        URL.revokeObjectURL(localPreviewUrl);
-      },
-      () => {
-        console.log('[Uploader Complete] Upload finished successfully. Getting download URL...');
-        clearUploadState();
-        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-          console.log('[Uploader Complete] Got download URL:', downloadURL);
-          onUploadComplete(downloadURL);
-          setPreviewUrl(downloadURL);
-          toast({
-            title: 'Upload Complete!',
-            description: 'Your image has been successfully uploaded.',
-          });
-        }).catch((error) => {
-             console.error("[Uploader Error] Failed to get download URL after upload:", error);
-             toast({
-                variant: 'destructive',
-                title: 'Upload Failed',
-                description: 'File uploaded, but could not get the final URL.',
-            });
-        });
-         URL.revokeObjectURL(localPreviewUrl);
-      }
-    );
   };
 
-  const handleRemoveImage = () => {
-    console.log('[Uploader] handleRemoveImage called.');
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid File',
+        description: 'Please select an image file',
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Initialize storage
+      const storage = initializeStorage();
+      if (!storage) {
+        throw new Error('Failed to initialize storage');
+      }
+
+      // Create preview
+      const localPreviewUrl = URL.createObjectURL(file);
+      setPreviewUrl(localPreviewUrl);
+
+      // Upload file
+      const timestamp = Date.now();
+      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const filePath = `${folderName}/${timestamp}_${safeName}`;
+      
+      console.log('Uploading to:', filePath);
+      console.log('Bucket:', storage.app.options.storageBucket);
+
+      const storageRef = ref(storage, filePath);
+      const snapshot = await uploadBytes(storageRef, file, {
+        contentType: file.type,
+      });
+
+      // Get URL
+      const url = await getDownloadURL(snapshot.ref);
+      console.log('Upload successful! URL:', url);
+
+      setPreviewUrl(url);
+      onUploadComplete(url);
+      
+      toast({
+        title: 'Success!',
+        description: 'Image uploaded successfully',
+      });
+
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      
+      let message = error.message || 'Upload failed';
+      
+      // Specific error handling
+      if (error.code === 'storage/bucket-not-found') {
+        message = `Storage bucket not found. Check if bucket "${firebaseConfig.storageBucket}" exists.`;
+      } else if (error.code === 'storage/unauthorized') {
+        message = 'Not authorized. Please sign in.';
+      }
+      
+      toast({
+        variant: 'destructive',
+        title: 'Upload Failed',
+        description: message,
+      });
+      
+      setPreviewUrl(initialImageUrl || null);
+      
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemove = () => {
     setPreviewUrl(null);
     onUploadComplete('');
-    if (uploadTaskRef.current) {
-      console.log('[Uploader] Cancelling active upload task.');
-      uploadTaskRef.current.cancel();
-      clearUploadState();
-    }
   };
 
   return (
     <div className="space-y-4">
-      <div className={cn("relative aspect-video w-full rounded-md border-2 border-dashed border-muted-foreground/50 flex items-center justify-center", previewUrl && "border-solid")}>
+      <div className="border rounded-lg p-4">
         {previewUrl ? (
-          <>
-            <Image src={previewUrl} alt="Image preview" fill className="object-contain rounded-md" />
-             <Button
-                type="button"
-                variant="destructive"
-                size="icon"
-                className="absolute -top-3 -right-3 rounded-full h-8 w-8 z-10"
-                onClick={handleRemoveImage}
-                disabled={isUploading}
+          <div className="relative aspect-video">
+            <Image
+              src={previewUrl}
+              alt="Preview"
+              fill
+              className="object-contain"
+              unoptimized={previewUrl.startsWith('blob:')}
+            />
+            <Button
+              size="icon"
+              variant="destructive"
+              className="absolute top-2 right-2"
+              onClick={handleRemove}
             >
-                <X className="h-4 w-4" />
+              <X className="h-4 w-4" />
             </Button>
-          </>
+          </div>
         ) : (
-            <div className="text-center text-muted-foreground p-4">
-                 <ImageIcon className="mx-auto h-12 w-12" />
-                <p className="mt-2 text-sm">No image selected</p>
+          <div className="aspect-video border-2 border-dashed rounded-lg flex items-center justify-center">
+            <div className="text-center">
+              <Upload className="h-12 w-12 mx-auto text-gray-400" />
+              <p className="mt-2 text-sm text-gray-500">No image selected</p>
             </div>
+          </div>
         )}
       </div>
 
       <div>
-        <label htmlFor="file-upload" className={cn("w-full items-center gap-2", { 'hidden': isUploading || previewUrl })}>
-          <Button asChild className="w-full">
-            <div>
-              <Upload className="mr-2" />
-              Choose Image
-            </div>
-          </Button>
-        </label>
-        <Input id="file-upload" type="file" accept="image/*" onChange={handleFileChange} className="sr-only" disabled={isUploading || !!previewUrl} />
+        <Button asChild disabled={isUploading} className="w-full">
+          <label>
+            {isUploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Choose Image
+              </>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+              disabled={isUploading}
+            />
+          </label>
+        </Button>
       </div>
 
-      {isUploading && (
-        <div className="space-y-2">
-            <Progress value={progress} />
-            <p className="text-sm text-center text-muted-foreground">Uploading... {Math.round(progress)}%</p>
-        </div>
-      )}
+      <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
+        <p>Bucket: <code>{firebaseConfig.storageBucket}</code></p>
+        <p>Folder: <code>{folderName}</code></p>
+      </div>
     </div>
   );
 }
