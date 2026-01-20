@@ -330,7 +330,8 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "phone"
     ]
   },
   "firestore": {
