@@ -32,10 +32,13 @@ export function initializeFirebase() {
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
+  // Explicitly provide the storage bucket URL to getStorage to prevent initialization errors.
+  const bucketUrl = firebaseConfig.storageBucket ? `gs://${firebaseConfig.storageBucket}` : undefined;
+
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
     firestore: getFirestore(firebaseApp),
-    storage: getStorage(firebaseApp)
+    storage: getStorage(firebaseApp, bucketUrl)
   };
 }
