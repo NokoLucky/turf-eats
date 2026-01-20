@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, ChangeEvent, useEffect } from 'react';
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useStorage } from '@/firebase';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,16 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !storage) return;
+    if (!file || !storage) {
+        if (!storage) {
+            toast({
+                variant: 'destructive',
+                title: 'Upload Failed',
+                description: 'Storage service is not available. Please try again later.',
+            });
+        }
+        return;
+    };
 
     // Create a local URL for instant preview
     const localPreviewUrl = URL.createObjectURL(file);
@@ -45,15 +54,15 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
 
     uploadTask.on('state_changed',
       (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setProgress(progress);
+        const currentProgress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setProgress(currentProgress);
       },
       (error) => {
         console.error("Upload failed:", error);
         toast({
           variant: 'destructive',
           title: 'Upload Failed',
-          description: 'Could not upload the file. Please try again.',
+          description: 'Could not upload the file. Please check your network connection and storage permissions.',
         });
         setIsUploading(false);
         setPreviewUrl(initialImageUrl || null); // Revert on failure
@@ -68,6 +77,14 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
             title: 'Upload Complete!',
             description: 'Your image has been successfully uploaded.',
           });
+        }).catch((error) => {
+             console.error("Failed to get download URL:", error);
+             toast({
+                variant: 'destructive',
+                title: 'Upload Failed',
+                description: 'File uploaded, but could not get the URL.',
+            });
+            setIsUploading(false);
         });
          URL.revokeObjectURL(localPreviewUrl);
       }
