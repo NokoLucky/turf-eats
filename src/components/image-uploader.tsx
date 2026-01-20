@@ -8,7 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Image as ImageIcon, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { uploadFile } from '@/ai/flows/upload-file-flow';
+import { useStorage } from '@/firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 interface ImageUploaderProps {
   onUploadComplete: (url: string) => void;
@@ -18,74 +19,70 @@ interface ImageUploaderProps {
 
 export default function ImageUploader({ onUploadComplete, initialImageUrl, folderName }: ImageUploaderProps) {
   const { toast } = useToast();
+  const storage = useStorage();
 
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialImageUrl || null);
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    console.log('[Uploader] File input changed.');
     const file = event.target.files?.[0];
-    if (!file) {
+    if (!file || !storage) {
+      if (!storage) {
+        toast({
+          variant: 'destructive',
+          title: 'Upload Error',
+          description: 'Firebase Storage is not available.',
+        });
+      }
       return;
     }
-    console.log(`[Uploader] File selected: ${file.name} (size: ${file.size} bytes)`);
+
     setIsUploading(true);
-    setUploadProgress(25); // Initial progress
+    setUploadProgress(0);
 
-    // Read the file as a Data URL
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
+    const localPreviewUrl = URL.createObjectURL(file);
+    setPreviewUrl(localPreviewUrl);
 
-    reader.onload = async (e) => {
-      const fileDataUrl = e.target?.result as string;
-      setPreviewUrl(fileDataUrl);
-      setUploadProgress(50);
+    const storageRef = ref(storage, `${folderName}/${new Date().getTime()}-${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
 
-      try {
-        console.log('[Uploader] Calling server-side upload flow.');
-        const result = await uploadFile({
-          fileDataUrl,
-          folderName,
-          fileName: file.name,
-        });
-        setUploadProgress(100);
-        
-        console.log('[Uploader] Server-side upload complete. URL:', result.downloadURL);
-        onUploadComplete(result.downloadURL);
-        
-        toast({
-          title: 'Upload Complete!',
-          description: 'Your image has been successfully uploaded.',
-        });
-
-      } catch (error: any) {
-        console.error('[Uploader] Server-side upload failed:', error);
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setUploadProgress(progress);
+      },
+      (error) => {
+        console.error('[Uploader] Client-side upload failed:', error);
         toast({
           variant: 'destructive',
           title: 'Upload Failed',
-          description: error.message || 'Could not upload the file via the server.',
+          description: error.message || 'Could not upload the file.',
         });
-        setPreviewUrl(initialImageUrl || null); // Revert on failure
-      } finally {
+        setPreviewUrl(initialImageUrl || null);
         setIsUploading(false);
+        URL.revokeObjectURL(localPreviewUrl);
+      },
+      () => {
+        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+          console.log('[Uploader] Client-side upload complete. URL:', downloadURL);
+          onUploadComplete(downloadURL);
+          setPreviewUrl(downloadURL);
+          toast({
+            title: 'Upload Complete!',
+            description: 'Your image has been successfully uploaded.',
+          });
+          setIsUploading(false);
+          URL.revokeObjectURL(localPreviewUrl);
+        });
       }
-    };
-    
-    reader.onerror = (error) => {
-        console.error('[Uploader] Error reading file:', error);
-        toast({
-            variant: 'destructive',
-            title: 'File Read Error',
-            description: 'Could not read the selected file.',
-        });
-        setIsUploading(false);
-    };
+    );
   };
 
   const handleRemoveImage = () => {
     setPreviewUrl(null);
-    onUploadComplete(''); // Notify parent that the image is removed
+    onUploadComplete('');
   };
 
   return (
