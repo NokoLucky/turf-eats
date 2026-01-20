@@ -9,6 +9,7 @@ import { z } from 'zod';
 // Use modular imports for firebase-admin to prevent bundling issues
 import { initializeApp, getApps, App } from 'firebase-admin/app';
 import { getStorage } from 'firebase-admin/storage';
+import { firebaseConfig } from '@/firebase/config';
 
 const UploadFileInputSchema = z.object({
   fileDataUrl: z.string().describe("The file content as a Base64 data URL. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
@@ -55,8 +56,8 @@ const uploadFileFlow = ai.defineFlow(
     const { fileDataUrl, folderName, fileName } = input;
     
     // Get the default storage bucket from the initialized app.
-    const bucket = getStorage(adminApp).bucket();
-
+    const bucket = getStorage(adminApp).bucket(firebaseConfig.storageBucket);
+    
     // Extract mime type and base64 data from data URL
     const matches = fileDataUrl.match(/^data:(.+);base64,(.*)$/);
     if (!matches || matches.length !== 3) {
