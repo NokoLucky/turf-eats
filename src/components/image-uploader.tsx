@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, ChangeEvent, useEffect } from 'react';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { useState, ChangeEvent, useEffect, useRef } from 'react';
+import { ref, uploadBytesResumable, getDownloadURL, UploadTask } from 'firebase/storage';
 import { useStorage } from '@/firebase';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -25,9 +25,22 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
   const [progress, setProgress] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialImageUrl || null);
   
+  const uploadTaskRef = useRef<UploadTask | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     setPreviewUrl(initialImageUrl || null);
   }, [initialImageUrl]);
+
+  const clearUploadState = () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      uploadTaskRef.current = null;
+      setIsUploading(false);
+      setProgress(0);
+  }
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -42,15 +55,29 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
         return;
     };
 
-    // Create a local URL for instant preview
     const localPreviewUrl = URL.createObjectURL(file);
     setPreviewUrl(localPreviewUrl);
 
     const storageRef = ref(storage, `${folderName}/${new Date().getTime()}-${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
+    uploadTaskRef.current = uploadTask;
 
     setIsUploading(true);
     setProgress(0);
+
+    timeoutRef.current = setTimeout(() => {
+        if (progress === 0 && isUploading) {
+            uploadTask.cancel();
+            toast({
+                variant: "destructive",
+                title: "Upload Timed Out",
+                description: "The upload did not start. This could be a CORS issue on your storage bucket. Please check the browser console for more details.",
+                duration: 10000,
+            });
+            clearUploadState();
+            setPreviewUrl(initialImageUrl || null);
+        }
+    }, 8000); // 8-second timeout
 
     uploadTask.on('state_changed',
       (snapshot) => {
@@ -58,21 +85,36 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
         setProgress(currentProgress);
       },
       (error) => {
+        clearUploadState();
+        switch (error.code) {
+          case 'storage/unauthorized':
+            toast({
+              variant: 'destructive',
+              title: 'Permission Denied',
+              description: 'You do not have permission to upload files. Check your Storage Rules.',
+            });
+            break;
+          case 'storage/canceled':
+            console.log("Upload canceled, likely due to timeout.");
+            break;
+          default:
+            toast({
+              variant: 'destructive',
+              title: 'Upload Failed',
+              description: error.message,
+            });
+            break;
+        }
+
         console.error("Upload failed:", error);
-        toast({
-          variant: 'destructive',
-          title: 'Upload Failed',
-          description: 'Could not upload the file. Please check your network connection and storage permissions.',
-        });
-        setIsUploading(false);
-        setPreviewUrl(initialImageUrl || null); // Revert on failure
+        setPreviewUrl(initialImageUrl || null);
         URL.revokeObjectURL(localPreviewUrl);
       },
       () => {
+        clearUploadState();
         getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
           onUploadComplete(downloadURL);
-          setPreviewUrl(downloadURL); // Update to final URL
-          setIsUploading(false);
+          setPreviewUrl(downloadURL);
           toast({
             title: 'Upload Complete!',
             description: 'Your image has been successfully uploaded.',
@@ -84,7 +126,6 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
                 title: 'Upload Failed',
                 description: 'File uploaded, but could not get the URL.',
             });
-            setIsUploading(false);
         });
          URL.revokeObjectURL(localPreviewUrl);
       }
@@ -94,6 +135,10 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
   const handleRemoveImage = () => {
     setPreviewUrl(null);
     onUploadComplete('');
+    if (uploadTaskRef.current) {
+      uploadTaskRef.current.cancel();
+      clearUploadState();
+    }
   };
 
   return (
