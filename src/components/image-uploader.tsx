@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, ChangeEvent } from 'react';
+import { useState, ChangeEvent, useTransition } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -8,8 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Image as ImageIcon, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useStorage } from '@/firebase';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { uploadFile } from '@/ai/flows/upload-file-flow';
 
 interface ImageUploaderProps {
   onUploadComplete: (url: string) => void;
@@ -19,71 +18,79 @@ interface ImageUploaderProps {
 
 export default function ImageUploader({ onUploadComplete, initialImageUrl, folderName }: ImageUploaderProps) {
   const { toast } = useToast();
-  const storage = useStorage();
+  const [isPending, startTransition] = useTransition();
 
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialImageUrl || null);
 
-  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !storage) {
-      if (!storage) {
-        toast({
-          variant: 'destructive',
-          title: 'Upload Error',
-          description: 'Firebase Storage is not available.',
-        });
-      }
-      return;
-    }
+    if (!file) return;
 
     setIsUploading(true);
-    setUploadProgress(0);
-
+    
+    // Create a local URL for instant preview
     const localPreviewUrl = URL.createObjectURL(file);
     setPreviewUrl(localPreviewUrl);
 
-    const storageRef = ref(storage, `${folderName}/${new Date().getTime()}-${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
+    // Read file as data URL for the flow
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const fileDataUrl = reader.result as string;
 
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadProgress(progress);
-      },
-      (error) => {
-        console.error('[Uploader] Client-side upload failed:', error);
+      startTransition(async () => {
+        try {
+          const result = await uploadFile({
+            fileDataUrl,
+            folderName,
+            fileName: file.name,
+          });
+
+          if (result.downloadURL) {
+            onUploadComplete(result.downloadURL);
+            setPreviewUrl(result.downloadURL);
+            toast({
+              title: 'Upload Complete!',
+              description: 'Your image has been successfully uploaded.',
+            });
+          } else {
+            throw new Error('Upload did not return a URL.');
+          }
+        } catch (error: any) {
+          console.error('[Uploader] Server-side upload failed:', error);
+          toast({
+            variant: 'destructive',
+            title: 'Upload Failed',
+            description: error.message || 'Could not upload the file.',
+          });
+          // Revert preview to initial state on failure
+          setPreviewUrl(initialImageUrl || null);
+        } finally {
+          setIsUploading(false);
+          // Clean up the local URL
+          URL.revokeObjectURL(localPreviewUrl);
+        }
+      });
+    };
+    reader.onerror = (error) => {
+        console.error("Error reading file:", error);
         toast({
-          variant: 'destructive',
-          title: 'Upload Failed',
-          description: error.message || 'Could not upload the file.',
+            variant: "destructive",
+            title: "File Read Error",
+            description: "Could not read the selected file.",
         });
-        setPreviewUrl(initialImageUrl || null);
         setIsUploading(false);
         URL.revokeObjectURL(localPreviewUrl);
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-          console.log('[Uploader] Client-side upload complete. URL:', downloadURL);
-          onUploadComplete(downloadURL);
-          setPreviewUrl(downloadURL);
-          toast({
-            title: 'Upload Complete!',
-            description: 'Your image has been successfully uploaded.',
-          });
-          setIsUploading(false);
-          URL.revokeObjectURL(localPreviewUrl);
-        });
-      }
-    );
+    };
   };
 
   const handleRemoveImage = () => {
     setPreviewUrl(null);
     onUploadComplete('');
   };
+  
+  const isBusy = isUploading || isPending;
 
   return (
     <div className="space-y-4">
@@ -97,6 +104,7 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
                 size="icon"
                 className="absolute -top-3 -right-3 rounded-full h-8 w-8 z-10"
                 onClick={handleRemoveImage}
+                disabled={isBusy}
             >
                 <X className="h-4 w-4" />
             </Button>
@@ -110,7 +118,7 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
       </div>
 
       <div>
-        <label htmlFor="file-upload" className={cn("w-full items-center gap-2", { 'hidden': isUploading || previewUrl })}>
+        <label htmlFor="file-upload" className={cn("w-full items-center gap-2", { 'hidden': isBusy || previewUrl })}>
           <Button asChild className="w-full">
             <div>
               <Upload className="mr-2" />
@@ -118,13 +126,13 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
             </div>
           </Button>
         </label>
-        <Input id="file-upload" type="file" accept="image/*" onChange={handleFileChange} className="sr-only" disabled={isUploading || !!previewUrl} />
+        <Input id="file-upload" type="file" accept="image/*" onChange={handleFileChange} className="sr-only" disabled={isBusy || !!previewUrl} />
       </div>
 
-      {isUploading && (
+      {isBusy && (
         <div className="space-y-2">
-            <Progress value={uploadProgress} />
-            <p className="text-sm text-center text-muted-foreground">Uploading... ({Math.round(uploadProgress)}%)</p>
+            <Progress value={isPending ? undefined : 100} />
+            <p className="text-sm text-center text-muted-foreground">Uploading...</p>
         </div>
       )}
     </div>

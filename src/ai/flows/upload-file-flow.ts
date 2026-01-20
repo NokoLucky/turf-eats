@@ -34,13 +34,9 @@ function getFirebaseAdminApp(): App {
     return getApps()[0];
   }
   
-  try {
-    // Explicitly provide projectId to ensure correct initialization context.
-    return initializeApp({ projectId: firebaseConfig.projectId });
-  } catch (error: any) {
-     console.error('Firebase Admin SDK auto-initialization error:', error);
-     throw new Error(`Firebase Admin SDK auto-initialization failed: ${error.message}`);
-  }
+  // In a Google Cloud environment, initializeApp() with no arguments should
+  // auto-discover the project configuration and credentials via Application Default Credentials.
+  return initializeApp();
 }
 
 
@@ -56,7 +52,7 @@ const uploadFileFlow = ai.defineFlow(
     
     const { fileDataUrl, folderName, fileName } = input;
     
-    // Get the default storage bucket from the initialized app.
+    // Explicitly provide the bucket name, as this was the source of our initial error.
     const bucket = getStorage(adminApp).bucket(firebaseConfig.storageBucket);
     
     // Extract mime type and base64 data from data URL
