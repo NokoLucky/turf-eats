@@ -161,7 +161,7 @@ export default function LoginPage() {
             <TabsContent value="phone">
                {phoneAuthState === 'enter-phone' ? (
                 <Form {...phoneForm}>
-                  <form onSubmit={phoneForm.handleSubmit(handlePhoneLogin)} className="space-y-4 pt-4">
+                  <form key="phone-form" onSubmit={phoneForm.handleSubmit(handlePhoneLogin)} className="space-y-4 pt-4">
                     <FormField
                       control={phoneForm.control}
                       name="phone"
@@ -182,7 +182,7 @@ export default function LoginPage() {
                 </Form>
               ) : (
                  <Form {...codeForm}>
-                  <form onSubmit={codeForm.handleSubmit(handleVerifyCode)} className="space-y-4 pt-4">
+                  <form key="code-form" onSubmit={codeForm.handleSubmit(handleVerifyCode)} className="space-y-4 pt-4">
                     <FormField
                       control={codeForm.control}
                       name="code"
@@ -190,7 +190,7 @@ export default function LoginPage() {
                         <FormItem>
                           <FormLabel>Verification Code</FormLabel>
                           <FormControl>
-                            <Input placeholder="123456" {...field} />
+                            <Input placeholder="123456" {...field} autoComplete="one-time-code" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
