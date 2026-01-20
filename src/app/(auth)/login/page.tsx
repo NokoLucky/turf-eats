@@ -215,7 +215,6 @@ export default function LoginPage() {
           </div>
         </CardContent>
       </Card>
-      <div id="recaptcha-container" />
     </div>
   );
 }

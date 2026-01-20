@@ -216,7 +216,6 @@ export default function SignupPage() {
           </div>
         </CardContent>
       </Card>
-      <div id="recaptcha-container" />
     </div>
   );
 }
