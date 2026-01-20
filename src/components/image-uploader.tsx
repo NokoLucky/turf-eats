@@ -18,6 +18,7 @@ interface ImageUploaderProps {
 }
 
 export default function ImageUploader({ onUploadComplete, initialImageUrl, folderName }: ImageUploaderProps) {
+  console.log('[Uploader] Component Rendered/Re-rendered');
   const { toast } = useToast();
   const storage = useStorage();
   
@@ -29,11 +30,14 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    console.log('[Uploader Effect] initialImageUrl changed:', initialImageUrl);
     setPreviewUrl(initialImageUrl || null);
   }, [initialImageUrl]);
 
   const clearUploadState = () => {
+      console.log('[Uploader] Clearing upload state.');
       if (timeoutRef.current) {
+        console.log('[Uploader] Clearing timeout.');
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
@@ -43,35 +47,49 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
   }
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    console.log('[Uploader] handleFileChange triggered.');
     const file = event.target.files?.[0];
-    if (!file || !storage) {
-        if (!storage) {
-            toast({
-                variant: 'destructive',
-                title: 'Upload Failed',
-                description: 'Storage service is not available. Please try again later.',
-            });
-        }
+    
+    if (!file) {
+        console.warn('[Uploader] No file selected.');
         return;
-    };
+    }
 
+    if (!storage) {
+        console.error('[Uploader] Firebase Storage service is not available!');
+        toast({
+            variant: 'destructive',
+            title: 'Upload Failed',
+            description: 'Storage service is not available. Please try again later.',
+        });
+        return;
+    }
+
+    console.log('[Uploader] Selected file:', { name: file.name, size: file.size, type: file.type });
     const localPreviewUrl = URL.createObjectURL(file);
     setPreviewUrl(localPreviewUrl);
+    console.log('[Uploader] Set local preview URL:', localPreviewUrl);
 
-    const storageRef = ref(storage, `${folderName}/${new Date().getTime()}-${file.name}`);
+    const storagePath = `${folderName}/${new Date().getTime()}-${file.name}`;
+    console.log('[Uploader] Creating storage reference with path:', storagePath);
+    const storageRef = ref(storage, storagePath);
+    
+    console.log('[Uploader] Creating upload task.');
     const uploadTask = uploadBytesResumable(storageRef, file);
     uploadTaskRef.current = uploadTask;
 
     setIsUploading(true);
     setProgress(0);
 
+    console.log('[Uploader] Setting 8-second timeout for upload start.');
     timeoutRef.current = setTimeout(() => {
         if (progress === 0 && isUploading) {
+            console.error('[Uploader Timeout] Upload did not start within 8 seconds. Cancelling task.');
             uploadTask.cancel();
             toast({
                 variant: "destructive",
                 title: "Upload Timed Out",
-                description: "The upload did not start. This could be a CORS issue on your storage bucket. Please check the browser console for more details.",
+                description: "The upload did not start. This is likely a CORS configuration issue on your storage bucket. Please check the browser console for more details.",
                 duration: 10000,
             });
             clearUploadState();
@@ -82,22 +100,34 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
     uploadTask.on('state_changed',
       (snapshot) => {
         const currentProgress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        console.log(`[Uploader Progress] State: ${snapshot.state}, Progress: ${currentProgress.toFixed(2)}%`);
         setProgress(currentProgress);
       },
       (error) => {
+        console.error("[Uploader Error] Upload failed with error object:", error);
         clearUploadState();
         switch (error.code) {
           case 'storage/unauthorized':
+            console.error('[Uploader Error] Reason: Permission Denied. Check your Firebase Storage rules.');
             toast({
               variant: 'destructive',
               title: 'Permission Denied',
-              description: 'You do not have permission to upload files. Check your Storage Rules.',
+              description: 'You do not have permission to upload files. Check your Storage Rules in the Firebase console.',
             });
             break;
           case 'storage/canceled':
-            console.log("Upload canceled, likely due to timeout.");
+            console.log("[Uploader Info] Upload canceled, likely due to timeout or user action.");
+            break;
+          case 'storage/unknown':
+             console.error('[Uploader Error] Reason: An unknown error occurred, often related to CORS policy. Ensure your bucket is configured to accept uploads from this origin.');
+             toast({
+              variant: 'destructive',
+              title: 'Upload Failed (CORS?)',
+              description: 'An unknown error occurred. This is often a CORS policy issue on the bucket.',
+            });
             break;
           default:
+            console.error(`[Uploader Error] Unhandled error code: ${error.code}`);
             toast({
               variant: 'destructive',
               title: 'Upload Failed',
@@ -106,13 +136,14 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
             break;
         }
 
-        console.error("Upload failed:", error);
         setPreviewUrl(initialImageUrl || null);
         URL.revokeObjectURL(localPreviewUrl);
       },
       () => {
+        console.log('[Uploader Complete] Upload finished successfully. Getting download URL...');
         clearUploadState();
         getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+          console.log('[Uploader Complete] Got download URL:', downloadURL);
           onUploadComplete(downloadURL);
           setPreviewUrl(downloadURL);
           toast({
@@ -120,11 +151,11 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
             description: 'Your image has been successfully uploaded.',
           });
         }).catch((error) => {
-             console.error("Failed to get download URL:", error);
+             console.error("[Uploader Error] Failed to get download URL after upload:", error);
              toast({
                 variant: 'destructive',
                 title: 'Upload Failed',
-                description: 'File uploaded, but could not get the URL.',
+                description: 'File uploaded, but could not get the final URL.',
             });
         });
          URL.revokeObjectURL(localPreviewUrl);
@@ -133,9 +164,11 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
   };
 
   const handleRemoveImage = () => {
+    console.log('[Uploader] handleRemoveImage called.');
     setPreviewUrl(null);
     onUploadComplete('');
     if (uploadTaskRef.current) {
+      console.log('[Uploader] Cancelling active upload task.');
       uploadTaskRef.current.cancel();
       clearUploadState();
     }
