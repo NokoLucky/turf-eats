@@ -35,7 +35,8 @@ function getFirebaseAdminApp(): App {
   }
   
   try {
-    return initializeApp();
+    // Explicitly provide projectId to ensure correct initialization context.
+    return initializeApp({ projectId: firebaseConfig.projectId });
   } catch (error: any) {
      console.error('Firebase Admin SDK auto-initialization error:', error);
      throw new Error(`Firebase Admin SDK auto-initialization failed: ${error.message}`);
