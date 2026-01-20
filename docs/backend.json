@@ -35,10 +35,7 @@
       "required": [
         "id",
         "userId",
-        "name",
-        "email",
-        "phoneNumber",
-        "address"
+        "name"
       ]
     },
     "Driver": {
@@ -80,7 +77,6 @@
         "id",
         "userId",
         "name",
-        "phoneNumber",
         "vehicleType",
         "licenseNumber"
       ]
@@ -116,9 +112,7 @@
       "required": [
         "id",
         "userId",
-        "name",
-        "email",
-        "phoneNumber"
+        "name"
       ]
     },
     "Restaurant": {

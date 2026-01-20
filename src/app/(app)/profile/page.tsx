@@ -23,7 +23,7 @@ const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   phoneNumber: z.string().optional(),
   address: z.string().optional(),
-  email: z.string().email(),
+  email: z.string().email({ message: "A valid email is required if provided." }).or(z.literal("")).optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -54,12 +54,18 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (customerData) {
-      form.reset(customerData);
+      form.reset({
+        ...customerData,
+        email: customerData.email || '',
+        phoneNumber: customerData.phoneNumber || '',
+        address: customerData.address || '',
+      });
     } else if (user) {
         form.reset({
             ...form.getValues(),
             email: user.email || '',
             name: user.displayName || '',
+            phoneNumber: user.phoneNumber || '',
         })
     }
   }, [customerData, user, form]);
