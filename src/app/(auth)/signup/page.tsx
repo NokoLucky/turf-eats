@@ -113,7 +113,7 @@ export default function SignupPage() {
   return (
     <div className="flex flex-col items-center gap-8">
       <Logo />
-      <Card className="w-full max-w-xl">
+      <Card className="w-full max-w-2xl">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold font-headline">Create an Account</CardTitle>
           <CardDescription>Join Turf Eats and discover local flavors</CardDescription>
@@ -124,7 +124,7 @@ export default function SignupPage() {
               <TabsTrigger value="email">Email</TabsTrigger>
               <TabsTrigger value="phone">Phone</TabsTrigger>
             </TabsList>
-            <TabsContent value="email">
+            <TabsContent value="email" className="min-h-[16rem]">
               <Form {...emailForm}>
                 <form onSubmit={emailForm.handleSubmit(handleSignup)} className="space-y-4 pt-4">
                   <FormField
@@ -159,7 +159,7 @@ export default function SignupPage() {
                 </form>
               </Form>
             </TabsContent>
-            <TabsContent value="phone">
+            <TabsContent value="phone" className="min-h-[16rem]">
                {phoneAuthState === 'enter-phone' ? (
                 <Form {...phoneForm}>
                   <form key="phone-form" onSubmit={phoneForm.handleSubmit(handlePhoneSignup)} className="space-y-4 pt-4">
