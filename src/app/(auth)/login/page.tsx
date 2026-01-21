@@ -112,9 +112,9 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col items-center gap-8">
       <Logo />
-      <Card className="w-full max-w-2xl">
+      <Card className="w-[42rem] max-w-full">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold font-headline">Welcome Back</CardTitle>
+          <CardTitle className="text-2xl font-bold font-headline">Welcome Back to turf eats</CardTitle>
           <CardDescription>Sign in to continue to Turf Eats</CardDescription>
         </CardHeader>
         <CardContent>
@@ -123,7 +123,7 @@ export default function LoginPage() {
               <TabsTrigger value="email">Email</TabsTrigger>
               <TabsTrigger value="phone">Phone</TabsTrigger>
             </TabsList>
-            <TabsContent value="email">
+            <TabsContent value="email" className="min-h-[16rem]">
               <Form {...emailForm}>
                 <form onSubmit={emailForm.handleSubmit(handleLogin)} className="space-y-4 pt-4">
                   <FormField
@@ -158,7 +158,7 @@ export default function LoginPage() {
                 </form>
               </Form>
             </TabsContent>
-            <TabsContent value="phone">
+            <TabsContent value="phone" className="min-h-[16rem]">
                {phoneAuthState === 'enter-phone' ? (
                 <Form {...phoneForm}>
                   <form key="phone-form" onSubmit={phoneForm.handleSubmit(handlePhoneLogin)} className="space-y-4 pt-4">
@@ -218,3 +218,4 @@ export default function LoginPage() {
     </div>
   );
 }
+    
