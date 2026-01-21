@@ -3,11 +3,11 @@
 import { useState, ChangeEvent, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { getApps, initializeApp } from 'firebase/app';
-import { firebaseConfig } from '@/firebase/config';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useStorage } from '@/firebase'; // Import the hook
 import { Loader2, Upload, X } from 'lucide-react';
 import Image from 'next/image';
+import { firebaseConfig } from '@/firebase/config';
 
 interface ImageUploaderProps {
   onUploadComplete: (url: string) => void;
@@ -19,43 +19,24 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialImageUrl || null);
+  const storage = useStorage(); // Use the hook
 
   useEffect(() => {
     setPreviewUrl(initialImageUrl || null);
   }, [initialImageUrl]);
 
-  const initializeStorage = () => {
-    try {
-      // Log the config
-      console.log('Firebase Config:', {
-        storageBucket: firebaseConfig.storageBucket,
-        projectId: firebaseConfig.projectId,
-      });
-
-      // Initialize Firebase
-      let app;
-      if (getApps().length === 0) {
-        console.log('Initializing Firebase with config:', firebaseConfig);
-        app = initializeApp(firebaseConfig);
-      } else {
-        app = getApps()[0];
-      }
-
-      // Get storage - IMPORTANT: Use the correct bucket
-      const storage = getStorage(app, `gs://studio-3640989321-ebeea.firebasestorage.app`);
-      
-      console.log('Storage initialized with bucket:', storage.app.options.storageBucket);
-      return storage;
-      
-    } catch (error) {
-      console.error('Storage initialization error:', error);
-      return null;
-    }
-  };
-
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (!storage) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Firebase Storage is not available. Please try again later.',
+      });
+      return;
+    }
 
     // Validate
     if (!file.type.startsWith('image/')) {
@@ -70,12 +51,6 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
     setIsUploading(true);
 
     try {
-      // Initialize storage
-      const storage = initializeStorage();
-      if (!storage) {
-        throw new Error('Failed to initialize storage');
-      }
-
       // Create preview
       const localPreviewUrl = URL.createObjectURL(file);
       setPreviewUrl(localPreviewUrl);
@@ -167,7 +142,7 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
       </div>
 
       <div>
-        <Button asChild disabled={isUploading} className="w-full">
+        <Button asChild disabled={isUploading || !storage} className="w-full">
           <label>
             {isUploading ? (
               <>
@@ -185,14 +160,14 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
               accept="image/*"
               onChange={handleFileChange}
               className="hidden"
-              disabled={isUploading}
+              disabled={isUploading || !storage}
             />
           </label>
         </Button>
       </div>
 
       <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
-        <p>Bucket: <code>{firebaseConfig.storageBucket}</code></p>
+        <p>Bucket: <code>{firebaseConfig.storageBucket || 'Not Configured'}</code></p>
         <p>Folder: <code>{folderName}</code></p>
       </div>
     </div>
