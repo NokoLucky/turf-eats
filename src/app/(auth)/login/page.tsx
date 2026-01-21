@@ -123,7 +123,7 @@ export default function LoginPage() {
               <TabsTrigger value="email">Email</TabsTrigger>
               <TabsTrigger value="phone">Phone</TabsTrigger>
             </TabsList>
-            <TabsContent value="email" className="min-h-[16rem]">
+            <TabsContent value="email" className="min-h-[20rem]">
               <Form {...emailForm}>
                 <form onSubmit={emailForm.handleSubmit(handleLogin)} className="space-y-4 pt-4">
                   <FormField
@@ -158,7 +158,7 @@ export default function LoginPage() {
                 </form>
               </Form>
             </TabsContent>
-            <TabsContent value="phone" className="min-h-[16rem]">
+            <TabsContent value="phone" className="min-h-[20rem]">
                {phoneAuthState === 'enter-phone' ? (
                 <Form {...phoneForm}>
                   <form key="phone-form" onSubmit={phoneForm.handleSubmit(handlePhoneLogin)} className="space-y-4 pt-4">
