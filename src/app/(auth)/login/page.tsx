@@ -112,9 +112,9 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col items-center gap-8">
       <Logo />
-      <Card className="w-[42rem] max-w-full">
+      <Card className="w-full max-w-xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold font-headline">Welcome Back to turf eats</CardTitle>
+          <CardTitle className="text-2xl font-bold font-headline">Welcome Back</CardTitle>
           <CardDescription>Sign in to continue to Turf Eats</CardDescription>
         </CardHeader>
         <CardContent>
