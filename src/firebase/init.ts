@@ -4,26 +4,17 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage';
 
-export function initializeFirebase() {
-  let app: FirebaseApp;
-  if (!getApps().length) {
-    // When deploying to environments other than Firebase Hosting, like Vercel,
-    // you must provide the config object to initializeApp.
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = getApp();
-  }
-  return getSdks(app);
-}
+// This is the robust way to initialize Firebase, ensuring it's only done once.
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-export function getSdks(firebaseApp: FirebaseApp) {
+export function initializeFirebase() {
   // Explicitly provide the storage bucket URL to getStorage to prevent initialization errors.
   const bucketUrl = firebaseConfig.storageBucket ? `gs://${firebaseConfig.storageBucket}` : undefined;
 
   return {
-    firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp),
-    storage: getStorage(firebaseApp, bucketUrl)
+    firebaseApp: app,
+    auth: getAuth(app),
+    firestore: getFirestore(app),
+    storage: getStorage(app, bucketUrl)
   };
 }
