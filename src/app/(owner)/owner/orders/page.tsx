@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, limit, doc, updateDoc } from 'firebase/firestore';
-import type { Order, Restaurant } from '@/lib/data';
+import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
+import type { Order, OrderItem } from '@/lib/data';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -16,10 +16,44 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, NotebookText } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { MoreHorizontal } from 'lucide-react';
 
 type EnrichedOrder = Order & { customerName?: string };
+
+// New component to render order items
+function OrderItems({ orderId }: { orderId: string }) {
+    const firestore = useFirestore();
+    const itemsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, `orders/${orderId}/orderItems`);
+    }, [firestore, orderId]);
+
+    const { data: items, isLoading } = useCollection<OrderItem>(itemsQuery);
+
+    if (isLoading) {
+        return (
+            <div className="space-y-1">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+            </div>
+        );
+    }
+
+    if (!items || items.length === 0) {
+        return <p className="text-sm text-muted-foreground">No items found in this order.</p>;
+    }
+
+    return (
+        <ul className="space-y-1 text-sm">
+            {items.map((item) => (
+                <li key={item.id}>
+                    <span className="font-semibold">{item.quantity}x</span> {item.name}
+                </li>
+            ))}
+        </ul>
+    );
+}
+
 
 export default function OwnerOrdersPage() {
   const { user } = useUser();
@@ -31,6 +65,11 @@ export default function OwnerOrdersPage() {
     return query(collection(firestore, 'orders'), where('storeOwnerId', '==', user.uid));
   }, [user, firestore]);
   const { data: orders, isLoading: areOrdersLoading } = useCollection<EnrichedOrder>(ordersQuery);
+
+  const sortedOrders = useMemo(() => {
+      if (!orders) return [];
+      return [...orders].sort((a, b) => b.orderDate.toDate().getTime() - a.orderDate.toDate().getTime());
+  }, [orders]);
 
   const handleUpdateStatus = async (orderId: string, newStatus: Order['status']) => {
     if (!firestore) return;
@@ -47,13 +86,13 @@ export default function OwnerOrdersPage() {
         <Card>
             <CardHeader>
               <CardTitle>All Orders</CardTitle>
-              <CardDescription>A list of all incoming orders.</CardDescription>
+              <CardDescription>A list of all incoming orders, with the most recent at the top.</CardDescription>
             </CardHeader>
             <CardContent>
             <Table>
                 <TableHeader>
                   <TableRow>
-                      <TableHead>Order ID</TableHead>
+                      <TableHead className="w-[40%]">Order Details</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Total</TableHead>
                       <TableHead>Status</TableHead>
@@ -63,39 +102,29 @@ export default function OwnerOrdersPage() {
                 <TableBody>
                 {areOrdersLoading && Array.from({length: 3}).map((_, i) => (
                     <TableRow key={i}>
-                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-10 w-full" /></TableCell>
                         <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                         <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                         <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                         <TableCell className="text-right"><Skeleton className="h-9 w-9 ml-auto" /></TableCell>
                     </TableRow>
                 ))}
-                {!areOrdersLoading && orders?.map((order) => (
+                {!areOrdersLoading && sortedOrders?.map((order) => (
                     <TableRow key={order.id}>
-                    <TableCell>
-                        <div className="font-medium">#{order.id.slice(0, 6)}...</div>
-                        {order.notes && (
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1 cursor-help">
-                                            <NotebookText className="h-3 w-3" />
-                                            <p className="truncate max-w-[150px]">{order.notes}</p>
-                                        </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p className="max-w-xs">{order.notes}</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        )}
-                    </TableCell>
-                    <TableCell>{order.orderDate ? format(order.orderDate.toDate(), 'PPP') : 'N/A'}</TableCell>
-                    <TableCell>R{order.totalAmount.toFixed(2)}</TableCell>
-                    <TableCell>
-                        <Badge variant={order.status === 'Placed' ? 'destructive' : 'outline'}>{order.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
+                      <TableCell className="font-medium align-top">
+                          <OrderItems orderId={order.id} />
+                          {order.notes && (
+                              <div className="mt-2 pt-2 border-t border-dashed">
+                                  <p className="text-xs text-muted-foreground"><span className="font-semibold">Note:</span> {order.notes}</p>
+                              </div>
+                          )}
+                      </TableCell>
+                      <TableCell className="align-top">{order.orderDate ? format(order.orderDate.toDate(), 'PPP') : 'N/A'}</TableCell>
+                      <TableCell className="align-top">R{order.totalAmount.toFixed(2)}</TableCell>
+                      <TableCell className="align-top">
+                          <Badge variant={order.status === 'Placed' ? 'destructive' : 'outline'}>{order.status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right align-top">
                        <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
@@ -117,7 +146,7 @@ export default function OwnerOrdersPage() {
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                    </TableCell>
+                      </TableCell>
                     </TableRow>
                 ))}
                 </TableBody>
