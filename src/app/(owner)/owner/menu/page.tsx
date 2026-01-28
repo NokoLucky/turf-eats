@@ -37,7 +37,7 @@ const productSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, 'Name is too short'),
   description: z.string().min(10, 'Description is too short'),
-  price: z.preprocess((a) => parseFloat(z.string().parse(a)), z.number().positive('Price must be positive')),
+  price: z.preprocess((a) => parseFloat(String(a)), z.number().positive('Price must be positive')),
   imageUrl: z.string().url('An image upload is required.').min(1, 'An image upload is required.'),
   promotionalPrice: z.preprocess(
       (val) => (val === '' || val === null ? undefined : parseFloat(String(val))),
@@ -45,6 +45,7 @@ const productSchema = z.object({
   ),
 }).refine(data => {
     if (data.promotionalPrice === undefined || data.promotionalPrice === null) return true;
+    if (isNaN(data.price)) return true;
     return data.promotionalPrice < data.price;
 }, {
     message: "Promotional price must be less than the original price.",
@@ -73,12 +74,12 @@ function ProductDialog({
       description: '',
       price: 0,
       imageUrl: '',
-      promotionalPrice: undefined,
+      promotionalPrice: '',
     },
   });
   
   useEffect(() => {
-    form.reset(product || { name: '', description: '', price: 0, imageUrl: '', promotionalPrice: undefined });
+    form.reset(product || { name: '', description: '', price: 0, imageUrl: '', promotionalPrice: '' });
   }, [product, form]);
 
   const handleFormSubmit = (data: ProductFormValues) => {
