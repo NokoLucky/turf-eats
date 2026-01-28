@@ -12,6 +12,7 @@ import { useFirestore } from '@/firebase';
 import { doc, collection, getDoc, getDocs } from 'firebase/firestore';
 import type { Restaurant, MenuItem } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 export default function RestaurantMenuPage({ params: { id } }: { params: { id: string } }) {
   const { toast } = useToast();
@@ -51,6 +52,17 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
     fetchData();
   }, [firestore, id]);
 
+  const sortedMenuItems = React.useMemo(() => {
+    if (!menuItems) return [];
+    return [...menuItems].sort((a, b) => {
+      const aHasPromo = a.promotionalPrice && a.promotionalPrice > 0 && a.promotionalPrice < a.price;
+      const bHasPromo = b.promotionalPrice && b.promotionalPrice > 0 && b.promotionalPrice < b.price;
+      if (aHasPromo && !bHasPromo) return -1;
+      if (!aHasPromo && bHasPromo) return 1;
+      return 0;
+    });
+  }, [menuItems]);
+
   const handleAddToCart = (item: MenuItem) => {
     const priceToUse = item.promotionalPrice && item.promotionalPrice > 0 ? item.promotionalPrice : item.price;
     dispatch({
@@ -86,7 +98,17 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
             <Skeleton className="h-6 w-1/4 mb-8" />
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 3 }).map((_, i) => (
-                <Card key={i}><CardHeader><Skeleton className="aspect-video w-full" /></CardHeader><CardContent className="mt-6 space-y-2"><Skeleton className="h-6 w-2/3" /><Skeleton className="h-4 w-full" /><Skeleton className="h-10 w-1/2 ml-auto" /></CardContent></Card>
+                <Card key={i}>
+                  <CardHeader className="p-0"><Skeleton className="aspect-video w-full" /></CardHeader>
+                  <CardContent className="p-4 space-y-4">
+                    <Skeleton className="h-6 w-2/3" />
+                    <Skeleton className="h-10 w-full" />
+                    <div className="flex justify-between items-center">
+                      <Skeleton className="h-7 w-1/3" />
+                      <Skeleton className="h-10 w-1/2" />
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>
@@ -131,39 +153,42 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
           <div className="container py-12 px-4 sm:px-8">
             <h2 className="font-headline text-3xl font-bold mb-8">Menu</h2>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {menuItems?.map((item) => {
+              {sortedMenuItems?.map((item) => {
                 const hasPromo = item.promotionalPrice && item.promotionalPrice > 0 && item.promotionalPrice < item.price;
                 const displayPrice = hasPromo ? item.promotionalPrice : item.price;
 
                 return (
-                    <Card key={item.id} className="flex flex-col">
-                    <CardHeader>
-                        <div className="relative aspect-video w-full overflow-hidden rounded-md">
-                        <Image
-                            src={item.imageUrl || 'https://picsum.photos/seed/menu/400/300'}
-                            alt={item.name}
-                            data-ai-hint="food item"
-                            fill
-                            className="object-cover"
-                        />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="flex flex-1 flex-col p-4">
-                        <CardTitle className="font-headline text-xl">{item.name}</CardTitle>
-                        <CardDescription className="mt-2 flex-1">{item.description}</CardDescription>
-                        <div className="mt-4 flex items-center justify-between">
-                            <div className="flex items-baseline gap-2">
-                                <p className="text-lg font-bold text-primary">R{displayPrice.toFixed(2)}</p>
-                                {hasPromo && (
-                                    <p className="text-sm text-muted-foreground line-through">R{item.price.toFixed(2)}</p>
-                                )}
-                            </div>
-                            <Button onClick={() => handleAddToCart(item)}>
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Add to Cart
-                            </Button>
-                        </div>
-                    </CardContent>
+                    <Card key={item.id} className="flex flex-col overflow-hidden">
+                      <CardHeader className="p-0">
+                          <div className="relative aspect-video w-full">
+                          <Image
+                              src={item.imageUrl || 'https://picsum.photos/seed/menu/400/300'}
+                              alt={item.name}
+                              data-ai-hint="food item"
+                              fill
+                              className="object-cover"
+                          />
+                          {hasPromo && (
+                              <Badge variant="destructive" className="absolute top-2 left-2 shadow-lg">Promotion</Badge>
+                          )}
+                          </div>
+                      </CardHeader>
+                      <CardContent className="flex flex-1 flex-col p-4">
+                          <CardTitle className="font-headline text-xl">{item.name}</CardTitle>
+                          <CardDescription className="mt-2 flex-1">{item.description}</CardDescription>
+                          <div className="mt-4 flex items-center justify-between">
+                              <div className="flex items-baseline gap-2">
+                                  <p className="text-lg font-bold text-primary">R{displayPrice.toFixed(2)}</p>
+                                  {hasPromo && (
+                                      <p className="text-sm text-muted-foreground line-through">R{item.price.toFixed(2)}</p>
+                                  )}
+                              </div>
+                              <Button onClick={() => handleAddToCart(item)}>
+                                  <PlusCircle className="mr-2 h-4 w-4" />
+                                  Add to Cart
+                              </Button>
+                          </div>
+                      </CardContent>
                     </Card>
                 )
               })}
@@ -174,5 +199,3 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
     </div>
   );
 }
-
-    
