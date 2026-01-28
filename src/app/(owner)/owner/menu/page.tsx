@@ -159,7 +159,7 @@ function ProductDialog({
                     <FormItem>
                     <FormLabel>Promotional Price</FormLabel>
                     <FormControl>
-                        <Input type="number" step="0.01" {...field} placeholder="e.g. 89.99" />
+                        <Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="e.g. 89.99" />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -352,5 +352,3 @@ export default function ProductsManagementPage() {
     </div>
   );
 }
-
-    
