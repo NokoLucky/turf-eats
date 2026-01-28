@@ -52,10 +52,12 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
   }, [firestore, id]);
 
   const handleAddToCart = (item: MenuItem) => {
+    const priceToUse = item.promotionalPrice && item.promotionalPrice > 0 ? item.promotionalPrice : item.price;
     dispatch({
       type: 'ADD_ITEM',
       payload: {
         ...item,
+        price: priceToUse,
         image: {
           id: item.id,
           imageUrl: item.imageUrl,
@@ -119,35 +121,52 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
               </div>
             </div>
           </div>
+          
+          {restaurant.promotionBannerText && (
+            <div className="bg-accent text-accent-foreground text-center p-3 font-semibold text-sm sm:text-base">
+                {restaurant.promotionBannerText}
+            </div>
+          )}
+
           <div className="container py-12 px-4 sm:px-8">
             <h2 className="font-headline text-3xl font-bold mb-8">Menu</h2>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {menuItems?.map((item) => (
-                <Card key={item.id} className="flex flex-col">
-                  <CardHeader>
-                    <div className="relative aspect-video w-full overflow-hidden rounded-md">
-                      <Image
-                        src={item.imageUrl || 'https://picsum.photos/seed/menu/400/300'}
-                        alt={item.name}
-                        data-ai-hint="food item"
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex flex-1 flex-col p-4">
-                    <CardTitle className="font-headline text-xl">{item.name}</CardTitle>
-                    <CardDescription className="mt-2 flex-1">{item.description}</CardDescription>
-                    <div className="mt-4 flex items-center justify-between">
-                      <p className="text-lg font-bold text-primary">R{item.price.toFixed(2)}</p>
-                      <Button onClick={() => handleAddToCart(item)}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Add to Cart
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {menuItems?.map((item) => {
+                const hasPromo = item.promotionalPrice && item.promotionalPrice > 0 && item.promotionalPrice < item.price;
+                const displayPrice = hasPromo ? item.promotionalPrice : item.price;
+
+                return (
+                    <Card key={item.id} className="flex flex-col">
+                    <CardHeader>
+                        <div className="relative aspect-video w-full overflow-hidden rounded-md">
+                        <Image
+                            src={item.imageUrl || 'https://picsum.photos/seed/menu/400/300'}
+                            alt={item.name}
+                            data-ai-hint="food item"
+                            fill
+                            className="object-cover"
+                        />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="flex flex-1 flex-col p-4">
+                        <CardTitle className="font-headline text-xl">{item.name}</CardTitle>
+                        <CardDescription className="mt-2 flex-1">{item.description}</CardDescription>
+                        <div className="mt-4 flex items-center justify-between">
+                            <div className="flex items-baseline gap-2">
+                                <p className="text-lg font-bold text-primary">R{displayPrice.toFixed(2)}</p>
+                                {hasPromo && (
+                                    <p className="text-sm text-muted-foreground line-through">R{item.price.toFixed(2)}</p>
+                                )}
+                            </div>
+                            <Button onClick={() => handleAddToCart(item)}>
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Add to Cart
+                            </Button>
+                        </div>
+                    </CardContent>
+                    </Card>
+                )
+              })}
             </div>
           </div>
         </>
@@ -155,3 +174,5 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
     </div>
   );
 }
+
+    

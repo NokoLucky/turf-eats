@@ -17,6 +17,7 @@ export type MenuItem = {
   name: string;
   description: string;
   price: number;
+  promotionalPrice?: number;
   image: ImagePlaceholder;
   restaurantId: string;
   imageUrl: string;
@@ -32,6 +33,7 @@ export type Restaurant = {
   storeOwnerId: string;
   address: string;
   openingHours: string;
+  promotionBannerText?: string;
 };
 
 export type OrderStatus = 'Placed' | 'Preparing' | 'Out for Delivery' | 'Delivered' | 'Cancelled';
@@ -61,3 +63,5 @@ export type OrderItem = {
 
 // This is placeholder and will be removed from pages that use it.
 export const orders: any[] = [];
+
+    

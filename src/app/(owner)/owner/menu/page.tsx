@@ -5,7 +5,7 @@ import { collection, doc, query, where, limit } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Trash2, Edit, MoreHorizontal, Store, Package } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, MoreHorizontal, Store } from 'lucide-react';
 import Image from 'next/image';
 
 import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
@@ -26,7 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -39,7 +39,18 @@ const productSchema = z.object({
   description: z.string().min(10, 'Description is too short'),
   price: z.preprocess((a) => parseFloat(z.string().parse(a)), z.number().positive('Price must be positive')),
   imageUrl: z.string().url('An image upload is required.').min(1, 'An image upload is required.'),
+  promotionalPrice: z.preprocess(
+      (val) => (val === '' || val === null ? undefined : parseFloat(String(val))),
+      z.number().nonnegative('Price cannot be negative.').optional()
+  ),
+}).refine(data => {
+    if (data.promotionalPrice === undefined || data.promotionalPrice === null) return true;
+    return data.promotionalPrice < data.price;
+}, {
+    message: "Promotional price must be less than the original price.",
+    path: ["promotionalPrice"],
 });
+
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
@@ -62,11 +73,12 @@ function ProductDialog({
       description: '',
       price: 0,
       imageUrl: '',
+      promotionalPrice: undefined,
     },
   });
   
   useEffect(() => {
-    form.reset(product || { name: '', description: '', price: 0, imageUrl: '' });
+    form.reset(product || { name: '', description: '', price: 0, imageUrl: '', promotionalPrice: undefined });
   }, [product, form]);
 
   const handleFormSubmit = (data: ProductFormValues) => {
@@ -76,7 +88,7 @@ function ProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{product?.id ? 'Edit Product' : 'Add New Product'}</DialogTitle>
           <DialogDescription>Fill in the details for your product.</DialogDescription>
@@ -126,19 +138,34 @@ function ProductDialog({
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Price (ZAR)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Price (ZAR)</FormLabel>
+                    <FormControl>
+                        <Input type="number" step="0.01" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="promotionalPrice"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Promotional Price</FormLabel>
+                    <FormControl>
+                        <Input type="number" step="0.01" {...field} placeholder="e.g. 89.99" />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            </div>
             
             <DialogFooter>
               <Button type="submit" disabled={form.formState.isSubmitting}>
@@ -181,22 +208,31 @@ export default function ProductsManagementPage() {
       toast({ title: 'Error', description: 'Could not find store to save product to.', variant: 'destructive' });
       return;
     }
-
-    const productsCollectionRef = collection(firestore, 'restaurants', restaurantId, 'menuItems');
     
-    if (data.id) {
-      const docRef = doc(productsCollectionRef, data.id);
-      const { id, ...updateData } = data; // Don't save the id inside the document
-      setDocumentNonBlocking(docRef, updateData, { merge: true });
-      toast({ title: 'Product updated!' });
+    const { id, ...restData } = data;
+
+    const firestoreData = {
+        ...restData,
+        promotionalPrice: data.promotionalPrice && data.promotionalPrice > 0 ? data.promotionalPrice : null,
+    };
+
+    if (id) {
+        const docRef = doc(firestore, 'restaurants', restaurantId, 'menuItems', id);
+        setDocumentNonBlocking(docRef, firestoreData, { merge: true });
+        toast({ title: 'Product updated!' });
     } else {
-      addDocumentNonBlocking(productsCollectionRef, { ...data, restaurantId });
-      toast({ title: 'Product added!' });
+        const productsCollectionRef = collection(firestore, 'restaurants', restaurantId, 'menuItems');
+        addDocumentNonBlocking(productsCollectionRef, { ...firestoreData, restaurantId });
+        toast({ title: 'Product added!' });
     }
   };
 
   const handleEdit = (item: MenuItem) => {
-    setEditingProduct(item);
+    setEditingProduct({
+        ...item,
+        price: Number(item.price),
+        promotionalPrice: item.promotionalPrice ? Number(item.promotionalPrice) : undefined,
+    });
     setDialogOpen(true);
   };
   
@@ -280,7 +316,10 @@ export default function ProductsManagementPage() {
               </CardDescription>
             </CardContent>
             <CardFooter className="flex justify-between items-center p-4 pt-0">
-              <p className="text-lg font-bold text-primary">R{item.price.toFixed(2)}</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-lg font-bold text-primary">R{(item.promotionalPrice && item.promotionalPrice > 0 ? item.promotionalPrice : item.price).toFixed(2)}</p>
+                {item.promotionalPrice && item.promotionalPrice > 0 && <p className="text-sm font-medium text-muted-foreground line-through">R{item.price.toFixed(2)}</p>}
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon">
@@ -313,3 +352,5 @@ export default function ProductsManagementPage() {
     </div>
   );
 }
+
+    

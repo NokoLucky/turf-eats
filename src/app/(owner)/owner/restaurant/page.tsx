@@ -27,6 +27,7 @@ const storeSchema = z.object({
   closingTime: z.string({ required_error: 'Please select a closing time.' }),
   logoUrl: z.string().url('A logo upload is required.').min(1, 'A logo upload is required.'),
   bannerUrl: z.string().url('A banner upload is required.').min(1, 'A banner upload is required.'),
+  promotionBannerText: z.string().optional(),
 });
 
 type StoreFormValues = z.infer<typeof storeSchema>;
@@ -72,6 +73,7 @@ export default function StoreDetailsPage() {
       closingTime: '10:00 PM',
       logoUrl: '',
       bannerUrl: '',
+      promotionBannerText: '',
     },
   });
 
@@ -80,7 +82,8 @@ export default function StoreDetailsPage() {
         const dataWithHours = {
             ...existingStore,
             openingTime: existingStore.openingHours?.split(' - ')[0] || '9:00 AM',
-            closingTime: existingStore.openingHours?.split(' - ')[1] || '10:00 PM'
+            closingTime: existingStore.openingHours?.split(' - ')[1] || '10:00 PM',
+            promotionBannerText: existingStore.promotionBannerText || '',
         }
       form.reset(dataWithHours);
     }
@@ -283,6 +286,22 @@ export default function StoreDetailsPage() {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="promotionBannerText"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Promotional Banner Text</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="e.g. 20% off all pizzas this week!" />
+                        </FormControl>
+                        <FormDescription>
+                          A short message to display at the top of your store page. Leave blank to hide.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <div className="flex justify-end pt-4">
                     <Button type="submit" disabled={form.formState.isSubmitting}>
                       {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
@@ -297,3 +316,5 @@ export default function StoreDetailsPage() {
     </div>
   );
 }
+
+    
