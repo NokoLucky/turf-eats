@@ -254,6 +254,10 @@
         "deliveryAddress": {
           "type": "string",
           "description": "The delivery address for the order."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional special instructions or notes from the customer for the order."
         }
       },
       "required": [
@@ -489,5 +493,3 @@
     "reasoning": "The Firestore structure is designed to align with the application's core features, focusing on role-based access control and data ownership. The design prioritizes Authorization Independence by denormalizing relevant authorization data, specifically for Restaurants and Orders. This eliminates the need for `get()` calls in security rules, ensuring atomicity of operations. Structural Segregation is used to isolate data based on access needs, as seen in the `/users/{userId}` collection, which houses user-specific data. The application uses Path-Based Ownership for `Customer`, `Driver`, and `StoreOwner` profiles which are placed under `/users/{userId}`. Restaurants are under `/restaurants/{restaurantId}` with `storeOwnerId` attribute which could be used to list resources owned by the user. Order data are placed under the `/orders/{orderId}`, with denormalized `customerId`, `restaurantId`, and `driverId`. The structure enables simple and secure `list` operations, effectively addressing QAPs. Explicit state modeling is used via the `status` field in the `Order` entity.\n\nAuthorization Independence is achieved by avoiding hierarchical dependencies. For example, access to Orders does not require fetching customer or restaurant details. The `customerId`, `restaurantId` and `driverId` within the `/orders/{orderId}` collection allow for querying and filtering orders based on these IDs directly, without needing to perform additional reads.\n\nFor QAPs, the structure supports secure `list` operations via collection-based access control. Listing Restaurants could be restricted based on `storeOwnerId` or `category`. Orders can be listed based on `customerId`, `restaurantId`, or `driverId`.\n\nData integrity is supported by the inherent structure (e.g., 1:N relationships are represented through subcollections or document references)."
   }
 }
-
-    

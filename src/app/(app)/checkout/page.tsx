@@ -14,6 +14,7 @@ import { CreditCard, Landmark, Truck } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp, writeBatch, doc, getDoc } from 'firebase/firestore';
 import FreeAddressAutocomplete from '@/components/free-address-autocomplete';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function CheckoutPage() {
   const { state, dispatch } = useCart();
@@ -30,6 +31,7 @@ export default function CheckoutPage() {
   const { data: customerData } = useDoc<{address: string}>(customerRef);
 
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     if(customerData?.address) {
@@ -105,7 +107,8 @@ export default function CheckoutPage() {
         orderDate: serverTimestamp(),
         status: 'Placed',
         totalAmount: total,
-        deliveryAddress: deliveryAddress, 
+        deliveryAddress: deliveryAddress,
+        notes: notes,
       });
 
       // 2. Create order items in a batch
@@ -170,6 +173,21 @@ export default function CheckoutPage() {
                           value={deliveryAddress}
                         />
                     </div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Order Notes</CardTitle>
+                    <CardDescription>
+                        Have any special instructions? Let the restaurant know.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Textarea
+                        placeholder="e.g., 'No cheese on the burger, please.'"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                    />
                 </CardContent>
             </Card>
              <Card>

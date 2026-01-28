@@ -16,7 +16,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, NotebookText } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type EnrichedOrder = Order & { customerName?: string };
 
@@ -71,7 +72,24 @@ export default function OwnerOrdersPage() {
                 ))}
                 {!areOrdersLoading && orders?.map((order) => (
                     <TableRow key={order.id}>
-                    <TableCell className="font-medium">#{order.id.slice(0, 6)}...</TableCell>
+                    <TableCell>
+                        <div className="font-medium">#{order.id.slice(0, 6)}...</div>
+                        {order.notes && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1 cursor-help">
+                                            <NotebookText className="h-3 w-3" />
+                                            <p className="truncate max-w-[150px]">{order.notes}</p>
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="max-w-xs">{order.notes}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
+                    </TableCell>
                     <TableCell>{order.orderDate ? format(order.orderDate.toDate(), 'PPP') : 'N/A'}</TableCell>
                     <TableCell>R{order.totalAmount.toFixed(2)}</TableCell>
                     <TableCell>

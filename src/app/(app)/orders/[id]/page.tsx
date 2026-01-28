@@ -209,6 +209,16 @@ export default function OrderDetailsPage() {
                 )}
             </CardContent>
           </Card>
+          {order.notes && (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Your Notes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground">{order.notes}</p>
+                </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
