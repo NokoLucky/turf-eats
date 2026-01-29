@@ -31,7 +31,7 @@ const getStoreStatus = (openingHours: string): { status: Status; minutesUntilClo
   if (!openStr || !closeStr) return { status: 'Closed' };
 
   const now = new Date();
-  const openTime = parseTime(openStr);
+  let openTime = parseTime(openStr);
   let closeTime = parseTime(closeStr);
 
   if (!openTime || !closeTime) return { status: 'Closed' };
