@@ -75,6 +75,19 @@
         "paymentGatewayRecipientId": {
           "type": "string",
           "description": "The secure ID from the payment gateway for this driver's bank account."
+        },
+        "licenseUrl": {
+          "type": "string",
+          "description": "URL for the driver's license image."
+        },
+        "status": {
+          "type": "string",
+          "description": "The approval status of the driver.",
+          "enum": [
+            "pending",
+            "active",
+            "inactive"
+          ]
         }
       },
       "required": [
@@ -82,7 +95,9 @@
         "userId",
         "name",
         "vehicleType",
-        "licenseNumber"
+        "licenseNumber",
+        "licenseUrl",
+        "status"
       ]
     },
     "StoreOwner": {
@@ -115,12 +130,22 @@
         "paymentGatewayRecipientId": {
           "type": "string",
           "description": "The secure ID from the payment gateway for this owner's bank account."
+        },
+        "status": {
+          "type": "string",
+          "description": "The approval status of the store owner.",
+          "enum": [
+            "pending",
+            "active",
+            "inactive"
+          ]
         }
       },
       "required": [
         "id",
         "userId",
-        "name"
+        "name",
+        "status"
       ]
     },
     "Restaurant": {
