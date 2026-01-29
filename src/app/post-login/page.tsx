@@ -1,19 +1,42 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useAuth } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { Utensils } from 'lucide-react';
 import { signOut } from 'firebase/auth';
-import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function PostLoginPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
   const router = useRouter();
-  const { toast } = useToast();
+
+  const [isDialogOpen, setDialogOpen] = useState(false);
+  const [dialogTitle, setDialogTitle] = useState('');
+  const [dialogDescription, setDialogDescription] = useState('');
+
+  const handleDialogClose = async () => {
+    setDialogOpen(false);
+    if (auth) {
+      try {
+        await signOut(auth);
+      } catch (error) {
+        console.error("Error signing out:", error);
+      }
+    }
+    router.replace('/login');
+  };
 
   useEffect(() => {
     // Wait until the user object is loaded
@@ -48,25 +71,16 @@ export default function PostLoginPage() {
         if (driverDoc.exists()) {
           const driverData = driverDoc.data();
           if (driverData.status === 'pending') {
-            await signOut(auth);
-            toast({
-              title: 'Application Pending',
-              description: 'Your driver application is still under review. We will notify you once it is approved.',
-              duration: 8000,
-            });
-            router.replace('/login');
+            setDialogTitle('Application Pending');
+            setDialogDescription('Your driver application is still under review. We will notify you once it is approved.');
+            setDialogOpen(true);
             return;
           }
           if (driverData.status === 'inactive') {
-             await signOut(auth);
-             toast({
-              variant: 'destructive',
-              title: 'Account Inactive',
-              description: 'Your driver account has been deactivated. Please contact support.',
-              duration: 8000,
-            });
-             router.replace('/login');
-             return;
+            setDialogTitle('Account Inactive');
+            setDialogDescription('Your driver account has been deactivated. Please contact support.');
+            setDialogOpen(true);
+            return;
           }
           router.replace('/driver/dashboard');
           return;
@@ -77,24 +91,15 @@ export default function PostLoginPage() {
         if (storeOwnerDoc.exists()) {
           const ownerData = storeOwnerDoc.data();
            if (ownerData.status === 'pending') {
-            await signOut(auth);
-            toast({
-              title: 'Application Pending',
-              description: 'Your store application is still under review. We will notify you once it is approved.',
-              duration: 8000,
-            });
-            router.replace('/login');
+            setDialogTitle('Application Pending');
+            setDialogDescription('Your store application is still under review. We will notify you once it is approved.');
+            setDialogOpen(true);
             return;
           }
            if (ownerData.status === 'inactive') {
-             await signOut(auth);
-             toast({
-              variant: 'destructive',
-              title: 'Account Inactive',
-              description: 'Your store account has been deactivated. Please contact support.',
-              duration: 8000,
-            });
-             router.replace('/login');
+             setDialogTitle('Account Inactive');
+             setDialogDescription('Your store account has been deactivated. Please contact support.');
+             setDialogOpen(true);
              return;
           }
           router.replace('/owner/dashboard');
@@ -112,12 +117,30 @@ export default function PostLoginPage() {
     };
 
     checkUserProfile();
-  }, [user, isUserLoading, firestore, router, auth, toast]);
+  }, [user, isUserLoading, firestore, router, auth]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background">
-      <Utensils className="h-16 w-16 animate-spin text-primary" />
-      <p className="mt-4 text-lg text-muted-foreground">Signing you in...</p>
+      <AlertDialog open={isDialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{dialogTitle}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {dialogDescription}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={handleDialogClose}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {!isDialogOpen && (
+        <>
+          <Utensils className="h-16 w-16 animate-spin text-primary" />
+          <p className="mt-4 text-lg text-muted-foreground">Signing you in...</p>
+        </>
+      )}
     </div>
   );
 }
