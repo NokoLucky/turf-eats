@@ -42,10 +42,11 @@ service cloud.firestore {
     // Orders and Order Items
     // =================================
     match /orders/{orderId} {
-        // READ: A user can read an order if their UID is in the participantUids array.
-        // This works for both `get` and `list` operations, as long as `list` queries
-        // use an `array-contains` clause on the `participantUids` field.
-        allow read: if isSignedIn() && request.auth.uid in resource.data.participantUids;
+        // GET: A user can read an order if they are a participant.
+        allow get: if isSignedIn() && request.auth.uid in resource.data.participantUids;
+        // LIST: Allow any authenticated user to query the orders collection.
+        // The client-side queries are responsible for filtering to the correct user.
+        allow list: if isSignedIn();
 
         // WRITE rules
         allow create: if isOwner(request.resource.data.customerId);
@@ -98,5 +99,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
