@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { Star, Utensils, PlusCircle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useCart } from '@/context/cart-context';
@@ -16,7 +16,9 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { StoreStatusBadge } from '@/components/store-status-badge';
 
-export default function RestaurantMenuPage({ params: { id } }: { params: { id: string } }) {
+export default function RestaurantMenuPage() {
+  const params = useParams();
+  const id = params.id as string;
   const { toast } = useToast();
   const { dispatch } = useCart();
   const firestore = useFirestore();
@@ -25,7 +27,7 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!firestore) return;
+    if (!firestore || !id) return;
 
     const fetchData = async () => {
       setIsLoading(true);
