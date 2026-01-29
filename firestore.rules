@@ -56,10 +56,10 @@ service cloud.firestore {
         allow list: if isSignedIn() && isOwner(resource.data.customerId);
 
         // Rule 2: Store owner can list their store's orders. Supports query: where('storeOwnerId', '==', user.uid)
-        allow list: if isSignedIn() && isOwner(resource.data.storeOwnerId);
+        // allow list: if isSignedIn() && isOwner(resource.data.storeOwnerId);
         
         // Rule 3: Assigned driver can list their assigned orders. Supports query: where('driverId', '==', user.uid)
-        allow list: if isSignedIn() && resource.data.driverId != null && isOwner(resource.data.driverId);
+        // allow list: if isSignedIn() && resource.data.driverId != null && isOwner(resource.data.driverId);
         
         // Rule 4 (Temporarily Removed): This rule conflicted with other list queries.
         // allow list: if isSignedIn() && resource.data.status == 'Preparing';
