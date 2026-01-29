@@ -42,14 +42,6 @@ export default function DriverDashboard() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const availableOrdersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(
-      collection(firestore, 'orders'),
-      where('status', '==', 'Preparing')
-    );
-  }, [firestore]);
-
   const myDeliveriesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(
@@ -58,18 +50,35 @@ export default function DriverDashboard() {
     );
   }, [user, firestore]);
 
-  const { data: allPreparingOrders, isLoading: isLoadingAvailable } = useCollection<Order>(availableOrdersQuery);
-  const { data: allMyOrders, isLoading: isLoadingMine } = useCollection<Order>(myDeliveriesQuery);
-
-  const availableOrders = useMemo(() => {
-    return allPreparingOrders?.filter(order => !order.driverId) || [];
-  }, [allPreparingOrders]);
+  const { data: allMyOrders, isLoading } = useCollection<Order>(myDeliveriesQuery);
   
   const myDeliveries = useMemo(() => {
       return allMyOrders?.filter(order => order.status === 'Out for Delivery') || [];
   }, [allMyOrders]);
 
   const { isTracking } = useDriverLocationTracking(myDeliveries.length > 0);
+
+  const handleMarkDelivered = (orderId: string) => {
+    if (!firestore) return;
+     const orderRef = doc(firestore, 'orders', orderId);
+     const updateData = { status: 'Delivered' };
+     
+    updateDoc(orderRef, updateData)
+      .then(() => {
+        toast({
+          title: 'Delivery Complete!',
+          description: 'Great job! The order has been marked as delivered.',
+        });
+      })
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: orderRef.path,
+          operation: 'update',
+          requestResourceData: updateData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
+  };
 
   const handleAcceptOrder = (orderId: string) => {
     if (!user || !firestore) return;
@@ -97,104 +106,23 @@ export default function DriverDashboard() {
       });
   };
 
-  const handleMarkDelivered = (orderId: string) => {
-    if (!firestore) return;
-     const orderRef = doc(firestore, 'orders', orderId);
-     const updateData = { status: 'Delivered' };
-     
-    updateDoc(orderRef, updateData)
-      .then(() => {
-        toast({
-          title: 'Delivery Complete!',
-          description: 'Great job! The order has been marked as delivered.',
-        });
-      })
-      .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: orderRef.path,
-          operation: 'update',
-          requestResourceData: updateData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      });
-  };
 
   return (
     <div className="container py-12">
       <div className="mb-8">
         <h1 className="font-headline text-4xl font-bold">Delivery Dashboard</h1>
-        <p className="text-muted-foreground mt-2">Find and manage your delivery tasks.</p>
+        <p className="text-muted-foreground mt-2">Manage your delivery tasks.</p>
         {isTracking && <p className="text-sm text-green-600 mt-2 font-semibold">● Live location tracking is active</p>}
       </div>
       
       <div className="grid grid-cols-1 gap-8">
         <Card>
           <CardHeader>
-            <CardTitle className='flex items-center gap-2'><PackageOpen className="text-primary"/>Available for Pickup</CardTitle>
-            <CardDescription>Orders that are ready to be collected from restaurants.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoadingAvailable ? (
-              <DeliveryTableSkeleton />
-            ) : availableOrders && availableOrders.length > 0 ? (
-            <>
-              {/* Desktop Table */}
-              <div className="hidden sm:block">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Order ID</TableHead>
-                      <TableHead>Destination</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {availableOrders.map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-medium">#{order.id.slice(0, 6)}...</TableCell>
-                        <TableCell className="truncate max-w-xs">{order.deliveryAddress}</TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="outline" size="sm" onClick={() => handleAcceptOrder(order.id)}>
-                            <Hand className="mr-2 h-4 w-4" />
-                            Accept
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              {/* Mobile Card List */}
-              <div className="sm:hidden space-y-4">
-                {availableOrders.map((order) => (
-                  <Card key={order.id} className="p-4 flex justify-between items-center">
-                    <div>
-                      <p className="font-semibold">Order #{order.id.slice(0, 6)}</p>
-                      <p className="text-sm text-muted-foreground truncate max-w-[200px]">{order.deliveryAddress}</p>
-                    </div>
-                     <Button variant="outline" size="sm" onClick={() => handleAcceptOrder(order.id)}>
-                        <Hand className="mr-2 h-4 w-4" />
-                        Accept
-                      </Button>
-                  </Card>
-                ))}
-              </div>
-            </>
-            ) : (
-                <div className="text-center text-muted-foreground py-12">
-                    <p>No available deliveries right now. Check back soon!</p>
-                </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle className='flex items-center gap-2'><MapPin className="text-primary"/>My Active Deliveries</CardTitle>
             <CardDescription>Orders you have accepted and are currently delivering.</CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoadingMine ? (
+            {isLoading ? (
                <DeliveryTableSkeleton />
             ) : myDeliveries && myDeliveries.length > 0 ? (
               <>
@@ -251,5 +179,3 @@ export default function DriverDashboard() {
     </div>
   );
 }
-
-    

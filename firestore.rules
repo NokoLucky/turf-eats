@@ -42,8 +42,9 @@ service cloud.firestore {
     // Orders and Order Items
     // =================================
     match /orders/{orderId} {
-        // READ: A user can read an order if they are the customer, store owner, or assigned driver.
-        // For `list` operations, the query must be constrained by customerId, storeOwnerId, or driverId.
+        // READ: A user can read an order if they are the customer, the store owner, or the assigned driver.
+        // This single rule works for 'list' queries as long as the client-side query includes a 'where' clause
+        // that filters by customerId, storeOwnerId, or driverId, matching the user's UID.
         allow read: if isSignedIn() && (
             isOwner(resource.data.customerId) ||
             isOwner(resource.data.storeOwnerId) ||
