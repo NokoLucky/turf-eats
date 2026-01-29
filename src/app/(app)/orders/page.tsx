@@ -5,7 +5,7 @@ import { collection, query, orderBy, where } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Order } from '@/lib/data';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -38,14 +38,23 @@ export default function OrdersPage() {
     const ordersQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         // Query the root 'orders' collection for documents where the user's ID is in the participantUids array.
+        // orderBy('orderDate', 'desc') was removed as it requires a composite index. Sorting is now done client-side.
         return query(
             collection(firestore, `orders`),
-            where('participantUids', 'array-contains', user.uid),
-            orderBy('orderDate', 'desc')
+            where('participantUids', 'array-contains', user.uid)
         );
     }, [user, firestore]);
 
     const { data: orders, isLoading, setData: setOrders } = useCollection<Order>(ordersQuery);
+
+    const sortedOrders = useMemo(() => {
+        if (!orders) return [];
+        return [...orders].sort((a, b) => {
+            if (!a.orderDate || !b.orderDate) return 0;
+            return b.orderDate.toDate().getTime() - a.orderDate.toDate().getTime();
+        });
+    }, [orders]);
+
 
     const handleOpenRating = (order: Order) => {
         setSelectedOrder(order);
@@ -106,7 +115,7 @@ export default function OrdersPage() {
         </Card>
       )}
 
-      {!isLoading && orders && orders.length > 0 && (
+      {!isLoading && sortedOrders && sortedOrders.length > 0 && (
         <>
             <Card className="hidden sm:block">
                 <CardContent className="p-0">
@@ -121,7 +130,7 @@ export default function OrdersPage() {
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {orders.map((order) => (
+                    {sortedOrders.map((order) => (
                         <TableRow key={order.id}>
                         <TableCell className="font-medium">#{order.id.slice(0, 6)}...</TableCell>
                         <TableCell>{order.orderDate ? format(order.orderDate.toDate(), 'PPP') : 'N/A'}</TableCell>
@@ -149,7 +158,7 @@ export default function OrdersPage() {
                 </CardContent>
             </Card>
             <div className="sm:hidden space-y-4">
-                {orders.map((order) => (
+                {sortedOrders.map((order) => (
                 <Card key={order.id}>
                     <CardHeader>
                     <CardTitle className='text-lg'>Order #{order.id.slice(0,6)}</CardTitle>
@@ -180,7 +189,7 @@ export default function OrdersPage() {
         </>
       )}
 
-      {!isLoading && (!orders || orders.length === 0) && (
+      {!isLoading && (!sortedOrders || sortedOrders.length === 0) && (
         <Card className="text-center py-20">
             <CardHeader>
                 <ShoppingBag className="mx-auto h-16 w-16 text-muted-foreground" />
@@ -198,5 +207,3 @@ export default function OrdersPage() {
     </>
   );
 }
-
-    
