@@ -42,27 +42,13 @@ service cloud.firestore {
     // Orders and Order Items
     // =================================
     match /orders/{orderId} {
-        // GET rule: allow reading a single document if you are the customer, owner, or driver.
-        allow get: if isSignedIn() && (
+        // READ: A user can read an order if they are the customer, store owner, or assigned driver.
+        // For `list` operations, the query must be constrained by customerId, storeOwnerId, or driverId.
+        allow read: if isSignedIn() && (
             isOwner(resource.data.customerId) ||
             isOwner(resource.data.storeOwnerId) ||
             (resource.data.driverId != null && isOwner(resource.data.driverId))
         );
-
-        // LIST rules: Each rule corresponds to a specific query in the app.
-        // A query is allowed if it's constrained in a way that matches one of these rules.
-
-        // Rule 1: Customer can list their own orders. Supports query: where('customerId', '==', user.uid)
-        allow list: if isSignedIn() && isOwner(resource.data.customerId);
-
-        // Rule 2: Store owner can list their store's orders. Supports query: where('storeOwnerId', '==', user.uid)
-        // allow list: if isSignedIn() && isOwner(resource.data.storeOwnerId);
-        
-        // Rule 3: Assigned driver can list their assigned orders. Supports query: where('driverId', '==', user.uid)
-        // allow list: if isSignedIn() && resource.data.driverId != null && isOwner(resource.data.driverId);
-        
-        // Rule 4 (Temporarily Removed): This rule conflicted with other list queries.
-        // allow list: if isSignedIn() && resource.data.status == 'Preparing';
 
         // WRITE rules
         allow create: if isOwner(request.resource.data.customerId);
