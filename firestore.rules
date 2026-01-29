@@ -42,14 +42,10 @@ service cloud.firestore {
     // Orders and Order Items
     // =================================
     match /orders/{orderId} {
-        // READ: A user can read an order if they are the customer, the store owner, or the assigned driver.
-        // This single rule works for 'list' queries as long as the client-side query includes a 'where' clause
-        // that filters by customerId, storeOwnerId, or driverId, matching the user's UID.
-        allow read: if isSignedIn() && (
-            isOwner(resource.data.customerId) ||
-            isOwner(resource.data.storeOwnerId) ||
-            (resource.data.driverId != null && isOwner(resource.data.driverId))
-        );
+        // READ: A user can read an order if their UID is in the participantUids array.
+        // This works for both `get` and `list` operations, as long as `list` queries
+        // use an `array-contains` clause on the `participantUids` field.
+        allow read: if isSignedIn() && request.auth.uid in resource.data.participantUids;
 
         // WRITE rules
         allow create: if isOwner(request.resource.data.customerId);
@@ -68,11 +64,7 @@ service cloud.firestore {
 
     match /orders/{orderId}/orderItems/{orderItemId} {
       // Order items can be read by the same people who can read the parent order
-      allow read: if isSignedIn() && (
-        isOwner(get(/databases/$(database)/documents/orders/$(orderId)).data.customerId) ||
-        isOwner(get(/databases/$(database)/documents/orders/$(orderId)).data.storeOwnerId) ||
-        (get(/databases/$(database)/documents/orders/$(orderId)).data.driverId != null && isOwner(get(/databases/$(database)/documents/orders/$(orderId)).data.driverId))
-      );
+      allow read: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/orders/$(orderId)).data.participantUids;
       // Only the customer can create order items when placing the order
       allow create: if isOwner(get(/databases/$(database)/documents/orders/$(orderId)).data.customerId);
     }
@@ -106,3 +98,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

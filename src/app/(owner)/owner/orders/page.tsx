@@ -59,10 +59,10 @@ export default function OwnerOrdersPage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  // Get orders for that store, filtering by storeOwnerId
+  // Get orders for that store, filtering by participantUids
   const ordersQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return query(collection(firestore, 'orders'), where('storeOwnerId', '==', user.uid));
+    return query(collection(firestore, 'orders'), where('participantUids', 'array-contains', user.uid));
   }, [user, firestore]);
   const { data: orders, isLoading: areOrdersLoading } = useCollection<EnrichedOrder>(ordersQuery);
 
@@ -161,3 +161,5 @@ export default function OwnerOrdersPage() {
     </div>
   );
 }
+
+    

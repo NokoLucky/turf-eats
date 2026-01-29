@@ -109,6 +109,7 @@ export default function CheckoutPage() {
         totalAmount: total,
         deliveryAddress: deliveryAddress,
         notes: notes,
+        participantUids: [user.uid, storeOwnerId],
       });
 
       // 2. Create order items in a batch
@@ -264,3 +265,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+    

@@ -37,10 +37,10 @@ export default function OrdersPage() {
 
     const ordersQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
-        // Query the root 'orders' collection for documents where customerId matches the current user's ID.
+        // Query the root 'orders' collection for documents where the user's ID is in the participantUids array.
         return query(
             collection(firestore, `orders`),
-            where('customerId', '==', user.uid),
+            where('participantUids', 'array-contains', user.uid),
             orderBy('orderDate', 'desc')
         );
     }, [user, firestore]);
@@ -198,3 +198,5 @@ export default function OrdersPage() {
     </>
   );
 }
+
+    

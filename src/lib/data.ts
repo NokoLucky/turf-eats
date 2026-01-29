@@ -50,6 +50,7 @@ export type Order = {
   deliveryAddress: string;
   notes?: string;
   isRated?: boolean;
+  participantUids: string[];
   // This is a denormalized field for easier display on the customer side.
   // It won't be fetched on the owner side.
   restaurantName?: string;
@@ -79,3 +80,5 @@ export type Rating = {
 
 // This is placeholder and will be removed from pages that use it.
 export const orders: any[] = [];
+
+    

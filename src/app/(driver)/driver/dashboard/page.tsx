@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Hand, MapPin, PackageCheck, PackageOpen } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, query, where, updateDoc } from 'firebase/firestore';
+import { collection, doc, query, where, updateDoc, arrayUnion } from 'firebase/firestore';
 import type { Order } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -46,7 +46,7 @@ export default function DriverDashboard() {
     if (!user || !firestore) return null;
     return query(
       collection(firestore, 'orders'),
-      where('driverId', '==', user.uid)
+      where('participantUids', 'array-contains', user.uid)
     );
   }, [user, firestore]);
 
@@ -87,6 +87,7 @@ export default function DriverDashboard() {
     const updateData = {
       driverId: user.uid,
       status: 'Out for Delivery',
+      participantUids: arrayUnion(user.uid),
     };
 
     updateDoc(orderRef, updateData)
@@ -179,3 +180,5 @@ export default function DriverDashboard() {
     </div>
   );
 }
+
+    

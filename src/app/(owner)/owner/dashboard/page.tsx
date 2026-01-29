@@ -79,10 +79,9 @@ export default function OwnerDashboard() {
 
   const ordersQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    // Query without orderBy to avoid needing a composite index
     return query(
       collection(firestore, 'orders'), 
-      where('storeOwnerId', '==', user.uid)
+      where('participantUids', 'array-contains', user.uid)
     );
   }, [user, firestore]);
 
@@ -291,3 +290,5 @@ export default function OwnerDashboard() {
     </div>
   );
 }
+
+    
