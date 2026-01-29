@@ -42,8 +42,8 @@ service cloud.firestore {
     // Orders and Order Items
     // =================================
     match /orders/{orderId} {
-      // Allow read access if the order is available for pickup, or if the user is the customer, store owner, or assigned driver
-      allow read: if isSignedIn() && (
+      // Allow read/list access if the order is available for pickup, or if the user is the customer, store owner, or assigned driver
+      allow get, list: if isSignedIn() && (
           resource.data.status == 'Preparing' ||
           isOwner(resource.data.customerId) ||
           isOwner(resource.data.storeOwnerId) ||
