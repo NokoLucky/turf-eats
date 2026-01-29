@@ -1,101 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper function to check if the user is signed in
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // Helper function to check if the user ID matches the document ID
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    // =================================
-    // User-specific data (/users)
-    // =================================
-    match /users/{userId}/{collection}/{docId} {
-      // Only the authenticated user can create, update, or delete their own profile documents
-      // (Customer, Driver, or StoreOwner)
-      allow read, write: if isOwner(userId);
-    }
-    
-    // =================================
-    // Restaurants and Menu Items
-    // =================================
-    match /restaurants/{restaurantId} {
-      // Anyone can read restaurant listings
-      allow read: if isSignedIn();
-      // Only the store owner can create or update their restaurant
-      allow create, update: if isOwner(request.resource.data.storeOwnerId);
-    }
-
-    match /restaurants/{restaurantId}/menuItems/{menuItemId} {
-       // Anyone can read menu items
-       allow read: if isSignedIn();
-       // Only the owner of the parent restaurant can write menu items
-       allow write: if isOwner(get(/databases/$(database)/documents/restaurants/$(restaurantId)).data.storeOwnerId);
-    }
-
-    // =================================
-    // Orders and Order Items
-    // =================================
-    match /orders/{orderId} {
-        // GET: A user can read an order if they are a participant.
-        allow get: if isSignedIn() && request.auth.uid in resource.data.participantUids;
-        // LIST: Allow any authenticated user to query the orders collection.
-        // The client-side queries are responsible for filtering to the correct user.
-        allow list: if isSignedIn();
-
-        // WRITE rules
-        allow create: if isOwner(request.resource.data.customerId);
-
-        allow update: if isSignedIn() && (
-            // A store owner can update the status (e.g., to 'Preparing')
-            (isOwner(resource.data.storeOwnerId) && request.resource.data.status != resource.data.status) ||
-            // A driver can accept an order that has no driver yet
-            (isOwner(request.resource.data.driverId) && resource.data.driverId == null && request.resource.data.status == 'Out for Delivery') ||
-            // An assigned driver can mark the order as delivered
-            (resource.data.driverId != null && isOwner(resource.data.driverId) && request.resource.data.status == 'Delivered') ||
-            // A customer can mark their order as rated
-            (isOwner(resource.data.customerId) && request.resource.data.isRated == true && resource.data.isRated != true)
-        );
-    }
-
-    match /orders/{orderId}/orderItems/{orderItemId} {
-      // Order items can be read by the same people who can read the parent order
-      allow read: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/orders/$(orderId)).data.participantUids;
-      // Only the customer can create order items when placing the order
-      allow create: if isOwner(get(/databases/$(database)/documents/orders/$(orderId)).data.customerId);
-    }
-
-    // =================================
-    // Driver Locations
-    // =================================
-    match /locations/{driverId} {
-      // Only authenticated users can read driver locations (e.g., customers tracking their order)
-      allow read: if isSignedIn();
-      // Only the driver can write to their own location document
-      allow write: if isOwner(driverId);
-    }
-
-    // =================================
-    // Ratings
-    // =================================
-    match /ratings/{ratingId} {
-      // A customer can create a rating for an order they placed, if it's delivered and not yet rated.
-      allow create: if isSignedIn()
-                    && isOwner(request.resource.data.customerId)
-                    && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.customerId == request.auth.uid
-                    && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.status == 'Delivered'
-                    && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.isRated != true;
-
-      // The customer who wrote the rating, the store owner, and the driver can read it.
-      allow read: if isSignedIn()
-                  && (isOwner(resource.data.customerId)
-                  || isOwner(get(/databases/$(database)/documents/restaurants/$(resource.data.restaurantId)).data.storeOwnerId)
-                  || (resource.data.driverId != null && isOwner(resource.data.driverId)));
+    // WARNING: These rules are permissive and are intended for development/testing only.
+    // They allow any authenticated user to read and write to any part of the database.
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
