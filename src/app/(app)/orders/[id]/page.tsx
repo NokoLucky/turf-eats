@@ -4,13 +4,15 @@ import React from 'react';
 import { notFound, useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, Bike, Pizza, Circle, ShoppingBag } from 'lucide-react';
+import { CheckCircle, Bike, Pizza, Circle, ShoppingBag, Star } from 'lucide-react';
 import OrderTrackingMap from '@/components/order-tracking-map';
 import { useFirestore } from '@/firebase';
 import { doc, collection, getDoc, getDocs, onSnapshot } from 'firebase/firestore';
 import type { Order, OrderItem, OrderStatus, Restaurant } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
+import { RatingDialog } from '@/components/rating-dialog';
+import { Button } from '@/components/ui/button';
 
 const statusSteps: { status: OrderStatus; icon: React.ReactNode; label: string }[] = [
     { status: 'Placed', icon: <Circle />, label: 'Order Placed' },
@@ -77,6 +79,7 @@ export default function OrderDetailsPage() {
   const [restaurant, setRestaurant] = React.useState<Restaurant | null>(null);
   const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isRatingOpen, setRatingOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (!firestore || !orderId) return;
@@ -124,6 +127,13 @@ export default function OrderDetailsPage() {
   }, [firestore, orderId]);
 
 
+  const handleRatingSubmitted = () => {
+    if (!order) return;
+    // Optimistically update the state to show the order as rated
+    setOrder({ ...order, isRated: true });
+  };
+
+
   if (isLoading) {
     return <OrderDetailsSkeleton />;
   }
@@ -135,12 +145,27 @@ export default function OrderDetailsPage() {
   const currentStatusIndex = statusSteps.findIndex(step => step.status === order.status);
 
   return (
+    <>
+    <RatingDialog
+        order={order}
+        open={isRatingOpen}
+        onOpenChange={setRatingOpen}
+        onRatingSubmitted={handleRatingSubmitted}
+    />
     <div className="container py-12 px-4 sm:px-8">
-      <div className="mb-8">
-        <h1 className="font-headline text-4xl font-bold">Order #{order.id.slice(0, 6)}...</h1>
-        <p className="text-muted-foreground mt-2">
-          From <span className="font-semibold text-primary">{restaurant?.name || '...'}</span> on {order.orderDate ? format(order.orderDate.toDate(), 'PPP') : 'N/A'}
-        </p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 className="font-headline text-4xl font-bold">Order #{order.id.slice(0, 6)}...</h1>
+            <p className="text-muted-foreground mt-2">
+            From <span className="font-semibold text-primary">{restaurant?.name || '...'}</span> on {order.orderDate ? format(order.orderDate.toDate(), 'PPP') : 'N/A'}
+            </p>
+        </div>
+        {order.status === 'Delivered' && !order.isRated && (
+            <Button variant="outline" onClick={() => setRatingOpen(true)}>
+                <Star className="mr-2 h-4 w-4" />
+                Rate Order
+            </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
@@ -222,5 +247,6 @@ export default function OrderDetailsPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

@@ -48,6 +48,7 @@ export type Order = {
   totalAmount: number;
   deliveryAddress: string;
   notes?: string;
+  isRated?: boolean;
   // This is a denormalized field for easier display on the customer side.
   // It won't be fetched on the owner side.
   restaurantName?: string;
@@ -61,6 +62,19 @@ export type OrderItem = {
     itemPrice: number;
     name: string; // Denormalized for display
 };
+
+export type Rating = {
+    id: string;
+    orderId: string;
+    customerId: string;
+    restaurantId: string;
+    driverId: string | null;
+    restaurantRating: number;
+    restaurantComment?: string;
+    driverRating?: number;
+    driverComment?: string;
+    createdAt: Timestamp;
+}
 
 // This is placeholder and will be removed from pages that use it.
 export const orders: any[] = [];

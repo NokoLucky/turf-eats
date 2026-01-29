@@ -5,13 +5,15 @@ import { collection, query, orderBy, where } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Order } from '@/lib/data';
+import { useState } from 'react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ShoppingBag } from 'lucide-react';
+import { ArrowRight, ShoppingBag, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { RatingDialog } from '@/components/rating-dialog';
 
 const getStatusVariant = (status: Order['status']): "default" | "secondary" | "destructive" | "outline" => {
     switch(status) {
@@ -29,20 +31,48 @@ const getStatusVariant = (status: Order['status']): "default" | "secondary" | "d
 export default function OrdersPage() {
     const { user } = useUser();
     const firestore = useFirestore();
+    const [isRatingOpen, setRatingOpen] = useState(false);
+    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
 
     const ordersQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         // Query the root 'orders' collection for documents where customerId matches the current user's ID.
-        // NOTE: The orderBy clause was removed to prevent a missing-index error that manifests as a permission error.
         return query(
             collection(firestore, `orders`),
-            where('customerId', '==', user.uid)
+            where('customerId', '==', user.uid),
+            orderBy('orderDate', 'desc')
         );
     }, [user, firestore]);
 
-    const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
+    const { data: orders, isLoading, setData: setOrders } = useCollection<Order>(ordersQuery);
+
+    const handleOpenRating = (order: Order) => {
+        setSelectedOrder(order);
+        setRatingOpen(true);
+    }
+    
+    const handleRatingSubmitted = () => {
+        if (!selectedOrder || !orders) return;
+        // Optimistically update the UI to reflect the rated state
+        const updatedOrders = orders.map(o => 
+            o.id === selectedOrder.id ? { ...o, isRated: true } : o
+        );
+        // This assumes your useCollection hook has a 'setData' method to update local state
+        if (setOrders) {
+            setOrders(updatedOrders);
+        }
+    }
+
 
   return (
+    <>
+    <RatingDialog
+        order={selectedOrder}
+        open={isRatingOpen}
+        onOpenChange={setRatingOpen}
+        onRatingSubmitted={handleRatingSubmitted}
+    />
     <div className="container py-12 px-4 sm:px-8">
       <div className="mb-8">
         <h1 className="font-headline text-4xl font-bold">My Orders</h1>
@@ -99,7 +129,13 @@ export default function OrdersPage() {
                         <TableCell>
                             <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right space-x-2">
+                             {order.status === 'Delivered' && !order.isRated && (
+                                <Button variant="outline" size="sm" onClick={() => handleOpenRating(order)}>
+                                    <Star className="mr-2 h-4 w-4" />
+                                    Rate Order
+                                </Button>
+                             )}
                             <Button asChild variant="ghost" size="sm">
                             <Link href={`/orders/${order.id}`}>
                                 View Details <ArrowRight className="ml-2 h-4 w-4" />
@@ -124,11 +160,19 @@ export default function OrdersPage() {
                             <p className='text-lg font-bold'>R{order.totalAmount.toFixed(2)}</p>
                             <Badge variant={getStatusVariant(order.status)} className='mt-1'>{order.status}</Badge>
                         </div>
-                        <Button asChild variant="default" size="sm">
-                            <Link href={`/orders/${order.id}`}>
-                                View
-                            </Link>
-                        </Button>
+                        <div className="flex flex-col items-end gap-2">
+                            <Button asChild variant="default" size="sm">
+                                <Link href={`/orders/${order.id}`}>
+                                    View
+                                </Link>
+                            </Button>
+                            {order.status === 'Delivered' && !order.isRated && (
+                                <Button variant="outline" size="sm" onClick={() => handleOpenRating(order)}>
+                                    <Star className="mr-2 h-4 w-4" />
+                                    Rate
+                                </Button>
+                            )}
+                        </div>
                     </CardContent>
                 </Card>
                 ))}
@@ -151,5 +195,6 @@ export default function OrdersPage() {
         </Card>
       )}
     </div>
+    </>
   );
 }

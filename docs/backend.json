@@ -258,6 +258,10 @@
         "notes": {
           "type": "string",
           "description": "Optional special instructions or notes from the customer for the order."
+        },
+        "isRated": {
+          "type": "boolean",
+          "description": "Flag to indicate if the order has been rated by the customer."
         }
       },
       "required": [
@@ -330,6 +334,61 @@
         "lat",
         "lng",
         "updatedAt"
+      ]
+    },
+    "Rating": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Rating",
+      "type": "object",
+      "description": "Represents a rating provided by a customer for an order.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the rating."
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Reference to the Order. (Relationship: Order 1:1 Rating)"
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Reference to the Customer who made the rating."
+        },
+        "restaurantId": {
+          "type": "string",
+          "description": "Reference to the Restaurant being rated."
+        },
+        "driverId": {
+          "type": "string",
+          "description": "Reference to the Driver being rated."
+        },
+        "restaurantRating": {
+          "type": "number",
+          "description": "Rating for the restaurant (e.g., 1-5)."
+        },
+        "restaurantComment": {
+          "type": "string",
+          "description": "Optional comment for the restaurant rating."
+        },
+        "driverRating": {
+          "type": "number",
+          "description": "Rating for the driver (e.g., 1-5)."
+        },
+        "driverComment": {
+          "type": "string",
+          "description": "Optional comment for the driver rating."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the rating was submitted."
+        }
+      },
+      "required": [
+        "id",
+        "orderId",
+        "customerId",
+        "restaurantId"
       ]
     }
   },
@@ -485,6 +544,22 @@
             {
               "name": "driverId",
               "description": "The ID of the driver. Must match the authenticated user's ID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/ratings/{ratingId}",
+        "definition": {
+          "entityName": "Rating",
+          "schema": {
+            "$ref": "#/backend/entities/Rating"
+          },
+          "description": "Stores customer ratings for orders, restaurants, and drivers. Secured by customerId, ensuring only the user who placed the order can create a rating for it.",
+          "params": [
+            {
+              "name": "ratingId",
+              "description": "The ID of the rating."
             }
           ]
         }

@@ -57,9 +57,12 @@ service cloud.firestore {
       allow update: if isSignedIn() && (
         // A store owner can update the status (e.g., to 'Preparing')
         (isOwner(resource.data.storeOwnerId) && request.resource.data.status != resource.data.status) ||
-        // A driver can accept an order ('Out for Delivery') or mark it 'Delivered'
-        (isOwner(request.resource.data.driverId) && 
-            (request.resource.data.status == 'Out for Delivery' || request.resource.data.status == 'Delivered'))
+        // A driver can accept an order that has no driver yet
+        (isOwner(request.resource.data.driverId) && resource.data.driverId == null && request.resource.data.status == 'Out for Delivery') ||
+        // An assigned driver can mark the order as delivered
+        (resource.data.driverId != null && isOwner(resource.data.driverId) && request.resource.data.status == 'Delivered') ||
+        // A customer can mark their order as rated
+        (isOwner(resource.data.customerId) && request.resource.data.isRated == true && resource.data.isRated != true)
       );
     }
 
@@ -82,6 +85,24 @@ service cloud.firestore {
       allow read: if isSignedIn();
       // Only the driver can write to their own location document
       allow write: if isOwner(driverId);
+    }
+
+    // =================================
+    // Ratings
+    // =================================
+    match /ratings/{ratingId} {
+      // A customer can create a rating for an order they placed, if it's delivered and not yet rated.
+      allow create: if isSignedIn()
+                    && isOwner(request.resource.data.customerId)
+                    && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.customerId == request.auth.uid
+                    && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.status == 'Delivered'
+                    && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.isRated != true;
+
+      // The customer who wrote the rating, the store owner, and the driver can read it.
+      allow read: if isSignedIn()
+                  && (isOwner(resource.data.customerId)
+                  || isOwner(get(/databases/$(database)/documents/restaurants/$(resource.data.restaurantId)).data.storeOwnerId)
+                  || (resource.data.driverId != null && isOwner(resource.data.driverId)));
     }
   }
 }
