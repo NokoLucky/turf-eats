@@ -71,6 +71,10 @@
         "vehicleRegistration": {
           "type": "string",
           "description": "The driver's vehicle registration number."
+        },
+        "paymentGatewayRecipientId": {
+          "type": "string",
+          "description": "The secure ID from the payment gateway for this driver's bank account."
         }
       },
       "required": [
@@ -107,6 +111,10 @@
         "phoneNumber": {
           "type": "string",
           "description": "The store owner's phone number."
+        },
+        "paymentGatewayRecipientId": {
+          "type": "string",
+          "description": "The secure ID from the payment gateway for this owner's bank account."
         }
       },
       "required": [
@@ -402,6 +410,98 @@
         "customerId",
         "restaurantId"
       ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents the financial ledger entry for a single order.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the transaction record."
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Reference to the completed Order."
+        },
+        "gatewayTransactionId": {
+          "type": "string",
+          "description": "The unique ID for this transaction from the payment gateway (e.g., PayFast, Yoco)."
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "The total amount charged to the customer."
+        },
+        "platformFee": {
+          "type": "number",
+          "description": "The portion of the total amount that belongs to the Turf Eats platform."
+        },
+        "restaurantPayout": {
+          "type": "number",
+          "description": "The amount to be paid out to the restaurant for this order."
+        },
+        "driverPayout": {
+          "type": "number",
+          "description": "The amount to be paid out to the driver for this delivery."
+        },
+        "status": {
+          "type": "string",
+          "description": "The financial status of this transaction.",
+          "enum": ["Completed", "Refunded", "PaidOut"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the transaction was recorded."
+        }
+      },
+      "required": ["id", "orderId", "gatewayTransactionId", "totalAmount", "platformFee", "restaurantPayout", "driverPayout", "status", "createdAt"]
+    },
+    "Payout": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Payout",
+      "type": "object",
+      "description": "Represents a batch payout made to a driver or store owner.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the payout record."
+        },
+        "recipientId": {
+          "type": "string",
+          "description": "The user ID of the driver or store owner receiving the payout."
+        },
+        "recipientType": {
+          "type": "string",
+          "description": "The role of the recipient.",
+          "enum": ["Driver", "StoreOwner"]
+        },
+        "gatewayPayoutId": {
+          "type": "string",
+          "description": "The unique ID for this payout from the payment gateway."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The total amount paid out."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the payout.",
+          "enum": ["Pending", "Completed", "Failed"]
+        },
+        "transactionIds": {
+          "type": "array",
+          "description": "An array of Transaction IDs included in this payout batch.",
+          "items": { "type": "string" }
+        },
+        "payoutDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the payout was initiated."
+        }
+      },
+      "required": ["id", "recipientId", "recipientType", "gatewayPayoutId", "amount", "status", "transactionIds", "payoutDate"]
     }
   },
   "auth": {
@@ -575,10 +675,26 @@
             }
           ]
         }
+      },
+      {
+        "path": "/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": { "$ref": "#/backend/entities/Transaction" },
+          "description": "Stores financial transaction records for each order. Access is restricted to backend processes/admin roles.",
+          "params": [{ "name": "transactionId", "description": "The ID of the transaction." }]
+        }
+      },
+      {
+        "path": "/payouts/{payoutId}",
+        "definition": {
+          "entityName": "Payout",
+          "schema": { "$ref": "#/backend/entities/Payout" },
+          "description": "Stores records of batch payouts to drivers and store owners. Access is restricted to backend processes/admin roles.",
+          "params": [{ "name": "payoutId", "description": "The ID of the payout." }]
+        }
       }
     ],
     "reasoning": "The Firestore structure is designed to align with the application's core features, focusing on role-based access control and data ownership. The design prioritizes Authorization Independence by denormalizing relevant authorization data, specifically for Restaurants and Orders. This eliminates the need for `get()` calls in security rules, ensuring atomicity of operations. Structural Segregation is used to isolate data based on access needs, as seen in the `/users/{userId}` collection, which houses user-specific data. The application uses Path-Based Ownership for `Customer`, `Driver`, and `StoreOwner` profiles which are placed under `/users/{userId}`. Restaurants are under `/restaurants/{restaurantId}` with `storeOwnerId` attribute which could be used to list resources owned by the user. Order data are placed under the `/orders/{orderId}`, with denormalized `customerId`, `restaurantId`, and `driverId`. The structure enables simple and secure `list` operations, effectively addressing QAPs. Explicit state modeling is used via the `status` field in the `Order` entity.\n\nAuthorization Independence is achieved by avoiding hierarchical dependencies. For example, access to Orders does not require fetching customer or restaurant details. The `customerId`, `restaurantId` and `driverId` within the `/orders/{orderId}` collection allow for querying and filtering orders based on these IDs directly, without needing to perform additional reads.\n\nFor QAPs, the structure supports secure `list` operations via collection-based access control. Listing Restaurants could be restricted based on `storeOwnerId` or `category`. Orders can be listed based on `customerId`, `restaurantId`, or `driverId`.\n\nData integrity is supported by the inherent structure (e.g., 1:N relationships are represented through subcollections or document references)."
   }
 }
-
-    
