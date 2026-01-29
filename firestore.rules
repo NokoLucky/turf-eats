@@ -61,8 +61,8 @@ service cloud.firestore {
         // Rule 3: Assigned driver can list their assigned orders. Supports query: where('driverId', '==', user.uid)
         allow list: if isSignedIn() && resource.data.driverId != null && isOwner(resource.data.driverId);
         
-        // Rule 4: Any signed-in user can list orders ready for pickup (for drivers). Supports query: where('status', '==', 'Preparing')
-        allow list: if isSignedIn() && resource.data.status == 'Preparing';
+        // Rule 4 (Temporarily Removed): This rule conflicted with other list queries.
+        // allow list: if isSignedIn() && resource.data.status == 'Preparing';
 
         // WRITE rules
         allow create: if isOwner(request.resource.data.customerId);
