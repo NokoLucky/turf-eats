@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { StoreStatusBadge } from '@/components/store-status-badge';
 
 const categories = [
   { name: 'All', icon: <ChefHat /> },
@@ -139,6 +140,9 @@ export default function CustomerDashboardPage() {
                                 fill
                                 className="object-cover transition-transform duration-300 group-hover:scale-105"
                             />
+                             {store.openingHours && (
+                                <StoreStatusBadge openingHours={store.openingHours} className="absolute top-2 right-2 shadow-md" />
+                            )}
                             </div>
                         </CardHeader>
                         <CardContent className="p-4">

@@ -14,6 +14,7 @@ import type { Restaurant, MenuItem } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { StoreStatusBadge } from '@/components/store-status-badge';
 
 export default function RestaurantMenuPage({ params: { id } }: { params: { id: string } }) {
   const { toast } = useToast();
@@ -131,7 +132,7 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
                 <h1 className="font-headline text-4xl sm:text-5xl font-bold text-white">
                   {restaurant.name}
                 </h1>
-                <div className="mt-2 flex items-center gap-4 text-sm text-neutral-200">
+                <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-neutral-200">
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 text-primary fill-primary" />
                     <span>{(restaurant.rating || 0).toFixed(1)}</span>
@@ -140,6 +141,7 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
                     <Utensils className="h-4 w-4" />
                     <span>{restaurant.category}</span>
                   </div>
+                   {restaurant.openingHours && <StoreStatusBadge openingHours={restaurant.openingHours} />}
                 </div>
               </div>
             </div>
