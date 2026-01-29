@@ -21,6 +21,7 @@ export type MenuItem = {
   image: ImagePlaceholder;
   restaurantId: string;
   imageUrl: string;
+  isSoldOut?: boolean;
 };
 
 export type Restaurant = {

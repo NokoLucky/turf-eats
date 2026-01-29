@@ -13,6 +13,7 @@ import { doc, collection, getDoc, getDocs } from 'firebase/firestore';
 import type { Restaurant, MenuItem } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export default function RestaurantMenuPage({ params: { id } }: { params: { id: string } }) {
   const { toast } = useToast();
@@ -158,7 +159,7 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
                 const displayPrice = hasPromo ? item.promotionalPrice : item.price;
 
                 return (
-                    <Card key={item.id} className="flex flex-col overflow-hidden">
+                    <Card key={item.id} className={cn("flex flex-col overflow-hidden", item.isSoldOut && "bg-muted/50")}>
                       <CardHeader className="p-0">
                           <div className="relative aspect-video w-full">
                           <Image
@@ -166,10 +167,15 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
                               alt={item.name}
                               data-ai-hint="food item"
                               fill
-                              className="object-cover"
+                              className={cn("object-cover", item.isSoldOut && "grayscale")}
                           />
-                          {hasPromo && (
+                          {hasPromo && !item.isSoldOut && (
                               <Badge variant="destructive" className="absolute top-2 left-2 shadow-lg">Promotion</Badge>
+                          )}
+                          {item.isSoldOut && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                                <Badge variant="outline" className="bg-white text-black text-lg font-bold py-2 px-4 border-2 border-white">SOLD OUT</Badge>
+                            </div>
                           )}
                           </div>
                       </CardHeader>
@@ -183,9 +189,13 @@ export default function RestaurantMenuPage({ params: { id } }: { params: { id: s
                                       <p className="text-sm text-muted-foreground line-through">R{item.price.toFixed(2)}</p>
                                   )}
                               </div>
-                              <Button onClick={() => handleAddToCart(item)}>
-                                  <PlusCircle className="mr-2 h-4 w-4" />
-                                  Add to Cart
+                              <Button onClick={() => handleAddToCart(item)} disabled={item.isSoldOut}>
+                                  {item.isSoldOut ? 'Unavailable' : (
+                                    <>
+                                        <PlusCircle className="mr-2 h-4 w-4" />
+                                        Add to Cart
+                                    </>
+                                  )}
                               </Button>
                           </div>
                       </CardContent>

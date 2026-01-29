@@ -202,6 +202,10 @@
         "imageUrl": {
           "type": "string",
           "description": "URL of the menu item's image."
+        },
+        "isSoldOut": {
+          "type": "boolean",
+          "description": "Indicates if the menu item is currently sold out."
         }
       },
       "required": [

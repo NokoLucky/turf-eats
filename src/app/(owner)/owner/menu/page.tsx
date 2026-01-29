@@ -7,10 +7,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { PlusCircle, Trash2, Edit, MoreHorizontal, Store } from 'lucide-react';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import type { MenuItem, Restaurant } from '@/lib/data';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
@@ -32,17 +34,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import ImageUploader from '@/components/image-uploader';
+import { Switch } from '@/components/ui/switch';
 
 const productSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, 'Name is too short'),
   description: z.string().min(10, 'Description is too short'),
-  price: z.preprocess((a) => parseFloat(String(a)), z.number().positive('Price must be positive')),
+  price: z.preprocess(
+    (val) => (typeof val === 'string' ? parseFloat(val) : val),
+    z.number().positive('Price must be positive')
+  ),
   imageUrl: z.string().url('An image upload is required.').min(1, 'An image upload is required.'),
   promotionalPrice: z.preprocess(
       (val) => (val === '' || val === null ? undefined : parseFloat(String(val))),
       z.number().nonnegative('Price cannot be negative.').optional()
   ),
+  isSoldOut: z.boolean().default(false),
 }).refine(data => {
     if (data.promotionalPrice === undefined || data.promotionalPrice === null) return true;
     if (isNaN(data.price)) return true;
@@ -75,11 +82,12 @@ function ProductDialog({
       price: 0,
       imageUrl: '',
       promotionalPrice: '',
+      isSoldOut: false,
     },
   });
   
   useEffect(() => {
-    form.reset(product || { name: '', description: '', price: 0, imageUrl: '', promotionalPrice: '' });
+    form.reset(product || { name: '', description: '', price: 0, imageUrl: '', promotionalPrice: '', isSoldOut: false });
   }, [product, form]);
 
   const handleFormSubmit = (data: ProductFormValues) => {
@@ -167,6 +175,26 @@ function ProductDialog({
                 )}
                 />
             </div>
+             <FormField
+                control={form.control}
+                name="isSoldOut"
+                render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm mt-4">
+                    <div className="space-y-0.5">
+                        <FormLabel>Sold Out</FormLabel>
+                        <FormDescription>
+                            Mark this item as temporarily unavailable.
+                        </FormDescription>
+                    </div>
+                    <FormControl>
+                        <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                        />
+                    </FormControl>
+                </FormItem>
+                )}
+            />
             
             <DialogFooter>
               <Button type="submit" disabled={form.formState.isSubmitting}>
@@ -304,10 +332,13 @@ export default function ProductsManagementPage() {
         {isLoading && Array.from({length: 4}).map((_, i) => <Card key={i}><CardContent className="p-4 space-y-2"><Skeleton className="aspect-video w-full" /><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-1/2" /></CardContent></Card>)}
 
         {products?.map((item) => (
-          <Card key={item.id}>
+          <Card key={item.id} className={cn(item.isSoldOut && "opacity-60")}>
             <CardHeader className="p-0">
               <div className="relative aspect-video w-full overflow-hidden">
                 <Image src={item.imageUrl || 'https://picsum.photos/seed/product/400/300'} alt={item.name} fill className="object-cover" />
+                 {item.isSoldOut && (
+                    <Badge variant="destructive" className="absolute top-2 right-2 shadow-lg">SOLD OUT</Badge>
+                )}
               </div>
             </CardHeader>
             <CardContent className="p-4">
