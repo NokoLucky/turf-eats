@@ -28,15 +28,6 @@ import { useToast } from '@/hooks/use-toast';
 import { StarRating } from '@/components/ui/star-rating';
 import { Separator } from './ui/separator';
 
-const ratingSchema = z.object({
-  restaurantRating: z.number().min(1, 'Please select a rating for the restaurant.'),
-  restaurantComment: z.string().optional(),
-  driverRating: z.number().min(1, 'Please select a rating for the driver.').optional(),
-  driverComment: z.string().optional(),
-});
-
-type RatingFormValues = z.infer<typeof ratingSchema>;
-
 interface RatingDialogProps {
   order: Order | null;
   open: boolean;
@@ -48,6 +39,17 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+
+  const ratingSchema = z.object({
+    restaurantRating: z.number().min(1, 'Please select a rating for the restaurant.'),
+    restaurantComment: z.string().optional(),
+    driverRating: order?.driverId
+      ? z.number().min(1, 'Please select a rating for the driver.')
+      : z.number().optional(),
+    driverComment: z.string().optional(),
+  });
+
+  type RatingFormValues = z.infer<typeof ratingSchema>;
 
   const form = useForm<RatingFormValues>({
     resolver: zodResolver(ratingSchema),
@@ -67,14 +69,24 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
 
       // 1. Create the new rating document
       const ratingRef = doc(collection(firestore, 'ratings'));
-      const ratingData = {
-          ...data,
+      const ratingData: any = {
+          restaurantRating: data.restaurantRating,
+          restaurantComment: data.restaurantComment,
           orderId: order.id,
           customerId: user.uid,
           restaurantId: order.restaurantId,
-          driverId: order.driverId,
           createdAt: serverTimestamp(),
       };
+
+      // Only include driver rating if there was a driver and a rating was given
+      if (order.driverId && data.driverRating && data.driverRating > 0) {
+          ratingData.driverId = order.driverId;
+          ratingData.driverRating = data.driverRating;
+          if (data.driverComment) {
+            ratingData.driverComment = data.driverComment;
+          }
+      }
+
       batch.set(ratingRef, ratingData);
 
       // 2. Update the order to mark it as rated
