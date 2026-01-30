@@ -62,6 +62,12 @@ export default function PostLoginPage() {
         // 1. Check for Customer profile
         const customerDoc = await getDoc(customerRef);
         if (customerDoc.exists()) {
+          if (user.email && !user.emailVerified) {
+            setDialogTitle('Email Not Verified');
+            setDialogDescription('A verification link has been sent to your email. Please verify your account to continue.');
+            setDialogOpen(true);
+            return;
+          }
           router.replace('/dashboard');
           return;
         }

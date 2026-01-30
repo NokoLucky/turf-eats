@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Logo from '@/components/logo';
 import { useAuth } from '@/firebase';
-import { createUserWithEmailAndPassword, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 
 const emailSchema = z.object({
@@ -67,7 +67,14 @@ export default function SignupPage() {
 
   const handleSignup = async (values: z.infer<typeof emailSchema>) => {
     try {
-      await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      if (userCredential.user) {
+        await sendEmailVerification(userCredential.user);
+        toast({
+            title: 'Verification Email Sent',
+            description: 'Please check your inbox to verify your email address.',
+        });
+      }
       router.push('/role-selection');
     } catch (error: any) {
       toast({
