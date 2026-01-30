@@ -4,8 +4,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFirestore, useUser } from '@/firebase';
-import { writeBatch, doc, serverTimestamp, collection } from 'firebase/firestore';
-import type { Order } from '@/lib/data';
+import { writeBatch, doc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import type { Order, Rating } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -65,33 +65,51 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
     if (!firestore || !user || !order) return;
 
     try {
+      // 1. Fetch all existing ratings for the restaurant to calculate the new average.
+      const ratingsQuery = query(
+        collection(firestore, 'ratings'),
+        where('restaurantId', '==', order.restaurantId)
+      );
+      const ratingsSnapshot = await getDocs(ratingsQuery);
+
+      const existingRatings = ratingsSnapshot.docs.map(
+        (doc) => (doc.data() as Rating).restaurantRating
+      );
+      
+      const newTotalRating = existingRatings.reduce((sum, r) => sum + r, 0) + data.restaurantRating;
+      const newTotalCount = existingRatings.length + 1;
+      const newAverageRating = newTotalRating / newTotalCount;
+
       const batch = writeBatch(firestore);
 
-      // 1. Create the new rating document
-      const ratingRef = doc(collection(firestore, 'ratings'));
+      // 2. Create the new rating document
+      const newRatingRef = doc(collection(firestore, 'ratings'));
       const ratingData: any = {
-          restaurantRating: data.restaurantRating,
-          restaurantComment: data.restaurantComment,
-          orderId: order.id,
-          customerId: user.uid,
-          restaurantId: order.restaurantId,
-          createdAt: serverTimestamp(),
+        restaurantRating: data.restaurantRating,
+        restaurantComment: data.restaurantComment,
+        orderId: order.id,
+        customerId: user.uid,
+        restaurantId: order.restaurantId,
+        createdAt: serverTimestamp(),
       };
 
-      // Only include driver rating if there was a driver and a rating was given
       if (order.driverId && data.driverRating && data.driverRating > 0) {
-          ratingData.driverId = order.driverId;
-          ratingData.driverRating = data.driverRating;
-          if (data.driverComment) {
-            ratingData.driverComment = data.driverComment;
-          }
+        ratingData.driverId = order.driverId;
+        ratingData.driverRating = data.driverRating;
+        if (data.driverComment) {
+          ratingData.driverComment = data.driverComment;
+        }
       }
 
-      batch.set(ratingRef, ratingData);
+      batch.set(newRatingRef, ratingData);
 
-      // 2. Update the order to mark it as rated
+      // 3. Update the order to mark it as rated
       const orderRef = doc(firestore, 'orders', order.id);
       batch.update(orderRef, { isRated: true });
+      
+      // 4. Update the restaurant document with the new average rating
+      const restaurantRef = doc(firestore, 'restaurants', order.restaurantId);
+      batch.update(restaurantRef, { rating: newAverageRating });
 
       await batch.commit();
 

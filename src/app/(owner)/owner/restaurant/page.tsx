@@ -98,7 +98,7 @@ export default function StoreDetailsPage() {
         ...restData,
         storeOwnerId: user.uid, // Ensure owner ID is set
         openingHours: `${openingTime} - ${closingTime}`,
-        rating: existingStore?.rating || Math.floor(Math.random() * 2) + 3.5, // Preserve or set default
+        rating: existingStore?.rating || 0, // Preserve or set default
     };
 
     if (existingStore) {
@@ -316,5 +316,3 @@ export default function StoreDetailsPage() {
     </div>
   );
 }
-
-    
