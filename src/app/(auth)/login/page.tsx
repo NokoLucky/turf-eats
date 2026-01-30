@@ -14,8 +14,17 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Logo from '@/components/logo';
 import { useAuth } from '@/firebase';
-import { signInWithEmailAndPassword, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
+import { signInWithEmailAndPassword, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult, sendPasswordResetEmail } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 const emailSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -37,6 +46,8 @@ export default function LoginPage() {
 
   const [phoneAuthState, setPhoneAuthState] = useState<'enter-phone' | 'enter-code'>('enter-phone');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [isResetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
 
   useEffect(() => {
     if (!auth) return;
@@ -109,113 +120,179 @@ export default function LoginPage() {
     }
   }
 
+  const handlePasswordReset = async () => {
+    if (!resetEmail) {
+      toast({
+        variant: 'destructive',
+        title: 'Email Required',
+        description: 'Please enter your email address to reset your password.',
+      });
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, resetEmail);
+      toast({
+        title: 'Password Reset Email Sent',
+        description: 'Please check your inbox for instructions to reset your password.',
+      });
+      setResetDialogOpen(false); // Close dialog on success
+      setResetEmail('');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Reset Failed',
+        description: error.message || 'Could not send reset email. Please check the address and try again.',
+      });
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center gap-8">
-      <Logo />
-      <Card className="w-full max-w-xl">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold font-headline">Welcome Back</CardTitle>
-          <CardDescription>Please Sign in to continue to Turf Eats</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="email">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="email">Email</TabsTrigger>
-              <TabsTrigger value="phone">Phone</TabsTrigger>
-            </TabsList>
-            <TabsContent value="email" className="min-h-[16rem]">
-              <Form {...emailForm}>
-                <form onSubmit={emailForm.handleSubmit(handleLogin)} className="space-y-4 pt-4">
-                  <FormField
-                    control={emailForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input placeholder="you@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={emailForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="••••••••" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" className="w-full font-bold">
-                    Sign In with Email
-                  </Button>
-                </form>
-              </Form>
-            </TabsContent>
-            <TabsContent value="phone" className="min-h-[16rem]">
-               {phoneAuthState === 'enter-phone' ? (
-                <Form {...phoneForm}>
-                  <form key="phone-form" onSubmit={phoneForm.handleSubmit(handlePhoneLogin)} className="space-y-4 pt-4">
+    <>
+      <div className="flex flex-col items-center gap-8">
+        <Logo />
+        <Card className="w-full max-w-xl">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold font-headline">Welcome Back</CardTitle>
+            <CardDescription>Please Sign in to continue to Turf Eats</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="email">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="email">Email</TabsTrigger>
+                <TabsTrigger value="phone">Phone</TabsTrigger>
+              </TabsList>
+              <TabsContent value="email" className="min-h-[16rem]">
+                <Form {...emailForm}>
+                  <form onSubmit={emailForm.handleSubmit(handleLogin)} className="space-y-4 pt-4">
                     <FormField
-                      control={phoneForm.control}
-                      name="phone"
+                      control={emailForm.control}
+                      name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Phone Number</FormLabel>
+                          <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input placeholder="+27 12 345 6789" {...field} />
+                            <Input placeholder="you@example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={emailForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                           <div className="flex items-center justify-between">
+                            <FormLabel>Password</FormLabel>
+                             <Button
+                                type="button"
+                                variant="link"
+                                className="h-auto p-0 text-sm font-semibold"
+                                onClick={() => setResetDialogOpen(true)}
+                            >
+                                Forgot Password?
+                            </Button>
+                          </div>
+                          <FormControl>
+                            <Input type="password" placeholder="••••••••" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                     <Button type="submit" className="w-full font-bold">
-                      Send Verification Code
+                      Sign In with Email
                     </Button>
                   </form>
                 </Form>
-              ) : (
-                 <Form {...codeForm}>
-                  <form key="code-form" onSubmit={codeForm.handleSubmit(handleVerifyCode)} className="space-y-4 pt-4">
-                    <FormField
-                      control={codeForm.control}
-                      name="code"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Verification Code</FormLabel>
-                          <FormControl>
-                            <Input placeholder="123456" {...field} autoComplete="one-time-code" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full font-bold">
-                      Verify & Sign In
-                    </Button>
-                     <Button variant="link" type="button" onClick={() => setPhoneAuthState('enter-phone')} className="w-full">
-                      Use a different number
-                    </Button>
-                  </form>
-                </Form>
-              )}
-            </TabsContent>
-          </Tabs>
-          <div className="mt-6 text-center text-sm">
-            Don't have an account?{' '}
-            <Link href="/signup" className="font-semibold text-primary underline-offset-4 hover:underline">
-              Sign Up
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+              </TabsContent>
+              <TabsContent value="phone" className="min-h-[16rem]">
+                 {phoneAuthState === 'enter-phone' ? (
+                  <Form {...phoneForm}>
+                    <form key="phone-form" onSubmit={phoneForm.handleSubmit(handlePhoneLogin)} className="space-y-4 pt-4">
+                      <FormField
+                        control={phoneForm.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Phone Number</FormLabel>
+                            <FormControl>
+                              <Input placeholder="+27 12 345 6789" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="w-full font-bold">
+                        Send Verification Code
+                      </Button>
+                    </form>
+                  </Form>
+                ) : (
+                   <Form {...codeForm}>
+                    <form key="code-form" onSubmit={codeForm.handleSubmit(handleVerifyCode)} className="space-y-4 pt-4">
+                      <FormField
+                        control={codeForm.control}
+                        name="code"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Verification Code</FormLabel>
+                            <FormControl>
+                              <Input placeholder="123456" {...field} autoComplete="one-time-code" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="w-full font-bold">
+                        Verify & Sign In
+                      </Button>
+                       <Button variant="link" type="button" onClick={() => setPhoneAuthState('enter-phone')} className="w-full">
+                        Use a different number
+                      </Button>
+                    </form>
+                  </Form>
+                )}
+              </TabsContent>
+            </Tabs>
+            <div className="mt-6 text-center text-sm">
+              Don't have an account?{' '}
+              <Link href="/signup" className="font-semibold text-primary underline-offset-4 hover:underline">
+                Sign Up
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      <Dialog open={isResetDialogOpen} onOpenChange={setResetDialogOpen}>
+          <DialogContent>
+              <DialogHeader>
+                  <DialogTitle>Reset Your Password</DialogTitle>
+                  <DialogDescription>
+                      Enter your email address below. If an account exists, we'll send you a link to reset your password.
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="reset-email">Email Address</Label>
+                      <Input
+                          id="reset-email"
+                          type="email"
+                          placeholder="you@example.com"
+                          value={resetEmail}
+                          onChange={(e) => setResetEmail(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') handlePasswordReset(); }}
+                      />
+                  </div>
+              </div>
+              <DialogFooter>
+                  <Button variant="outline" onClick={() => setResetDialogOpen(false)}>Cancel</Button>
+                  <Button onClick={handlePasswordReset}>Send Reset Link</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+    </>
   );
 }
     
