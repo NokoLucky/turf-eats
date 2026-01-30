@@ -165,11 +165,6 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
           </label>
         </Button>
       </div>
-
-      <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
-        <p>Bucket: <code>{firebaseConfig.storageBucket || 'Not Configured'}</code></p>
-        <p>Folder: <code>{folderName}</code></p>
-      </div>
     </div>
   );
 }
