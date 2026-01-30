@@ -27,7 +27,7 @@ const roles = [
     name: 'Customer',
     description: 'Order delicious food from local restaurants.',
     icon: <User className="h-12 w-12 text-primary" />,
-    href: '/dashboard',
+    href: '/post-login', // Changed from /dashboard
     role: 'customer',
   },
   {
@@ -136,6 +136,7 @@ export default function RoleSelectionPage() {
           title: 'Success!',
           description: `Your ${role} profile has been created.`,
         });
+        // For customers, redirect to post-login to enforce email verification check
         router.push(href);
       }
 
