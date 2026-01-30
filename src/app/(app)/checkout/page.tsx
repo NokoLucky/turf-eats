@@ -106,6 +106,7 @@ export default function CheckoutPage() {
         driverId: null, // To be assigned later
         orderDate: serverTimestamp(),
         status: 'Placed',
+        itemsTotal: subtotal,
         totalAmount: total,
         deliveryAddress: deliveryAddress,
         notes: notes,
@@ -265,5 +266,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
-    

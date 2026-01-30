@@ -284,6 +284,10 @@
           "type": "string",
           "description": "The current status of the order (e.g., Placed, Accepted, Preparing, Out for Delivery, Delivered)."
         },
+        "itemsTotal": {
+          "type": "number",
+          "description": "The subtotal amount of the order (sum of item prices)."
+        },
         "totalAmount": {
           "type": "number",
           "description": "The total amount of the order."
@@ -315,6 +319,7 @@
         "storeOwnerId",
         "orderDate",
         "status",
+        "itemsTotal",
         "totalAmount",
         "deliveryAddress",
         "participantUids"

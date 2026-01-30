@@ -120,7 +120,7 @@ export default function OwnerOrdersPage() {
                           )}
                       </TableCell>
                       <TableCell className="align-top">{order.orderDate ? format(order.orderDate.toDate(), 'PPP') : 'N/A'}</TableCell>
-                      <TableCell className="align-top">R{order.totalAmount.toFixed(2)}</TableCell>
+                      <TableCell className="align-top">R{(order.itemsTotal || 0).toFixed(2)}</TableCell>
                       <TableCell className="align-top">
                           <Badge variant={order.status === 'Placed' ? 'destructive' : 'outline'}>{order.status}</Badge>
                       </TableCell>
@@ -161,5 +161,3 @@ export default function OwnerOrdersPage() {
     </div>
   );
 }
-
-    

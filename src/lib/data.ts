@@ -46,6 +46,7 @@ export type Order = {
   driverId: string | null;
   orderDate: Timestamp;
   status: OrderStatus;
+  itemsTotal: number;
   totalAmount: number;
   deliveryAddress: string;
   notes?: string;
@@ -80,5 +81,3 @@ export type Rating = {
 
 // This is placeholder and will be removed from pages that use it.
 export const orders: any[] = [];
-
-    

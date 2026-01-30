@@ -134,7 +134,7 @@ export default function OwnerDashboard() {
 
     const totalRevenue = orders
       .filter(order => order.status === 'Delivered')
-      .reduce((sum, order) => sum + order.totalAmount, 0);
+      .reduce((sum, order) => sum + (order.itemsTotal || 0), 0);
 
     const totalOrders = orders.length;
 
@@ -166,7 +166,7 @@ export default function OwnerDashboard() {
             if (!acc[date]) {
                 acc[date] = 0;
             }
-            acc[date] += order.totalAmount;
+            acc[date] += order.itemsTotal || 0;
             return acc;
         }, {} as Record<string, number>);
 
@@ -264,7 +264,7 @@ export default function OwnerDashboard() {
                             <OrderItems orderId={order.id} />
                         </TableCell>
                         <TableCell className="align-top">{order.orderDate ? formatDistanceToNow(order.orderDate.toDate(), { addSuffix: true }) : 'N/A'}</TableCell>
-                        <TableCell className="align-top">R{order.totalAmount.toFixed(2)}</TableCell>
+                        <TableCell className="align-top">R{(order.itemsTotal || 0).toFixed(2)}</TableCell>
                         <TableCell className="align-top">
                             <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                         </TableCell>
