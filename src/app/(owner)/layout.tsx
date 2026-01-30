@@ -29,7 +29,7 @@ function OwnerHeader() {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
       <div className="container flex h-16 items-center">
-        <Logo />
+        <Logo href="/owner/dashboard" />
         <nav className="ml-6 hidden items-center gap-6 text-sm font-medium md:flex">
           <Link href="/owner/dashboard" className="transition-colors hover:text-primary">
             Dashboard
@@ -67,7 +67,7 @@ function OwnerHeader() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/">
+                <Link href="/login">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </Link>

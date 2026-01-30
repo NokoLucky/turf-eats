@@ -25,7 +25,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center px-4 sm:px-8">
-        <Logo />
+        <Logo href="/dashboard" />
 
         <nav className="ml-6 hidden items-center gap-6 text-sm font-medium md:flex">
           {navItems.map((item) => (
