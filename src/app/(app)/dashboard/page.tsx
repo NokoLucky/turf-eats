@@ -1,9 +1,10 @@
+
 'use client';
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Star, Utensils, Search, ChefHat, ShoppingBasket, Wine, Pill } from 'lucide-react';
-import { collection } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import type { Restaurant } from '@/lib/data';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -43,7 +44,7 @@ function StoreCardSkeleton() {
 export default function CustomerDashboardPage() {
   const firestore = useFirestore();
   const storesRef = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'restaurants') : null),
+    () => (firestore ? query(collection(firestore, 'restaurants'), where('status', '==', 'active')) : null),
     [firestore]
   );
   const { data: stores, isLoading } = useCollection<Omit<Restaurant, 'menu'>>(storesRef);

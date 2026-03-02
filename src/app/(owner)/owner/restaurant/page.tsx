@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useMemo } from 'react';
@@ -99,6 +100,7 @@ export default function StoreDetailsPage() {
         storeOwnerId: user.uid, // Ensure owner ID is set
         openingHours: `${openingTime} - ${closingTime}`,
         rating: existingStore?.rating || 0, // Preserve or set default
+        status: existingStore?.status || 'active', // Default to active if newly created by an active owner
     };
 
     if (existingStore) {

@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Customer": {
@@ -189,6 +190,15 @@
         "promotionBannerText": {
           "type": "string",
           "description": "A short text to display as a promotional banner on the store's page."
+        },
+        "status": {
+          "type": "string",
+          "description": "The approval status of the restaurant.",
+          "enum": [
+            "pending",
+            "active",
+            "inactive"
+          ]
         }
       },
       "required": [
@@ -199,7 +209,8 @@
         "rating",
         "category",
         "address",
-        "openingHours"
+        "openingHours",
+        "status"
       ]
     },
     "MenuItem": {
@@ -478,7 +489,11 @@
         "status": {
           "type": "string",
           "description": "The financial status of this transaction.",
-          "enum": ["Completed", "Refunded", "PaidOut"]
+          "enum": [
+            "Completed",
+            "Refunded",
+            "PaidOut"
+          ]
         },
         "createdAt": {
           "type": "string",
@@ -486,7 +501,17 @@
           "description": "Timestamp when the transaction was recorded."
         }
       },
-      "required": ["id", "orderId", "gatewayTransactionId", "totalAmount", "platformFee", "restaurantPayout", "driverPayout", "status", "createdAt"]
+      "required": [
+        "id",
+        "orderId",
+        "gatewayTransactionId",
+        "totalAmount",
+        "platformFee",
+        "restaurantPayout",
+        "driverPayout",
+        "status",
+        "createdAt"
+      ]
     },
     "Payout": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -505,7 +530,10 @@
         "recipientType": {
           "type": "string",
           "description": "The role of the recipient.",
-          "enum": ["Driver", "StoreOwner"]
+          "enum": [
+            "Driver",
+            "StoreOwner"
+          ]
         },
         "gatewayPayoutId": {
           "type": "string",
@@ -518,12 +546,18 @@
         "status": {
           "type": "string",
           "description": "The status of the payout.",
-          "enum": ["Pending", "Completed", "Failed"]
+          "enum": [
+            "Pending",
+            "Completed",
+            "Failed"
+          ]
         },
         "transactionIds": {
           "type": "array",
           "description": "An array of Transaction IDs included in this payout batch.",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "payoutDate": {
           "type": "string",
@@ -531,7 +565,16 @@
           "description": "Timestamp when the payout was initiated."
         }
       },
-      "required": ["id", "recipientId", "recipientType", "gatewayPayoutId", "amount", "status", "transactionIds", "payoutDate"]
+      "required": [
+        "id",
+        "recipientId",
+        "recipientType",
+        "gatewayPayoutId",
+        "amount",
+        "status",
+        "transactionIds",
+        "payoutDate"
+      ]
     }
   },
   "auth": {
@@ -710,18 +753,32 @@
         "path": "/transactions/{transactionId}",
         "definition": {
           "entityName": "Transaction",
-          "schema": { "$ref": "#/backend/entities/Transaction" },
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
           "description": "Stores financial transaction records for each order. Access is restricted to backend processes/admin roles.",
-          "params": [{ "name": "transactionId", "description": "The ID of the transaction." }]
+          "params": [
+            {
+              "name": "transactionId",
+              "description": "The ID of the transaction."
+            }
+          ]
         }
       },
       {
         "path": "/payouts/{payoutId}",
         "definition": {
           "entityName": "Payout",
-          "schema": { "$ref": "#/backend/entities/Payout" },
+          "schema": {
+            "$ref": "#/backend/entities/Payout"
+          },
           "description": "Stores records of batch payouts to drivers and store owners. Access is restricted to backend processes/admin roles.",
-          "params": [{ "name": "payoutId", "description": "The ID of the payout." }]
+          "params": [
+            {
+              "name": "payoutId",
+              "description": "The ID of the payout."
+            }
+          ]
         }
       }
     ],
