@@ -1,11 +1,10 @@
-
 {
   "entities": {
     "Customer": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Customer",
       "type": "object",
-      "description": "Represents a customer in the Turf Eats application.",
+      "description": "Represents a customer in the Pin2You application.",
       "properties": {
         "id": {
           "type": "string",
@@ -43,7 +42,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Driver",
       "type": "object",
-      "description": "Represents a driver in the Turf Eats application.",
+      "description": "Represents a driver in the Pin2You application.",
       "properties": {
         "id": {
           "type": "string",
@@ -105,7 +104,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "StoreOwner",
       "type": "object",
-      "description": "Represents a store owner in the Turf Eats application.",
+      "description": "Represents a store owner in the Pin2You application.",
       "properties": {
         "id": {
           "type": "string",
@@ -153,7 +152,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Restaurant",
       "type": "object",
-      "description": "Represents a restaurant in the Turf Eats application.",
+      "description": "Represents a restaurant or store in the Pin2You application.",
       "properties": {
         "id": {
           "type": "string",
@@ -476,7 +475,7 @@
         },
         "platformFee": {
           "type": "number",
-          "description": "The portion of the total amount that belongs to the Turf Eats platform."
+          "description": "The portion of the total amount that belongs to the Pin2You platform."
         },
         "restaurantPayout": {
           "type": "number",

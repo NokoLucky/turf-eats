@@ -87,7 +87,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
       <main className="flex-1">{children}</main>
       <footer className="border-t py-6 md:py-8">
         <div className="container text-center text-sm text-muted-foreground">
-          <p>Turf Eats Owner Portal</p>
+          <p>Pin2You Owner Portal</p>
         </div>
       </footer>
     </div>

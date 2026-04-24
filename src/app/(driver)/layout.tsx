@@ -61,7 +61,7 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
       <main className="flex-1">{children}</main>
       <footer className="border-t py-6 md:py-8">
         <div className="container text-center text-sm text-muted-foreground">
-          <p>Turf Eats Driver Portal</p>
+          <p>Pin2You Driver Portal</p>
         </div>
       </footer>
     </div>

@@ -4,8 +4,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'Turf Eats',
-  description: 'Your friendly neighborhood food delivery service.',
+  title: 'Pin2You',
+  description: 'Your reliable local delivery service.',
 };
 
 export default function RootLayout({

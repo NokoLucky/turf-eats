@@ -27,7 +27,7 @@ const roles = [
     name: 'Customer',
     description: 'Order delicious food from local restaurants.',
     icon: <User className="h-12 w-12 text-primary" />,
-    href: '/post-login', // Changed from /dashboard
+    href: '/post-login', 
     role: 'customer',
   },
   {
@@ -137,7 +137,7 @@ export default function RoleSelectionPage() {
           description: `Your ${role} profile has been created.`,
         });
         // For customers, redirect to post-login to enforce email verification check
-        router.push(href);
+        router.push('/post-login');
       }
 
     } catch (error: any) {
@@ -180,7 +180,7 @@ export default function RoleSelectionPage() {
       <div className="mb-8 text-center">
         <Logo />
         <h1 className="mt-4 font-headline text-3xl font-bold tracking-tight">
-          How will you use Turf Eats?
+          How will you use Pin2You?
         </h1>
         <p className="mt-2 text-muted-foreground">
           Choose your role to get started. You can change this later.

@@ -12,7 +12,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <BottomNav />
         <footer className="hidden border-t py-6 md:block md:py-8">
           <div className="container text-center text-sm text-muted-foreground">
-            <p>&copy; {new Date().getFullYear()} Turf Eats. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} Pin2You. All rights reserved.</p>
           </div>
         </footer>
       </div>

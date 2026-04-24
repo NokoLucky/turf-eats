@@ -123,7 +123,7 @@ export default function SignupPage() {
       <Card className="w-full max-w-xl">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold font-headline">Create an Account</CardTitle>
-          <CardDescription>Join Turf Eats and discover local flavors</CardDescription>
+          <CardDescription>Join Pin2You and discover local services</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="email">

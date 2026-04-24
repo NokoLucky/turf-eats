@@ -154,7 +154,7 @@ export default function LoginPage() {
         <Card className="w-full max-w-xl">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold font-headline">Welcome Back</CardTitle>
-            <CardDescription>Please Sign in to continue to Turf Eats</CardDescription>
+            <CardDescription>Please Sign in to continue to Pin2You</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="email">
@@ -295,4 +295,3 @@ export default function LoginPage() {
     </>
   );
 }
-    
