@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -39,12 +40,10 @@ export default function PostLoginPage() {
   };
 
   useEffect(() => {
-    // Wait until the user object is loaded
     if (isUserLoading || !firestore || !auth) {
       return;
     }
 
-    // If no user, redirect to login
     if (!user) {
       router.replace('/login');
       return;
@@ -53,13 +52,17 @@ export default function PostLoginPage() {
     const checkUserProfile = async () => {
       const { uid } = user;
       
-      // Define potential profile paths
-      const customerRef = doc(firestore, `users/${uid}/customers/${uid}`);
-      const driverRef = doc(firestore, `users/${uid}/drivers/${uid}`);
-      const storeOwnerRef = doc(firestore, `users/${uid}/storeOwners/${uid}`);
-
       try {
-        // 1. Check for Customer profile
+        // 1. Check for Admin profile first
+        const adminRef = doc(firestore, `admins/${uid}`);
+        const adminDoc = await getDoc(adminRef);
+        if (adminDoc.exists()) {
+          router.replace('/admin/dashboard');
+          return;
+        }
+
+        // 2. Check for Customer profile
+        const customerRef = doc(firestore, `users/${uid}/customers/${uid}`);
         const customerDoc = await getDoc(customerRef);
         if (customerDoc.exists()) {
           if (user.email && !user.emailVerified) {
@@ -72,7 +75,8 @@ export default function PostLoginPage() {
           return;
         }
 
-        // 2. Check for Driver profile and status
+        // 3. Check for Driver profile and status
+        const driverRef = doc(firestore, `users/${uid}/drivers/${uid}`);
         const driverDoc = await getDoc(driverRef);
         if (driverDoc.exists()) {
           const driverData = driverDoc.data();
@@ -92,7 +96,8 @@ export default function PostLoginPage() {
           return;
         }
 
-        // 3. Check for Store Owner profile and status
+        // 4. Check for Store Owner profile and status
+        const storeOwnerRef = doc(firestore, `users/${uid}/storeOwners/${uid}`);
         const storeOwnerDoc = await getDoc(storeOwnerRef);
         if (storeOwnerDoc.exists()) {
           const ownerData = storeOwnerDoc.data();
@@ -112,12 +117,11 @@ export default function PostLoginPage() {
           return;
         }
 
-        // 4. If no profile is found, go to role selection
+        // 5. If no profile is found, go to role selection
         router.replace('/role-selection');
 
       } catch (error) {
         console.error("Error checking user profile:", error);
-        // Fallback to role selection on error
         router.replace('/role-selection');
       }
     };
