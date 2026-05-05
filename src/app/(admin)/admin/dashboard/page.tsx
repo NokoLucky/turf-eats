@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -12,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExternalLink, CheckCircle, ShieldAlert, Store, Bike } from 'lucide-react';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function AdminDashboard() {
   const firestore = useFirestore();
@@ -32,27 +33,29 @@ export default function AdminDashboard() {
   const { data: pendingDrivers, isLoading: loadingDrivers } = useCollection(driversQuery);
   const { data: pendingOwners, isLoading: loadingOwners } = useCollection(ownersQuery);
 
-  const handleApprove = async (collectionName: 'drivers' | 'storeOwners', userId: string) => {
+  const handleApprove = (collectionName: 'drivers' | 'storeOwners', userId: string) => {
     if (!firestore) return;
 
-    try {
-      const docPath = `users/${userId}/${collectionName}/${userId}`;
-      const docRef = doc(firestore, docPath);
-      
-      await updateDoc(docRef, { status: 'active' });
-      
-      toast({
-        title: "Approval Successful",
-        description: `The ${collectionName === 'drivers' ? 'driver' : 'store owner'} has been activated.`,
+    const docPath = `users/${userId}/${collectionName}/${userId}`;
+    const docRef = doc(firestore, docPath);
+    const updateData = { status: 'active' };
+    
+    // Using non-blocking update pattern with proper error handling
+    updateDoc(docRef, updateData)
+      .then(() => {
+        toast({
+          title: "Approval Successful",
+          description: `The ${collectionName === 'drivers' ? 'driver' : 'store owner'} has been activated.`,
+        });
+      })
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: updateData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
-    } catch (error: any) {
-      console.error("Approval error:", error);
-      toast({
-        variant: "destructive",
-        title: "Action Failed",
-        description: error.message || "Could not approve the user.",
-      });
-    }
   };
 
   const TableSkeleton = () => (
