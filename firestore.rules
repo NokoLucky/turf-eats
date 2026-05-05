@@ -2,24 +2,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // RELAXED RULES FOR TESTING
-    // This allow block covers all documents in the database for any authenticated user.
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Explicitly allow collection group queries for 'drivers'.
-    // Collection group queries require a match that targets the specific collection ID.
-    match /{path=**}/drivers/{driverId} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // Explicitly allow collection group queries for 'storeOwners'.
-    match /{path=**}/storeOwners/{ownerId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Explicitly allow access to the 'admins' collection for the login check.
-    match /admins/{adminId} {
+    // This broad match covers all documents and collection groups for any authenticated user.
+    match /{allPaths=**} {
       allow read, write: if request.auth != null;
     }
   }

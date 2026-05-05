@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { collectionGroup, query, where, doc, updateDoc } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -16,19 +16,20 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 export default function AdminDashboard() {
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
 
-  // Query pending drivers
+  // Query pending drivers - only if user is authenticated
   const driversQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(collectionGroup(firestore, 'drivers'), where('status', '==', 'pending'));
-  }, [firestore]);
+  }, [firestore, user]);
 
-  // Query pending store owners
+  // Query pending store owners - only if user is authenticated
   const ownersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return query(collectionGroup(firestore, 'storeOwners'), where('status', '==', 'pending'));
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: pendingDrivers, isLoading: loadingDrivers } = useCollection(driversQuery);
   const { data: pendingOwners, isLoading: loadingOwners } = useCollection(ownersQuery);
