@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { collectionGroup, query, where, doc, updateDoc } from 'firebase/firestore';
+import { useMemo } from 'react';
+import { collectionGroup, query } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExternalLink, CheckCircle, ShieldAlert, Store, Bike, AlertCircle } from 'lucide-react';
+import { doc, updateDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -20,30 +21,28 @@ export default function AdminDashboard() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
-  // Query pending drivers - stable and conditional on auth
+  // We query the entire group and filter client-side to avoid index/permission complexities during setup
   const driversQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    try {
-      return query(collectionGroup(firestore, 'drivers'), where('status', '==', 'pending'));
-    } catch (e) {
-      console.error("Error creating drivers query:", e);
-      return null;
-    }
-  }, [firestore, user?.uid]); // Use uid for stability
-
-  // Query pending store owners - stable and conditional on auth
-  const ownersQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    try {
-      return query(collectionGroup(firestore, 'storeOwners'), where('status', '==', 'pending'));
-    } catch (e) {
-      console.error("Error creating owners query:", e);
-      return null;
-    }
+    return collectionGroup(firestore, 'drivers');
   }, [firestore, user?.uid]);
 
-  const { data: pendingDrivers, isLoading: loadingDrivers, error: driversError } = useCollection(driversQuery);
-  const { data: pendingOwners, isLoading: loadingOwners, error: ownersError } = useCollection(ownersQuery);
+  const ownersQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collectionGroup(firestore, 'storeOwners');
+  }, [firestore, user?.uid]);
+
+  const { data: allDrivers, isLoading: loadingDrivers, error: driversError } = useCollection(driversQuery);
+  const { data: allOwners, isLoading: loadingOwners, error: ownersError } = useCollection(ownersQuery);
+
+  // Client-side filtering for "pending" status
+  const pendingDrivers = useMemo(() => {
+    return allDrivers?.filter(d => d.status === 'pending') || [];
+  }, [allDrivers]);
+
+  const pendingOwners = useMemo(() => {
+    return allOwners?.filter(o => o.status === 'pending') || [];
+  }, [allOwners]);
 
   const handleApprove = (collectionName: 'drivers' | 'storeOwners', userId: string) => {
     if (!firestore) return;
@@ -77,16 +76,16 @@ export default function AdminDashboard() {
     </div>
   );
 
-  const isGlobalLoading = isUserLoading || (loadingDrivers && !pendingDrivers) || (loadingOwners && !pendingOwners);
+  const isGlobalLoading = isUserLoading || (loadingDrivers && !allDrivers) || (loadingOwners && !allOwners);
 
   if (driversError || ownersError) {
     return (
       <div className="container py-12">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Permission Error</AlertTitle>
+          <AlertTitle>Access Error</AlertTitle>
           <AlertDescription>
-            There was a problem accessing the approval lists. Please ensure your account has admin privileges and that the security rules have deployed.
+            The system encountered a permission issue. Please ensure your account is correctly set as an admin in the database and refresh.
           </AlertDescription>
         </Alert>
       </div>
@@ -110,7 +109,7 @@ export default function AdminDashboard() {
           <TabsTrigger value="drivers" className="flex items-center gap-2">
             <Bike className="h-4 w-4" />
             Pending Drivers
-            {pendingDrivers && pendingDrivers.length > 0 && (
+            {pendingDrivers.length > 0 && (
               <Badge variant="destructive" className="ml-2 px-1.5 py-0 min-w-[1.25rem] text-center">
                 {pendingDrivers.length}
               </Badge>
@@ -119,7 +118,7 @@ export default function AdminDashboard() {
           <TabsTrigger value="owners" className="flex items-center gap-2">
             <Store className="h-4 w-4" />
             Pending Owners
-            {pendingOwners && pendingOwners.length > 0 && (
+            {pendingOwners.length > 0 && (
               <Badge variant="destructive" className="ml-2 px-1.5 py-0 min-w-[1.25rem] text-center">
                 {pendingOwners.length}
               </Badge>
@@ -136,7 +135,7 @@ export default function AdminDashboard() {
             <CardContent>
               {isGlobalLoading ? (
                 <TableSkeleton />
-              ) : !pendingDrivers || pendingDrivers.length === 0 ? (
+              ) : pendingDrivers.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <p>No pending driver applications.</p>
                 </div>
@@ -177,7 +176,7 @@ export default function AdminDashboard() {
                           <Button 
                             size="sm" 
                             onClick={() => handleApprove('drivers', driver.userId)}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-green-600 hover:bg-green-700 text-white"
                           >
                             <CheckCircle className="mr-2 h-4 w-4" />
                             Approve
@@ -201,7 +200,7 @@ export default function AdminDashboard() {
             <CardContent>
               {isGlobalLoading ? (
                 <TableSkeleton />
-              ) : !pendingOwners || pendingOwners.length === 0 ? (
+              ) : pendingOwners.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <p>No pending store owner applications.</p>
                 </div>
@@ -230,7 +229,7 @@ export default function AdminDashboard() {
                           <Button 
                             size="sm" 
                             onClick={() => handleApprove('storeOwners', owner.userId)}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-green-600 hover:bg-green-700 text-white"
                           >
                             <CheckCircle className="mr-2 h-4 w-4" />
                             Approve
