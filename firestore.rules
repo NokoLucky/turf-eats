@@ -1,26 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // RELAXED RULES FOR TESTING
-    // Broad match allows all reads and writes to any document.
     match /{allPaths=**} {
-      allow read, write: if true;
-    }
-
-    // SPECIFIC COLLECTION GROUP RULES
-    // Collection group queries (e.g., searching all 'drivers' collections) 
-    // often require explicit recursive matches to be authorized correctly.
-    // Timestamp: 2024-05-22T10:00:00Z (Forces watcher redeploy)
-    
-    match /{path=**}/drivers/{driverId} {
-      allow read, write: if true;
-    }
-    
-    match /{path=**}/storeOwners/{ownerId} {
-      allow read, write: if true;
-    }
-    
-    match /{path=**}/customers/{customerId} {
       allow read, write: if true;
     }
   }
