@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { collectionGroup, query, where, doc, updateDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,29 +10,40 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ExternalLink, CheckCircle, ShieldAlert, Store, Bike } from 'lucide-react';
+import { ExternalLink, CheckCircle, ShieldAlert, Store, Bike, AlertCircle } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function AdminDashboard() {
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
-  // Query pending drivers - only if user is authenticated
+  // Query pending drivers - stable and conditional on auth
   const driversQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collectionGroup(firestore, 'drivers'), where('status', '==', 'pending'));
-  }, [firestore, user]);
+    try {
+      return query(collectionGroup(firestore, 'drivers'), where('status', '==', 'pending'));
+    } catch (e) {
+      console.error("Error creating drivers query:", e);
+      return null;
+    }
+  }, [firestore, user?.uid]); // Use uid for stability
 
-  // Query pending store owners - only if user is authenticated
+  // Query pending store owners - stable and conditional on auth
   const ownersQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collectionGroup(firestore, 'storeOwners'), where('status', '==', 'pending'));
-  }, [firestore, user]);
+    try {
+      return query(collectionGroup(firestore, 'storeOwners'), where('status', '==', 'pending'));
+    } catch (e) {
+      console.error("Error creating owners query:", e);
+      return null;
+    }
+  }, [firestore, user?.uid]);
 
-  const { data: pendingDrivers, isLoading: loadingDrivers } = useCollection(driversQuery);
-  const { data: pendingOwners, isLoading: loadingOwners } = useCollection(ownersQuery);
+  const { data: pendingDrivers, isLoading: loadingDrivers, error: driversError } = useCollection(driversQuery);
+  const { data: pendingOwners, isLoading: loadingOwners, error: ownersError } = useCollection(ownersQuery);
 
   const handleApprove = (collectionName: 'drivers' | 'storeOwners', userId: string) => {
     if (!firestore) return;
@@ -41,7 +52,6 @@ export default function AdminDashboard() {
     const docRef = doc(firestore, docPath);
     const updateData = { status: 'active' };
     
-    // Using non-blocking update pattern with proper error handling
     updateDoc(docRef, updateData)
       .then(() => {
         toast({
@@ -66,6 +76,22 @@ export default function AdminDashboard() {
       ))}
     </div>
   );
+
+  const isGlobalLoading = isUserLoading || (loadingDrivers && !pendingDrivers) || (loadingOwners && !pendingOwners);
+
+  if (driversError || ownersError) {
+    return (
+      <div className="container py-12">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Permission Error</AlertTitle>
+          <AlertDescription>
+            There was a problem accessing the approval lists. Please ensure your account has admin privileges and that the security rules have deployed.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-12">
@@ -108,7 +134,7 @@ export default function AdminDashboard() {
               <CardDescription>Review driver licenses and vehicle information before activating.</CardDescription>
             </CardHeader>
             <CardContent>
-              {loadingDrivers ? (
+              {isGlobalLoading ? (
                 <TableSkeleton />
               ) : !pendingDrivers || pendingDrivers.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
@@ -173,7 +199,7 @@ export default function AdminDashboard() {
               <CardDescription>Verify store owner details to grant them access to the owner portal.</CardDescription>
             </CardHeader>
             <CardContent>
-              {loadingOwners ? (
+              {isGlobalLoading ? (
                 <TableSkeleton />
               ) : !pendingOwners || pendingOwners.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
