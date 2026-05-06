@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -5,9 +6,8 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { User, Bike, Store } from 'lucide-react';
 import Logo from '@/components/logo';
 import { useFirestore, useUser, useAuth } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { setDocumentNonBlocking } from '@/firebase';
 import { useState } from 'react';
 import { signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
@@ -55,9 +55,10 @@ export default function RoleSelectionPage() {
 
   const [isDriverDialogOpen, setDriverDialogOpen] = useState(false);
   const [licenseUrl, setLicenseUrl] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleRoleSelection = async (role: string, href: string, options?: { licenseUrl?: string }) => {
-    if (!user || !auth) {
+    if (!user || !auth || !firestore) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -67,6 +68,7 @@ export default function RoleSelectionPage() {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const { uid, email, displayName, phoneNumber } = user;
       let profileData: any;
@@ -88,6 +90,7 @@ export default function RoleSelectionPage() {
         case 'driver':
           if (!options?.licenseUrl) {
               toast({ variant: 'destructive', title: 'Error', description: 'Driver\'s license is required.' });
+              setIsSubmitting(false);
               return;
           }
           isPending = true;
@@ -121,7 +124,10 @@ export default function RoleSelectionPage() {
       }
       
       const docRef = doc(firestore, profilePath);
-      setDocumentNonBlocking(docRef, profileData, { merge: true });
+      
+      // We explicitly await the write here because we are about to sign the user out.
+      // If we don't wait, the SDK might lose the auth context before the write is sent.
+      await setDoc(docRef, profileData, { merge: true });
 
       if (isPending) {
         toast({
@@ -136,7 +142,6 @@ export default function RoleSelectionPage() {
           title: 'Success!',
           description: `Your ${role} profile has been created.`,
         });
-        // For customers, redirect to post-login to enforce email verification check
         router.push('/post-login');
       }
 
@@ -145,8 +150,10 @@ export default function RoleSelectionPage() {
       toast({
         variant: 'destructive',
         title: 'Profile Creation Failed',
-        description: error.message || 'Could not create your user profile.',
+        description: error.message || 'Could not create your user profile. Please try again.',
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -158,8 +165,9 @@ export default function RoleSelectionPage() {
   };
 
   const handleCardClick = (role: string, href: string) => {
+    if (isSubmitting) return;
     if (role === 'driver') {
-      setLicenseUrl(null); // Reset on open
+      setLicenseUrl(null);
       setDriverDialogOpen(true);
     } else {
       handleRoleSelection(role, href);
@@ -169,7 +177,7 @@ export default function RoleSelectionPage() {
   if (isUserLoading) {
     return (
         <div className="flex min-h-screen flex-col items-center justify-center">
-            <p>Loading...</p>
+            <p className="animate-pulse text-primary font-bold">Loading user profile...</p>
         </div>
     )
   }
@@ -183,13 +191,18 @@ export default function RoleSelectionPage() {
           How will you use Pin2You?
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Choose your role to get started. You can change this later.
+          Choose your role to get started.
         </p>
       </div>
       <div className="grid w-full max-w-4xl grid-cols-1 gap-6 md:grid-cols-3">
         {roles.map((role) => (
-          <div key={role.name} onClick={() => handleCardClick(role.role, role.href)} className="cursor-pointer">
-            <Card className="h-full transform transition-transform duration-300 hover:-translate-y-2 bg-primary/5 shadow-lg shadow-primary/10">
+          <button 
+            key={role.name} 
+            onClick={() => handleCardClick(role.role, role.href)} 
+            disabled={isSubmitting}
+            className="text-left focus:outline-none focus:ring-2 focus:ring-primary rounded-lg transition-all"
+          >
+            <Card className={`h-full transform transition-all duration-300 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:-translate-y-2 hover:shadow-xl'} bg-primary/5 shadow-lg shadow-primary/10`}>
               <CardHeader className="flex flex-col items-center justify-center text-center">
                 <div className="mb-4 rounded-full bg-primary/10 p-4">
                   {role.icon}
@@ -198,10 +211,10 @@ export default function RoleSelectionPage() {
                 <CardDescription className="mt-1">{role.description}</CardDescription>
               </CardHeader>
             </Card>
-          </div>
+          </button>
         ))}
       </div>
-      <Dialog open={isDriverDialogOpen} onOpenChange={setDriverDialogOpen}>
+      <Dialog open={isDriverDialogOpen} onOpenChange={(open) => !isSubmitting && setDriverDialogOpen(open)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Driver Application</DialogTitle>
@@ -215,8 +228,8 @@ export default function RoleSelectionPage() {
             onUploadComplete={(url) => setLicenseUrl(url)}
           />
           <DialogFooter>
-            <Button onClick={handleDriverSubmit} disabled={!licenseUrl}>
-              Submit Application
+            <Button onClick={handleDriverSubmit} disabled={!licenseUrl || isSubmitting}>
+              {isSubmitting ? 'Submitting...' : 'Submit Application'}
             </Button>
           </DialogFooter>
         </DialogContent>

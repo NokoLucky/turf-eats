@@ -53,7 +53,7 @@ export default function PostLoginPage() {
       const { uid } = user;
       
       try {
-        // 1. Check for Admin profile first
+        // 1. Check for Admin profile
         const adminRef = doc(firestore, `admins/${uid}`);
         const adminDoc = await getDoc(adminRef);
         if (adminDoc.exists()) {
@@ -75,7 +75,7 @@ export default function PostLoginPage() {
           return;
         }
 
-        // 3. Check for Driver profile and status
+        // 3. Check for Driver profile
         const driverRef = doc(firestore, `users/${uid}/drivers/${uid}`);
         const driverDoc = await getDoc(driverRef);
         if (driverDoc.exists()) {
@@ -96,7 +96,7 @@ export default function PostLoginPage() {
           return;
         }
 
-        // 4. Check for Store Owner profile and status
+        // 4. Check for Store Owner profile
         const storeOwnerRef = doc(firestore, `users/${uid}/storeOwners/${uid}`);
         const storeOwnerDoc = await getDoc(storeOwnerRef);
         if (storeOwnerDoc.exists()) {
@@ -117,11 +117,12 @@ export default function PostLoginPage() {
           return;
         }
 
-        // 5. If no profile is found, go to role selection
+        // 5. If no profile found, go to role selection
         router.replace('/role-selection');
 
       } catch (error) {
         console.error("Error checking user profile:", error);
+        // On error, fall back to role selection but don't loop endlessly
         router.replace('/role-selection');
       }
     };
@@ -146,10 +147,10 @@ export default function PostLoginPage() {
       </AlertDialog>
 
       {!isDialogOpen && (
-        <>
-          <Utensils className="h-16 w-16 animate-spin text-primary" />
-          <p className="mt-4 text-lg text-muted-foreground">Signing you in...</p>
-        </>
+        <div className="text-center">
+          <Utensils className="h-16 w-16 animate-spin text-primary mx-auto" />
+          <p className="mt-4 text-lg text-muted-foreground font-medium">Verifying your profile status...</p>
+        </div>
       )}
     </div>
   );
