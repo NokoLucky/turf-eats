@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -9,8 +10,8 @@ import {
   Navigation, ShoppingBag, ArrowRight
 } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, query, where, updateDoc, arrayUnion, getDoc, limit } from 'firebase/firestore';
-import type { Order, Restaurant, Driver, Rating } from '@/lib/data';
+import { collection, doc, query, where, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import type { Order, Restaurant, Driver } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
@@ -141,39 +142,43 @@ export default function DriverDashboard() {
     );
   }, [firestore]);
 
-  // History for Earnings Calculation
-  const historyQuery = useMemoFirebase(() => {
+  // General query for driver orders to calculate history/earnings without composite index issues
+  const allDriverOrdersQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(
       collection(firestore, 'orders'),
-      where('driverId', '==', user.uid),
-      where('status', '==', 'Delivered')
+      where('driverId', '==', user.uid)
     );
   }, [user?.uid, firestore]);
 
   const { data: activeDeliveries, isLoading: loadingActive } = useCollection<Order>(myDeliveriesQuery);
   const { data: availableDeliveries, isLoading: loadingAvailable } = useCollection<Order>(availableDeliveriesQuery);
-  const { data: history } = useCollection<Order>(historyQuery);
+  const { data: allOrders } = useCollection<Order>(allDriverOrdersQuery);
   
   useDriverLocationTracking(isOnline);
 
   const earnings = useMemo(() => {
-    if (!history) return { today: 0, week: 0, count: 0 };
+    if (!allOrders) return { today: 0, week: 0, count: 0 };
+    
     const now = new Date();
     const todayStart = startOfDay(now);
-    const weekStart = startOfWeek(now);
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Start week on Monday
 
     // Driver gets 80% of R30 delivery fee = R24.00
     const payoutPerOrder = 24; 
 
-    return history.reduce((acc, order) => {
-      const orderDate = order.orderDate.toDate();
-      if (isAfter(orderDate, todayStart)) acc.today += payoutPerOrder;
-      if (isAfter(orderDate, weekStart)) acc.week += payoutPerOrder;
-      acc.count += 1;
-      return acc;
-    }, { today: 0, week: 0, count: 0 });
-  }, [history]);
+    return allOrders
+      .filter(order => order.status === 'Delivered')
+      .reduce((acc, order) => {
+        if (!order.orderDate) return acc;
+        
+        const orderDate = order.orderDate.toDate();
+        if (isAfter(orderDate, todayStart)) acc.today += payoutPerOrder;
+        if (isAfter(orderDate, weekStart)) acc.week += payoutPerOrder;
+        acc.count += 1;
+        return acc;
+      }, { today: 0, week: 0, count: 0 });
+  }, [allOrders]);
 
   const handleStatusChange = async (orderId: string, status: Order['status']) => {
     if (!firestore) return;
