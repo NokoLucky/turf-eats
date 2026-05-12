@@ -4,16 +4,14 @@ import { useMemo, useState, useEffect } from 'react';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import type { Order, OrderItem } from '@/lib/data';
-import Link from 'next/link';
+import type { Order } from '@/lib/data';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DollarSign, ShoppingCart, Users, ArrowRight, TrendingUp, Clock, Star } from 'lucide-react';
+import { DollarSign, ShoppingCart, TrendingUp, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
+import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 
 export default function OwnerDashboard() {
   const { user } = useUser();
@@ -62,15 +60,15 @@ export default function OwnerDashboard() {
     return Object.entries(salesByDay).map(([date, amount]) => ({ date, amount }));
   }, [orders]);
 
-  const displayName = ownerProfile?.name || user?.displayName || 'Store Owner';
-  const firstName = displayName.split(' ')[0];
+  const rawName = ownerProfile?.name || user?.displayName || '';
+  const firstName = (rawName && !rawName.startsWith('New ')) ? rawName.split(' ')[0] : '';
 
   return (
     <div className="container py-10 px-4 sm:px-8">
       {/* Dynamic Header */}
       <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{greeting}, {firstName} 🍤</h1>
+          <h1 className="text-3xl font-bold">{greeting}{firstName ? `, ${firstName}` : ''} 👋</h1>
           <p className="text-muted-foreground mt-1">Your store received <span className="text-primary font-bold">{orders?.length || 0}</span> new orders today.</p>
         </div>
         <div className="flex gap-2">

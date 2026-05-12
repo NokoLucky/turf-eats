@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  Bike, CheckCircle, Package, Clock, MapPin, 
-  TrendingUp, Star, DollarSign, SwitchCamera, LogOut
+  CheckCircle, Package, MapPin, 
+  TrendingUp, Star, DollarSign
 } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc, query, where, updateDoc, arrayUnion } from 'firebase/firestore';
@@ -96,8 +96,8 @@ export default function DriverDashboard() {
     });
   };
 
-  const displayName = driverProfile?.name || user?.displayName || 'Lucas';
-  const firstName = displayName.split(' ')[0];
+  const rawName = driverProfile?.name || user?.displayName || '';
+  const firstName = (rawName && !rawName.startsWith('New ')) ? rawName.split(' ')[0] : '';
 
   return (
     <div className="min-h-screen bg-[#111] text-white pb-20">
@@ -109,7 +109,7 @@ export default function DriverDashboard() {
               <img src={user?.photoURL || `https://picsum.photos/seed/${user?.uid}/100/100`} alt="profile" className="object-cover" />
             </div>
             <div>
-              <h1 className="text-lg font-bold">{greeting}, {firstName} 👋</h1>
+              <h1 className="text-lg font-bold">{greeting}{firstName ? `, ${firstName}` : ''} 👋</h1>
               <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                 <Star className="h-3 w-3 text-primary fill-primary" />
                 <span className="font-bold text-white">4.8</span>

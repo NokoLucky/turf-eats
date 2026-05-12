@@ -4,7 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { 
-  Star, Search, ChefHat, Utensils, ShoppingBasket, Wine, 
+  Star, Search, Utensils, ShoppingBasket, Wine, 
   Pill, Droplets, Shirt, Package, MoreHorizontal, Bell, MapPin, 
   Clock, Truck
 } from 'lucide-react';
@@ -14,7 +14,6 @@ import type { Restaurant } from '@/lib/data';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
 
 const categories = [
   { name: 'Restaurants', icon: <Utensils /> },
@@ -69,8 +68,8 @@ export default function CustomerDashboardPage() {
   );
   const { data: stores, isLoading } = useCollection<Omit<Restaurant, 'menu'>>(storesRef);
 
-  const displayName = customerProfile?.name || user?.displayName || 'User';
-  const firstName = displayName.split(' ')[0];
+  const rawName = customerProfile?.name || user?.displayName || '';
+  const firstName = (rawName && !rawName.startsWith('New ')) ? rawName.split(' ')[0] : '';
 
   const filteredStores = React.useMemo(() => {
     if (!stores) return [];
@@ -107,7 +106,7 @@ export default function CustomerDashboardPage() {
         </div>
 
         <div className="mb-6">
-          <h1 className="text-xl font-bold">{greeting}, {firstName} 👋</h1>
+          <h1 className="text-xl font-bold">{greeting}{firstName ? `, ${firstName}` : ''} 👋</h1>
           <p className="text-2xl font-bold mt-1 leading-tight">
             Anything you need, <span className="text-primary">delivered fast</span> in Turfloop & Polokwane.
           </p>
@@ -200,7 +199,7 @@ export default function CustomerDashboardPage() {
           </div>
         </div>
 
-        {/* Categories / Top Rated (Vertical) */}
+        {/* All Stores (Vertical) */}
         <div className="mb-8">
            <h2 className="text-lg font-bold mb-4">All Stores</h2>
            <div className="space-y-4">
