@@ -15,8 +15,8 @@ export default function CartPage() {
   const router = useRouter();
 
   const subtotal = state.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const serviceFee = subtotal * 0.08;
-  const deliveryFee = 5.0;
+  const serviceFee = 5.0; // Standard service fee
+  const deliveryFee = 30.0; // Standard delivery fee
   const total = subtotal + serviceFee + deliveryFee;
 
   const updateQuantity = (id: string, quantity: number) => {
@@ -35,14 +35,14 @@ export default function CartPage() {
     <div className="container py-12 px-4 sm:px-8">
       <h1 className="font-headline text-4xl font-bold mb-8">Your Cart</h1>
       {state.items.length === 0 ? (
-        <Card className="text-center py-20">
+        <Card className="text-center py-20 border-none shadow-premium rounded-[2rem]">
             <CardHeader>
                 <ShoppingBag className="mx-auto h-16 w-16 text-muted-foreground" />
                 <CardTitle className="mt-4 text-2xl font-bold">Your cart is empty</CardTitle>
             </CardHeader>
             <CardContent>
                 <p className="text-muted-foreground">Looks like you haven't added anything to your cart yet.</p>
-                <Button asChild className="mt-6">
+                <Button asChild className="mt-6 rounded-xl px-8">
                     <Link href="/dashboard">Start Shopping</Link>
                 </Button>
             </CardContent>
@@ -50,22 +50,23 @@ export default function CartPage() {
       ) : (
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <Card>
+            <Card className="border-none shadow-premium rounded-[2rem] overflow-hidden">
               <CardContent className="p-0">
                 <ul className="divide-y">
                   {state.items.map((item) => (
                     <li key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 sm:p-6">
-                      <Image
-                        src={item.image.imageUrl.trim()}
-                        alt={item.image.description}
-                        data-ai-hint={item.image.imageHint}
-                        width={80}
-                        height={80}
-                        className="rounded-md object-cover w-full sm:w-20 h-auto sm:h-20"
-                      />
+                      <div className="relative h-20 w-20 rounded-xl overflow-hidden flex-shrink-0">
+                        <Image
+                            src={item.image.imageUrl.trim()}
+                            alt={item.image.description}
+                            data-ai-hint={item.image.imageHint}
+                            fill
+                            className="object-cover"
+                        />
+                      </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold">{item.name}</h3>
-                        <p className="text-sm text-muted-foreground">R{item.price.toFixed(2)}</p>
+                        <h3 className="font-bold">{item.name}</h3>
+                        <p className="text-xs text-muted-foreground">R{item.price.toFixed(2)}</p>
                       </div>
                       <div className="flex items-center gap-2 self-end sm:self-center">
                         <Input
@@ -73,14 +74,14 @@ export default function CartPage() {
                           min="1"
                           value={item.quantity}
                           onChange={(e) => updateQuantity(item.id, parseInt(e.target.value))}
-                          className="h-9 w-16 text-center"
+                          className="h-9 w-16 text-center rounded-lg"
                         />
-                         <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
+                         <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="text-destructive">
+                            <Trash2 className="h-4 w-4" />
                             <span className="sr-only">Remove item</span>
                         </Button>
                       </div>
-                      <p className="hidden sm:block w-20 text-right font-semibold">R{(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="hidden sm:block w-20 text-right font-bold text-primary">R{(item.price * item.quantity).toFixed(2)}</p>
                     </li>
                   ))}
                 </ul>
@@ -88,31 +89,31 @@ export default function CartPage() {
             </Card>
           </div>
           <div>
-            <Card>
+            <Card className="border-none shadow-premium rounded-[2rem]">
               <CardHeader>
                 <CardTitle className="font-headline text-2xl">Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>R{subtotal.toFixed(2)}</span>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-medium">R{subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Service Fee</span>
-                  <span>R{serviceFee.toFixed(2)}</span>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Service Fee</span>
+                  <span className="font-medium">R{serviceFee.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Delivery Fee</span>
-                  <span>R{deliveryFee.toFixed(2)}</span>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Delivery Fee</span>
+                  <span className="font-medium text-green-600">R{deliveryFee.toFixed(2)}</span>
                 </div>
                 <Separator />
-                <div className="flex justify-between text-lg font-bold">
+                <div className="flex justify-between text-xl font-bold">
                   <span>Total</span>
-                  <span>R{total.toFixed(2)}</span>
+                  <span className="text-primary">R{total.toFixed(2)}</span>
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full font-bold" size="lg" onClick={handleCheckout}>
+                <Button className="w-full font-bold h-12 rounded-xl" size="lg" onClick={handleCheckout}>
                   Proceed to Checkout
                 </Button>
               </CardFooter>

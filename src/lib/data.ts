@@ -29,6 +29,19 @@ export type Restaurant = {
   status: 'active' | 'pending' | 'inactive';
 };
 
+export type Driver = {
+  id: string;
+  userId: string;
+  name: string;
+  phoneNumber: string;
+  vehicleType: string;
+  licenseNumber: string;
+  vehicleRegistration: string;
+  status: 'active' | 'pending' | 'inactive';
+  rating?: number;
+  ratingCount?: number;
+};
+
 export type OrderStatus = 'Placed' | 'Preparing' | 'Out for Delivery' | 'Delivered' | 'Cancelled';
 
 export type Order = {
@@ -39,6 +52,8 @@ export type Order = {
   orderDate: Timestamp;
   status: OrderStatus;
   itemsTotal: number;
+  deliveryFee: number;
+  serviceFee: number;
   totalAmount: number;
   deliveryAddress: string;
   notes?: string;

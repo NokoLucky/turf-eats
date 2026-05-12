@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFirestore, useUser } from '@/firebase';
 import { writeBatch, doc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
-import type { Order, Rating } from '@/lib/data';
+import type { Order, Rating, Driver } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -61,28 +61,41 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
     },
   });
 
+  const calculateNewAverage = async (targetId: string, targetField: 'restaurantId' | 'driverId', newRating: number) => {
+    if (!firestore) return newRating;
+    const ratingsQuery = query(
+      collection(firestore, 'ratings'),
+      where(targetField, '==', targetId)
+    );
+    const ratingsSnapshot = await getDocs(ratingsQuery);
+    const existingRatings = ratingsSnapshot.docs.map(
+      (doc) => (doc.data() as Rating)[targetField === 'restaurantId' ? 'restaurantRating' : 'driverRating'] || 0
+    );
+    
+    const newTotalRating = existingRatings.reduce((sum, r) => sum + r, 0) + newRating;
+    const newTotalCount = existingRatings.length + 1;
+    return newTotalRating / newTotalCount;
+  };
+
   const onSubmit = async (data: RatingFormValues) => {
     if (!firestore || !user || !order) return;
 
     try {
-      // 1. Fetch all existing ratings for the restaurant to calculate the new average.
-      const ratingsQuery = query(
-        collection(firestore, 'ratings'),
-        where('restaurantId', '==', order.restaurantId)
-      );
-      const ratingsSnapshot = await getDocs(ratingsQuery);
-
-      const existingRatings = ratingsSnapshot.docs.map(
-        (doc) => (doc.data() as Rating).restaurantRating
-      );
-      
-      const newTotalRating = existingRatings.reduce((sum, r) => sum + r, 0) + data.restaurantRating;
-      const newTotalCount = existingRatings.length + 1;
-      const newAverageRating = newTotalRating / newTotalCount;
-
       const batch = writeBatch(firestore);
 
-      // 2. Create the new rating document
+      // 1. Calculate and update Restaurant Average
+      const newRestaurantAvg = await calculateNewAverage(order.restaurantId, 'restaurantId', data.restaurantRating);
+      const restaurantRef = doc(firestore, 'restaurants', order.restaurantId);
+      batch.update(restaurantRef, { rating: newRestaurantAvg });
+
+      // 2. Calculate and update Driver Average (if applicable)
+      if (order.driverId && data.driverRating && data.driverRating > 0) {
+        const newDriverAvg = await calculateNewAverage(order.driverId, 'driverId', data.driverRating);
+        const driverRef = doc(firestore, `users/${order.driverId}/drivers/${order.driverId}`);
+        batch.update(driverRef, { rating: newDriverAvg });
+      }
+
+      // 3. Create the new rating document
       const newRatingRef = doc(collection(firestore, 'ratings'));
       const ratingData: any = {
         restaurantRating: data.restaurantRating,
@@ -103,13 +116,9 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
 
       batch.set(newRatingRef, ratingData);
 
-      // 3. Update the order to mark it as rated
+      // 4. Update the order to mark it as rated
       const orderRef = doc(firestore, 'orders', order.id);
       batch.update(orderRef, { isRated: true });
-      
-      // 4. Update the restaurant document with the new average rating
-      const restaurantRef = doc(firestore, 'restaurants', order.restaurantId);
-      batch.update(restaurantRef, { rating: newAverageRating });
 
       await batch.commit();
 
@@ -135,24 +144,24 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[480px] rounded-[2rem] border-none shadow-premium">
         <DialogHeader>
-          <DialogTitle>Rate Your Order</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">Rate Your Order</DialogTitle>
           <DialogDescription>
-            Let us know how we did. Your feedback helps everyone.
+            Let us know how we did. Your feedback helps everyone in Turfloop.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div>
-              <h3 className="font-semibold mb-2">Rate the Restaurant</h3>
+            <div className="bg-primary/5 p-6 rounded-2xl">
+              <h3 className="font-bold mb-3 flex items-center gap-2 text-primary">Rate the Restaurant</h3>
               <FormField
                 control={form.control}
                 name="restaurantRating"
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <StarRating value={field.value} onChange={field.onChange} />
+                      <StarRating value={field.value} onChange={field.onChange} size={32} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -163,9 +172,9 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
                 name="restaurantComment"
                 render={({ field }) => (
                   <FormItem className="mt-4">
-                    <FormLabel>Comment (optional)</FormLabel>
+                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Comment (optional)</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="What did you think of the food?" {...field} />
+                      <Textarea placeholder="What did you think of the food?" {...field} className="rounded-xl bg-white border-none shadow-sm" />
                     </FormControl>
                   </FormItem>
                 )}
@@ -173,17 +182,15 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
             </div>
             
             {order.driverId && (
-              <>
-                <Separator />
-                <div>
-                  <h3 className="font-semibold mb-2">Rate the Delivery</h3>
+              <div className="bg-secondary/50 p-6 rounded-2xl">
+                <h3 className="font-bold mb-3 flex items-center gap-2">Rate the Delivery</h3>
                    <FormField
                     control={form.control}
                     name="driverRating"
                     render={({ field }) => (
                     <FormItem>
                         <FormControl>
-                        <StarRating value={field.value || 0} onChange={field.onChange} />
+                        <StarRating value={field.value || 0} onChange={field.onChange} size={32} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -194,19 +201,18 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
                     name="driverComment"
                     render={({ field }) => (
                       <FormItem className="mt-4">
-                        <FormLabel>Comment (optional)</FormLabel>
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Comment (optional)</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="How was the delivery experience?" {...field} />
+                          <Textarea placeholder="How was the delivery experience?" {...field} className="rounded-xl bg-white border-none shadow-sm" />
                         </FormControl>
                       </FormItem>
                     )}
                   />
-                </div>
-              </>
+              </div>
             )}
             
             <DialogFooter>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button type="submit" disabled={form.formState.isSubmitting} className="w-full h-12 rounded-xl font-bold shadow-lg shadow-primary/20">
                 {form.formState.isSubmitting ? 'Submitting...' : 'Submit Feedback'}
               </Button>
             </DialogFooter>

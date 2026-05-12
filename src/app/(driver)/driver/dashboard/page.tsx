@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -10,8 +9,8 @@ import {
   Navigation, ShoppingBag, ArrowRight
 } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, query, where, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
-import type { Order, Restaurant } from '@/lib/data';
+import { collection, doc, query, where, updateDoc, arrayUnion, getDoc, limit } from 'firebase/firestore';
+import type { Order, Restaurant, Driver, Rating } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
@@ -120,9 +119,9 @@ export default function DriverDashboard() {
     if (!user || !firestore) return null;
     return doc(firestore, `users/${user.uid}/drivers/${user.uid}`);
   }, [user?.uid, firestore]);
-  const { data: driverProfile } = useDoc(driverRef);
+  const { data: driverProfile } = useDoc<Driver>(driverRef);
 
-  // My Active Tasks (assigned to me and not delivered)
+  // My Active Tasks
   const myDeliveriesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(
@@ -156,7 +155,6 @@ export default function DriverDashboard() {
   const { data: availableDeliveries, isLoading: loadingAvailable } = useCollection<Order>(availableDeliveriesQuery);
   const { data: history } = useCollection<Order>(historyQuery);
   
-  // Location tracking hook
   useDriverLocationTracking(isOnline);
 
   const earnings = useMemo(() => {
@@ -165,11 +163,13 @@ export default function DriverDashboard() {
     const todayStart = startOfDay(now);
     const weekStart = startOfWeek(now);
 
+    // Driver gets 80% of R30 delivery fee = R24.00
+    const payoutPerOrder = 24; 
+
     return history.reduce((acc, order) => {
       const orderDate = order.orderDate.toDate();
-      const payout = 35; // Standard flat delivery fee for MVP
-      if (isAfter(orderDate, todayStart)) acc.today += payout;
-      if (isAfter(orderDate, weekStart)) acc.week += payout;
+      if (isAfter(orderDate, todayStart)) acc.today += payoutPerOrder;
+      if (isAfter(orderDate, weekStart)) acc.week += payoutPerOrder;
       acc.count += 1;
       return acc;
     }, { today: 0, week: 0, count: 0 });
@@ -210,7 +210,6 @@ export default function DriverDashboard() {
 
   return (
     <div className="min-h-screen bg-[#111] text-white pb-20">
-      {/* Driver Profile Header */}
       <div className="bg-[#1a1a1a] p-6 rounded-b-[2rem] shadow-lg">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
@@ -221,7 +220,7 @@ export default function DriverDashboard() {
               <h1 className="text-lg font-bold">{greeting}{firstName ? `, ${firstName}` : ''} 👋</h1>
               <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                 <Star className="h-3 w-3 text-primary fill-primary" />
-                <span className="font-bold text-white">4.8</span>
+                <span className="font-bold text-white">{(driverProfile?.rating || 0).toFixed(1)}</span>
                 <span>• {driverProfile?.vehicleType || 'Driver'}</span>
               </div>
             </div>
@@ -236,7 +235,6 @@ export default function DriverDashboard() {
           </div>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-[#222] p-4 rounded-2xl border border-white/5">
             <div className="bg-white/5 w-8 h-8 rounded-lg flex items-center justify-center mb-2">
@@ -263,7 +261,6 @@ export default function DriverDashboard() {
       </div>
 
       <div className="px-6 pt-8 space-y-8">
-        {/* Active Deliveries */}
         {activeDeliveries && activeDeliveries.length > 0 && (
           <section>
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
@@ -277,7 +274,6 @@ export default function DriverDashboard() {
           </section>
         )}
 
-        {/* Available Deliveries Queue */}
         <section>
           <div className="flex items-center justify-between mb-4">
              <h2 className="text-lg font-bold">Available Nearby</h2>
@@ -293,11 +289,11 @@ export default function DriverDashboard() {
               Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-32 w-full bg-[#1a1a1a] rounded-3xl" />)
             ) : availableDeliveries && availableDeliveries.length > 0 ? (
               availableDeliveries.map(order => (
-                <div key={order.id} className="bg-[#1a1a1a] p-5 rounded-3xl border border-white/5 flex items-center justify-between group animate-in fade-in slide-in-from-bottom-4">
+                <div key={order.id} className="bg-[#1a1a1a] p-5 rounded-3xl border border-white/5 flex items-center justify-between group">
                   <div className="flex-1 overflow-hidden mr-4">
                     <div className="flex items-center gap-2 mb-2">
                       <ShoppingBag className="h-3 w-3 text-primary" />
-                      <h3 className="font-bold text-sm truncate">New Delivery Request</h3>
+                      <h3 className="font-bold text-sm truncate">Order Request</h3>
                     </div>
                     <div className="flex flex-col gap-1">
                         <div className="flex items-start gap-2 text-[11px] text-muted-foreground">
@@ -306,7 +302,7 @@ export default function DriverDashboard() {
                         </div>
                         <div className="flex items-center gap-2 text-[11px] text-primary font-bold">
                             <ArrowRight className="h-3 w-3" />
-                            <span>Fee: R35.00</span>
+                            <span>Your Payout: R24.00</span>
                         </div>
                     </div>
                   </div>
