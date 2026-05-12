@@ -5,13 +5,20 @@ import { collection, query, where, doc } from 'firebase/firestore';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import type { Order } from '@/lib/data';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DollarSign, ShoppingCart, TrendingUp, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { ChartTooltip, ChartTooltipContent, ChartContainer, type ChartConfig } from "@/components/ui/chart"
+
+const chartConfig = {
+  amount: {
+    label: "Revenue (R)",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig
 
 export default function OwnerDashboard() {
   const { user } = useUser();
@@ -52,7 +59,7 @@ export default function OwnerDashboard() {
 
   const chartData = useMemo(() => {
     if (!orders) return [];
-    const salesByDay = orders.filter(o => o.status === 'Delivered').reduce((acc, o) => {
+    const salesByDay = orders.filter(o => o.status === 'Delivered' && o.orderDate).reduce((acc, o) => {
       const date = format(o.orderDate.toDate(), 'MMM d');
       acc[date] = (acc[date] || 0) + o.totalAmount;
       return acc;
@@ -122,15 +129,15 @@ export default function OwnerDashboard() {
           </CardHeader>
           <CardContent className="h-[300px] pt-4">
              {isLoading ? <Skeleton className="w-full h-full" /> : (
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer config={chartConfig} className="h-full w-full">
                   <BarChart data={chartData}>
                     <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.1} />
                     <XAxis dataKey="date" axisLine={false} tickLine={false} />
                     <YAxis axisLine={false} tickLine={false} />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[10, 10, 0, 0]} />
+                    <Bar dataKey="amount" fill="var(--color-amount)" radius={[10, 10, 0, 0]} />
                   </BarChart>
-                </ResponsiveContainer>
+                </ChartContainer>
              )}
           </CardContent>
         </Card>
@@ -146,7 +153,7 @@ export default function OwnerDashboard() {
                 <div key={order.id} className="p-4 hover:bg-muted/30 transition-colors flex justify-between items-center">
                   <div>
                     <p className="font-bold text-sm">#{order.id.slice(0, 6)}</p>
-                    <p className="text-[10px] text-muted-foreground">{formatDistanceToNow(order.orderDate.toDate(), { addSuffix: true })}</p>
+                    <p className="text-[10px] text-muted-foreground">{order.orderDate ? formatDistanceToNow(order.orderDate.toDate(), { addSuffix: true }) : 'Just now'}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-sm">R{order.totalAmount.toFixed(2)}</p>
