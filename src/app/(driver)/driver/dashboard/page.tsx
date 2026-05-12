@@ -1,14 +1,15 @@
+
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   CheckCircle, Package, MapPin, 
-  TrendingUp, Star, DollarSign
+  TrendingUp, Star, DollarSign, Clock
 } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, query, where, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, doc, query, where, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
 import type { Order } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +19,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useDriverLocationTracking } from '@/hooks/use-driver-location-tracking';
 import { cn } from '@/lib/utils';
+import { startOfDay, startOfWeek, isAfter } from 'date-fns';
 
 export default function DriverDashboard() {
   const { user } = useUser();
@@ -26,14 +28,14 @@ export default function DriverDashboard() {
   const [isOnline, setIsOnline] = useState(true);
   const [greeting, setGreeting] = useState('Good morning');
 
-  React.useEffect(() => {
+  useEffect(() => {
     const hour = new Date().getHours();
     if (hour < 12) setGreeting('Good morning');
     else if (hour < 18) setGreeting('Good afternoon');
     else setGreeting('Good evening');
   }, []);
 
-  // Fetch driver profile to get the most up-to-date name
+  // Fetch driver profile
   const driverRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return doc(firestore, `users/${user.uid}/drivers/${user.uid}`);
@@ -45,12 +47,12 @@ export default function DriverDashboard() {
     if (!user || !firestore) return null;
     return query(
       collection(firestore, 'orders'),
-      where('participantUids', 'array-contains', user.uid),
+      where('driverId', '==', user.uid),
       where('status', '==', 'Out for Delivery')
     );
   }, [user?.uid, firestore]);
 
-  // Available Deliveries (nearby/unassigned)
+  // Available Deliveries (unassigned)
   const availableDeliveriesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -59,15 +61,46 @@ export default function DriverDashboard() {
     );
   }, [firestore]);
 
+  // History for Earnings Calculation
+  const historyQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(
+      collection(firestore, 'orders'),
+      where('driverId', '==', user.uid),
+      where('status', '==', 'Delivered')
+    );
+  }, [user?.uid, firestore]);
+
   const { data: activeDeliveries, isLoading: loadingActive } = useCollection<Order>(myDeliveriesQuery);
   const { data: availableDeliveries, isLoading: loadingAvailable } = useCollection<Order>(availableDeliveriesQuery);
+  const { data: history } = useCollection<Order>(historyQuery);
   
-  const { isTracking } = useDriverLocationTracking((activeDeliveries?.length || 0) > 0 && isOnline);
+  // Location tracking hook - only runs when online and potentially has tasks
+  useDriverLocationTracking(isOnline);
+
+  const earnings = useMemo(() => {
+    if (!history) return { today: 0, week: 0, count: 0 };
+    
+    const now = new Date();
+    const todayStart = startOfDay(now);
+    const weekStart = startOfWeek(now);
+
+    return history.reduce((acc, order) => {
+      const orderDate = order.orderDate.toDate();
+      const payout = 35; // Standard flat delivery fee for MVP
+      
+      if (isAfter(orderDate, todayStart)) acc.today += payout;
+      if (isAfter(orderDate, weekStart)) acc.week += payout;
+      acc.count += 1;
+      
+      return acc;
+    }, { today: 0, week: 0, count: 0 });
+  }, [history]);
 
   const stats = [
-    { label: "Today's Earnings", value: "R540.00", icon: <DollarSign className="text-green-500" /> },
-    { label: "This Week", value: "R2,100.00", icon: <TrendingUp className="text-blue-500" /> },
-    { label: "Completed", value: "18", icon: <CheckCircle className="text-primary" /> },
+    { label: "Today's Earnings", value: `R${earnings.today.toFixed(2)}`, icon: <DollarSign className="text-green-500" /> },
+    { label: "This Week", value: `R${earnings.week.toFixed(2)}`, icon: <TrendingUp className="text-blue-500" /> },
+    { label: "Completed", value: earnings.count.toString(), icon: <CheckCircle className="text-primary" /> },
   ];
 
   const handleStatusChange = async (orderId: string, status: Order['status']) => {
@@ -85,7 +118,7 @@ export default function DriverDashboard() {
     const orderRef = doc(firestore, 'orders', orderId);
     const updateData = {
       driverId: user.uid,
-      status: 'Out for Delivery',
+      status: 'Out for Delivery' as const,
       participantUids: arrayUnion(user.uid),
     };
 
@@ -113,7 +146,7 @@ export default function DriverDashboard() {
               <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                 <Star className="h-3 w-3 text-primary fill-primary" />
                 <span className="font-bold text-white">4.8</span>
-                <span>• ID: DRV12345</span>
+                <span>• {driverProfile?.vehicleType || 'Driver'}</span>
               </div>
             </div>
           </div>
@@ -146,37 +179,36 @@ export default function DriverDashboard() {
         {activeDeliveries && activeDeliveries.length > 0 && (
           <section>
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <Package className="text-primary h-5 w-5" /> Current Tasks
+              <Package className="text-primary h-5 w-5" /> Active Tasks
             </h2>
             <div className="space-y-4">
               {activeDeliveries.map(order => (
                 <Card key={order.id} className="bg-[#1a1a1a] border-white/5 rounded-3xl overflow-hidden shadow-2xl">
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
-                      <Badge className="bg-primary/20 text-primary border-none text-[10px]">PICKUP READY</Badge>
-                      <span className="text-xs text-muted-foreground">#{order.id.slice(0, 6)}</span>
+                      <Badge className="bg-primary/20 text-primary border-none text-[10px]">IN TRANSIT</Badge>
+                      <span className="text-xs text-muted-foreground">Order #{order.id.slice(0, 6)}</span>
                     </div>
                     <div className="space-y-4">
                       <div className="flex items-start gap-3">
                         <div className="w-2 h-2 rounded-full bg-primary mt-1.5" />
-                        <div>
-                          <p className="text-[10px] uppercase font-bold text-muted-foreground">Pickup</p>
-                          <p className="text-sm font-bold">The Golden Spatula</p>
+                        <div className="flex-1">
+                          <p className="text-[10px] uppercase font-bold text-muted-foreground">Dropoff Location</p>
+                          <p className="text-sm font-bold">{order.deliveryAddress}</p>
                         </div>
                       </div>
-                      <div className="flex items-start gap-3">
-                        <MapPin className="h-4 w-4 text-green-500 mt-1" />
-                        <div>
-                          <p className="text-[10px] uppercase font-bold text-muted-foreground">Dropoff</p>
-                          <p className="text-sm font-bold truncate max-w-[200px]">{order.deliveryAddress}</p>
-                        </div>
-                      </div>
+                      {order.notes && (
+                         <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                            <p className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Customer Note</p>
+                            <p className="text-xs italic">"{order.notes}"</p>
+                         </div>
+                      )}
                     </div>
                     <Button 
-                      className="w-full mt-6 rounded-2xl h-12 font-bold text-sm"
+                      className="w-full mt-6 rounded-2xl h-12 font-bold text-sm bg-primary hover:bg-primary/90"
                       onClick={() => handleStatusChange(order.id, 'Delivered')}
                     >
-                      Complete Delivery
+                      Mark as Delivered
                     </Button>
                   </CardContent>
                 </Card>
@@ -189,7 +221,11 @@ export default function DriverDashboard() {
         <section>
           <div className="flex items-center justify-between mb-4">
              <h2 className="text-lg font-bold">Available Nearby</h2>
-             <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-full">3 NEW</span>
+             {availableDeliveries && availableDeliveries.length > 0 && (
+                <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-full animate-pulse">
+                  {availableDeliveries.length} NEW
+                </span>
+             )}
           </div>
           
           <div className="space-y-4">
@@ -197,17 +233,23 @@ export default function DriverDashboard() {
               Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-32 w-full bg-[#1a1a1a] rounded-3xl" />)
             ) : availableDeliveries && availableDeliveries.length > 0 ? (
               availableDeliveries.map(order => (
-                <div key={order.id} className="bg-[#1a1a1a] p-5 rounded-3xl border border-white/5 flex items-center justify-between group">
+                <div key={order.id} className="bg-[#1a1a1a] p-5 rounded-3xl border border-white/5 flex items-center justify-between group animate-in fade-in slide-in-from-bottom-4">
                   <div className="flex-1 overflow-hidden mr-4">
-                    <h3 className="font-bold text-sm truncate">McDonald's Paledi</h3>
-                    <div className="flex items-center gap-3 mt-2 text-[11px] text-muted-foreground font-medium">
-                      <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> 3.2km</span>
-                      <span className="flex items-center gap-1 text-primary"><DollarSign className="h-3 w-3" /> R35.00 fee</span>
+                    <h3 className="font-bold text-sm truncate">New Delivery Request</h3>
+                    <div className="flex flex-col gap-1 mt-2">
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                            <MapPin className="h-3 w-3 text-primary" />
+                            <span className="truncate">{order.deliveryAddress}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-primary font-bold">
+                            <DollarSign className="h-3 w-3" />
+                            <span>Estimated Fee: R35.00</span>
+                        </div>
                     </div>
                   </div>
                   <Button 
                     variant="secondary" 
-                    className="bg-primary text-white hover:bg-primary/90 rounded-2xl px-6 font-bold h-10"
+                    className="bg-primary text-white hover:bg-primary/90 rounded-2xl px-6 font-bold h-10 flex-shrink-0"
                     onClick={() => handleAcceptOrder(order.id)}
                     disabled={!isOnline}
                   >
@@ -216,9 +258,10 @@ export default function DriverDashboard() {
                 </div>
               ))
             ) : (
-              <div className="text-center py-10 bg-[#1a1a1a] rounded-3xl border border-dashed border-white/10">
-                <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground text-sm">Waiting for new orders...</p>
+              <div className="text-center py-16 bg-[#1a1a1a] rounded-3xl border border-dashed border-white/10">
+                <Clock className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm">No new orders available.</p>
+                <p className="text-[10px] text-muted-foreground mt-1 px-10">We'll notify you when a customer places an order nearby.</p>
               </div>
             )}
           </div>

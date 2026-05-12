@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -5,14 +6,15 @@ import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { doc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
-export function useDriverLocationTracking(hasActiveDeliveries: boolean) {
+export function useDriverLocationTracking(isActive: boolean) {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
-    if (!hasActiveDeliveries || !user || !firestore) {
+    // Only track if active (online) and we have the necessary context
+    if (!isActive || !user || !firestore) {
       setIsTracking(false);
       return;
     }
@@ -28,6 +30,20 @@ export function useDriverLocationTracking(hasActiveDeliveries: boolean) {
         });
         return;
       }
+
+      // Request current position immediately to verify permission
+      navigator.geolocation.getCurrentPosition(
+        () => {}, 
+        (err) => {
+          if (err.code === err.PERMISSION_DENIED) {
+            toast({
+              variant: 'destructive',
+              title: 'Location Permission Denied',
+              description: 'Please enable location permissions to go online and accept deliveries.',
+            });
+          }
+        }
+      );
 
       watchId = navigator.geolocation.watchPosition(
         (position) => {
@@ -46,24 +62,20 @@ export function useDriverLocationTracking(hasActiveDeliveries: boolean) {
         (error) => {
           console.error('Error getting location:', error);
           setIsTracking(false);
-          let description = 'Could not get your location.';
+          
           if (error.code === error.PERMISSION_DENIED) {
-            description = 'Please enable location permissions to track your delivery.';
-          }
-          toast({
-            variant: 'destructive',
-            title: 'Location Tracking Error',
-            description,
-          });
-          // Stop trying if permission is denied
-          if (watchId !== null) {
-            navigator.geolocation.clearWatch(watchId);
-            watchId = null;
+            // Already handled above, but ensure tracking is off
+          } else {
+             toast({
+              variant: 'destructive',
+              title: 'Tracking Error',
+              description: 'Lost connection to GPS.',
+            });
           }
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
+          timeout: 20000,
           maximumAge: 0,
         }
       );
@@ -76,9 +88,7 @@ export function useDriverLocationTracking(hasActiveDeliveries: boolean) {
         navigator.geolocation.clearWatch(watchId);
       }
     };
-  }, [hasActiveDeliveries, user, firestore, toast]);
+  }, [isActive, user, firestore, toast]);
 
   return { isTracking };
 }
-
-    
