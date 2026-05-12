@@ -16,6 +16,7 @@ import Logo from '@/components/logo';
 import { useAuth } from '@/firebase';
 import { createUserWithEmailAndPassword, sendEmailVerification, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { getFriendlyErrorMessage } from '@/firebase/errors';
 
 const emailSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -42,7 +43,6 @@ export default function SignupPage() {
   useEffect(() => {
     if (!auth) return;
     
-    // Set up reCAPTCHA for phone number verification
     if (!(window as any).recaptchaVerifier) {
       (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
@@ -80,7 +80,7 @@ export default function SignupPage() {
       toast({
         variant: 'destructive',
         title: 'Sign-up Failed',
-        description: error.message || 'An unexpected error occurred.',
+        description: getFriendlyErrorMessage(error),
       });
     }
   };
@@ -96,7 +96,7 @@ export default function SignupPage() {
       toast({
         variant: 'destructive',
         title: 'Could not send code',
-        description: error.message || 'Please check the phone number and try again.',
+        description: getFriendlyErrorMessage(error),
       });
     }
   };
@@ -105,7 +105,6 @@ export default function SignupPage() {
     if (!confirmationResult) return;
     try {
       await confirmationResult.confirm(values.code);
-      // On successful verification, the user is signed in.
       router.push('/role-selection');
     } catch (error: any) {
       toast({

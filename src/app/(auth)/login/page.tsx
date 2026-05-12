@@ -16,6 +16,7 @@ import Logo from '@/components/logo';
 import { useAuth } from '@/firebase';
 import { signInWithEmailAndPassword, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult, sendPasswordResetEmail } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { getFriendlyErrorMessage } from '@/firebase/errors';
 import {
   Dialog,
   DialogContent,
@@ -52,8 +53,6 @@ export default function LoginPage() {
   useEffect(() => {
     if (!auth) return;
     
-    // Set up reCAPTCHA. This is invisible and helps prevent abuse.
-    // It's attached to the window object to avoid re-creating it on every render.
     if (!(window as any).recaptchaVerifier) {
       (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
@@ -85,7 +84,7 @@ export default function LoginPage() {
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: error.message || 'An unexpected error occurred.',
+        description: getFriendlyErrorMessage(error),
       });
     }
   };
@@ -101,7 +100,7 @@ export default function LoginPage() {
       toast({
         variant: 'destructive',
         title: 'Could not send code',
-        description: error.message || 'Please check the phone number and try again.',
+        description: getFriendlyErrorMessage(error),
       });
     }
   };
@@ -136,13 +135,13 @@ export default function LoginPage() {
         title: 'Password Reset Email Sent',
         description: 'Please check your inbox for instructions to reset your password.',
       });
-      setResetDialogOpen(false); // Close dialog on success
+      setResetDialogOpen(false);
       setResetEmail('');
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Reset Failed',
-        description: error.message || 'Could not send reset email. Please check the address and try again.',
+        description: getFriendlyErrorMessage(error),
       });
     }
   };

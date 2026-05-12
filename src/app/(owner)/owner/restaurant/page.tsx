@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useMemo } from 'react';
@@ -9,6 +8,7 @@ import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 
 import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { getFriendlyErrorMessage } from '@/firebase/errors';
 import type { Restaurant } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -97,31 +97,36 @@ export default function StoreDetailsPage() {
 
     const submissionData = {
         ...restData,
-        storeOwnerId: user.uid, // Ensure owner ID is set
+        storeOwnerId: user.uid,
         openingHours: `${openingTime} - ${closingTime}`,
-        rating: existingStore?.rating || 0, // Preserve or set default
-        status: existingStore?.status || 'active', // Default to active if newly created by an active owner
+        rating: existingStore?.rating || 0,
+        status: existingStore?.status || 'active',
     };
 
-    if (existingStore) {
-        // Update existing restaurant
-        const restaurantRef = doc(firestore, 'restaurants', existingStore.id);
-        setDocumentNonBlocking(restaurantRef, submissionData, { merge: true });
-        toast({
-            title: 'Store Updated',
-            description: 'Your store details have been saved.',
-        });
-    } else {
-        // Create new restaurant
-        const restaurantsCollectionRef = collection(firestore, 'restaurants');
-        addDocumentNonBlocking(restaurantsCollectionRef, submissionData);
-         toast({
-            title: 'Store Created!',
-            description: 'Your new store has been saved.',
-        });
+    try {
+      if (existingStore) {
+          const restaurantRef = doc(firestore, 'restaurants', existingStore.id);
+          setDocumentNonBlocking(restaurantRef, submissionData, { merge: true });
+          toast({
+              title: 'Store Updated',
+              description: 'Your store details have been saved.',
+          });
+      } else {
+          const restaurantsCollectionRef = collection(firestore, 'restaurants');
+          addDocumentNonBlocking(restaurantsCollectionRef, submissionData);
+           toast({
+              title: 'Store Created!',
+              description: 'Your new store has been saved.',
+          });
+      }
+      router.refresh();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Save Failed',
+        description: getFriendlyErrorMessage(error),
+      });
     }
-
-    router.refresh();
   };
 
   const isLoading = !firestore || isRestaurantLoading;

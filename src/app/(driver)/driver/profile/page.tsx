@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking, useAuth } from '@/firebase';
+import { getFriendlyErrorMessage } from '@/firebase/errors';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { LogOut } from 'lucide-react';
@@ -86,11 +87,11 @@ export default function DriverProfilePage() {
             });
             router.push('/login');
         }
-    } catch (error) {
+    } catch (error: any) {
         toast({
             variant: 'destructive',
             title: 'Sign Out Failed',
-            description: 'There was an error while signing out.'
+            description: getFriendlyErrorMessage(error)
         });
     }
   };
