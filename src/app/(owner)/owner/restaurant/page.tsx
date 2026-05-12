@@ -132,7 +132,7 @@ export default function StoreDetailsPage() {
   const isLoading = !firestore || isRestaurantLoading;
 
   return (
-    <div className="container py-12">
+    <div className="container py-12 px-4 sm:px-8">
       <div className="mx-auto max-w-2xl">
         <div className="mb-8">
           <h1 className="font-headline text-4xl font-bold">My Store</h1>
@@ -140,7 +140,7 @@ export default function StoreDetailsPage() {
             {existingStore ? "Update your store's public information." : "Create your store profile."}
           </p>
         </div>
-        <Card>
+        <Card className="border-none shadow-premium rounded-[2rem]">
           <CardHeader>
             <CardTitle>Store Details</CardTitle>
             <CardDescription>This information will be visible to customers.</CardDescription>
@@ -163,7 +163,7 @@ export default function StoreDetailsPage() {
                       <FormItem>
                         <FormLabel>Store Name</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} className="rounded-xl" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -177,7 +177,7 @@ export default function StoreDetailsPage() {
                           <FormLabel>Category</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                               <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger className="rounded-xl">
                                   <SelectValue placeholder="Select a category" />
                               </SelectTrigger>
                               </FormControl>
@@ -216,7 +216,7 @@ export default function StoreDetailsPage() {
                                 <FormLabel>Opening Time</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                     <FormControl>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="rounded-xl">
                                         <SelectValue placeholder="Select a time" />
                                     </SelectTrigger>
                                     </FormControl>
@@ -238,7 +238,7 @@ export default function StoreDetailsPage() {
                                 <FormLabel>Closing Time</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                     <FormControl>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="rounded-xl">
                                         <SelectValue placeholder="Select a time" />
                                     </SelectTrigger>
                                     </FormControl>
@@ -300,7 +300,7 @@ export default function StoreDetailsPage() {
                       <FormItem>
                         <FormLabel>Promotional Banner Text</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="e.g. 20% off all pizzas this week!" />
+                          <Input {...field} placeholder="e.g. 20% off all pizzas this week!" className="rounded-xl" />
                         </FormControl>
                         <FormDescription>
                           A short message to display at the top of your store page. Leave blank to hide.
@@ -310,7 +310,7 @@ export default function StoreDetailsPage() {
                     )}
                   />
                   <div className="flex justify-end pt-4">
-                    <Button type="submit" disabled={form.formState.isSubmitting}>
+                    <Button type="submit" disabled={form.formState.isSubmitting} className="rounded-xl px-8 font-bold">
                       {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
                     </Button>
                   </div>

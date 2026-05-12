@@ -99,13 +99,13 @@ export default function DriverProfilePage() {
   const isLoading = isUserLoading || isDriverLoading;
 
   return (
-    <div className="container py-12">
+    <div className="container py-12 px-4 sm:px-8">
       <div className="mx-auto max-w-2xl">
         <div className="mb-8">
           <h1 className="font-headline text-4xl font-bold">My Driver Profile</h1>
           <p className="mt-2 text-muted-foreground">View and update your account details.</p>
         </div>
-        <Card>
+        <Card className="border-none shadow-premium rounded-[2rem]">
           <CardHeader>
             <CardTitle>Driver Information</CardTitle>
             <CardDescription>Manage your name, contact, and vehicle information.</CardDescription>
@@ -129,7 +129,7 @@ export default function DriverProfilePage() {
                       <FormItem>
                         <FormLabel>Full Name</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} className="rounded-xl" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -142,7 +142,7 @@ export default function DriverProfilePage() {
                       <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} className="rounded-xl" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -155,7 +155,7 @@ export default function DriverProfilePage() {
                       <FormItem>
                         <FormLabel>Vehicle Type</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. Scooter, Sedan, Hatchback" {...field} />
+                          <Input placeholder="e.g. Scooter, Sedan, Hatchback" {...field} className="rounded-xl" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -168,7 +168,7 @@ export default function DriverProfilePage() {
                       <FormItem>
                         <FormLabel>Driver's License Number</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} className="rounded-xl" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -181,14 +181,14 @@ export default function DriverProfilePage() {
                       <FormItem>
                         <FormLabel>Vehicle Registration Number</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. ABC 123 GP" {...field} />
+                          <Input placeholder="e.g. ABC 123 GP" {...field} className="rounded-xl" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   <div className="flex justify-end pt-4">
-                    <Button type="submit" disabled={form.formState.isSubmitting}>
+                    <Button type="submit" disabled={form.formState.isSubmitting} className="rounded-xl px-8 font-bold">
                       {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
                     </Button>
                   </div>
@@ -196,7 +196,7 @@ export default function DriverProfilePage() {
               </Form>
             )}
              <Separator className="my-6" />
-             <Button onClick={handleSignOut} variant="outline" className="w-full">
+             <Button onClick={handleSignOut} variant="outline" className="w-full rounded-xl">
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign Out
             </Button>
