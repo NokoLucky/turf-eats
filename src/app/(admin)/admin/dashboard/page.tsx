@@ -5,12 +5,11 @@ import { collectionGroup, query, collection, doc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ExternalLink, CheckCircle, ShieldAlert, Store, Bike, AlertCircle, Trash2, UserPlus } from 'lucide-react';
+import { ExternalLink, CheckCircle, ShieldAlert, Store, Bike, AlertCircle, Trash2, UserPlus, TrendingUp, Users } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function AdminDashboard() {
@@ -33,293 +32,133 @@ export default function AdminDashboard() {
     return collection(firestore, 'restaurants');
   }, [firestore, user?.uid]);
 
-  const { data: allDrivers, isLoading: loadingDrivers, error: driversError } = useCollection(driversQuery);
-  const { data: allOwners, isLoading: loadingOwners, error: ownersError } = useCollection(ownersQuery);
-  const { data: allRestaurants, isLoading: loadingRestaurants, error: restaurantsError } = useCollection(restaurantsQuery);
+  const { data: allDrivers, isLoading: loadingDrivers } = useCollection(driversQuery);
+  const { data: allOwners, isLoading: loadingOwners } = useCollection(ownersQuery);
+  const { data: allRestaurants, isLoading: loadingRestaurants } = useCollection(restaurantsQuery);
+
+  const stats = [
+    { label: 'Total Orders', value: '1,245', growth: '+18%', icon: <ShoppingCart /> },
+    { label: 'Total Revenue', value: 'R24,560', growth: '+22%', icon: <TrendingUp /> },
+    { label: 'Active Drivers', value: '45', growth: '+12%', icon: <Bike /> },
+    { label: 'Restaurants', value: '32', growth: '+10%', icon: <Store /> },
+  ];
 
   const handleApprove = (collectionName: 'drivers' | 'storeOwners', userId: string) => {
     if (!firestore) return;
-
     const docPath = `users/${userId}/${collectionName}/${userId}`;
     const docRef = doc(firestore, docPath);
-    
     updateDocumentNonBlocking(docRef, { status: 'active' });
-    
-    toast({
-      title: "Approval Successful",
-      description: `The ${collectionName === 'drivers' ? 'driver' : 'store owner'} has been activated.`,
-    });
+    toast({ title: "Approval Successful", description: "Profile has been activated." });
   };
-
-  const handleDelete = (path: string, label: string) => {
-    if (!firestore) return;
-    if (!confirm(`Are you sure you want to delete this ${label}? This action cannot be undone.`)) return;
-
-    const docRef = doc(firestore, path);
-    deleteDocumentNonBlocking(docRef);
-
-    toast({
-      title: `${label} Deleted`,
-      description: "The record has been removed from the system.",
-      variant: "destructive",
-    });
-  };
-
-  const TableSkeleton = () => (
-    <div className="space-y-4">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <Skeleton key={i} className="h-16 w-full" />
-      ))}
-    </div>
-  );
-
-  const isGlobalLoading = isUserLoading || (loadingDrivers && !allDrivers) || (loadingOwners && !allOwners) || (loadingRestaurants && !allRestaurants);
-
-  if (driversError || ownersError || restaurantsError) {
-    return (
-      <div className="container py-12">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Access Error</AlertTitle>
-          <AlertDescription>
-            The system encountered a permission issue or the database is not ready. Please ensure your account is correctly set as an admin in the database.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
 
   return (
-    <div className="container py-12">
-      <div className="mb-8 flex items-center gap-4">
-        <div className="p-3 bg-primary/10 rounded-lg">
-          <ShieldAlert className="h-8 w-8 text-primary" />
-        </div>
-        <div>
-          <h1 className="font-headline text-4xl font-bold">Admin Management</h1>
-          <p className="text-muted-foreground mt-1">Manage drivers, store owners, and restaurants across the Pin2You platform.</p>
-        </div>
+    <div className="container py-10 px-4 sm:px-8">
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold">Welcome back, Admin 👑</h1>
+        <p className="text-muted-foreground mt-1">Here's what's happening on your platform today.</p>
       </div>
 
-      <Tabs defaultValue="drivers" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-xl">
-          <TabsTrigger value="drivers" className="flex items-center gap-2">
-            <Bike className="h-4 w-4" />
-            Drivers
-          </TabsTrigger>
-          <TabsTrigger value="owners" className="flex items-center gap-2">
-            <UserPlus className="h-4 w-4" />
-            Store Owners
-          </TabsTrigger>
-          <TabsTrigger value="restaurants" className="flex items-center gap-2">
-            <Store className="h-4 w-4" />
-            Restaurants
-          </TabsTrigger>
+      {/* Admin Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        {stats.map((stat) => (
+          <Card key={stat.label} className="border-none shadow-premium rounded-[2rem]">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-bold text-muted-foreground uppercase">{stat.label}</CardTitle>
+              <div className="bg-primary/10 p-2 rounded-xl text-primary">{React.cloneElement(stat.icon as React.ReactElement, { className: "h-4 w-4" })}</div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stat.value}</div>
+              <p className="text-[10px] text-green-600 font-bold mt-1 flex items-center gap-1">
+                <TrendingUp className="h-3 w-3" /> {stat.growth}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Tabs defaultValue="drivers" className="space-y-8">
+        <TabsList className="bg-white p-1 rounded-2xl shadow-premium border-none h-14 w-full max-w-md">
+          <TabsTrigger value="drivers" className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">Drivers</TabsTrigger>
+          <TabsTrigger value="owners" className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">Owners</TabsTrigger>
+          <TabsTrigger value="restaurants" className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">Stores</TabsTrigger>
         </TabsList>
 
         <TabsContent value="drivers">
-          <Card>
-            <CardHeader>
-              <CardTitle>Driver Directory</CardTitle>
-              <CardDescription>Manage all registered drivers and their approval status.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isGlobalLoading ? (
-                <TableSkeleton />
-              ) : !allDrivers || allDrivers.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <p>No drivers found.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {loadingDrivers ? <Skeleton className="h-40 w-full rounded-3xl" /> : allDrivers?.map(driver => (
+              <Card key={driver.id} className="border-none shadow-premium rounded-[2rem] p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-full bg-secondary overflow-hidden">
+                       <img src={`https://picsum.photos/seed/${driver.id}/100/100`} alt="avatar" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold">{driver.name}</h3>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">{driver.vehicleType}</p>
+                    </div>
+                  </div>
+                  <Badge variant={driver.status === 'active' ? 'default' : 'outline'}>{driver.status}</Badge>
                 </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Driver Name</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Vehicle</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allDrivers.map((driver) => (
-                      <TableRow key={driver.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex flex-col">
-                            <span>{driver.name}</span>
-                            {driver.licenseUrl && (
-                                <a href={driver.licenseUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center mt-1">
-                                    View License <ExternalLink className="ml-1 h-3 w-3" />
-                                </a>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={driver.status === 'active' ? 'default' : 'destructive'}>
-                            {driver.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-xs">
-                            <p>{driver.vehicleType || 'N/A'}</p>
-                            <p className="text-muted-foreground">{driver.vehicleRegistration || 'No plates'}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            {driver.status === 'pending' && (
-                              <Button 
-                                size="sm" 
-                                onClick={() => handleApprove('drivers', driver.userId)}
-                                className="bg-green-600 hover:bg-green-700 text-white"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                                <span className="hidden sm:inline ml-2">Approve</span>
-                              </Button>
-                            )}
-                            <Button 
-                              size="sm" 
-                              variant="destructive"
-                              onClick={() => handleDelete(`users/${driver.userId}/drivers/${driver.userId}`, 'Driver')}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              <span className="hidden sm:inline ml-2">Delete</span>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                <div className="flex gap-2 mt-6">
+                  {driver.status === 'pending' && (
+                    <Button size="sm" className="flex-1 rounded-xl" onClick={() => handleApprove('drivers', driver.userId)}>Approve</Button>
+                  )}
+                  <Button size="sm" variant="outline" className="flex-1 rounded-xl text-muted-foreground">Details</Button>
+                </div>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
 
         <TabsContent value="owners">
-          <Card>
-            <CardHeader>
-              <CardTitle>Store Owner Directory</CardTitle>
-              <CardDescription>Manage store owner profiles and platform access.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isGlobalLoading ? (
-                <TableSkeleton />
-              ) : !allOwners || allOwners.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <p>No store owners found.</p>
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {loadingOwners ? <Skeleton className="h-40 w-full rounded-3xl" /> : allOwners?.map(owner => (
+              <Card key={owner.id} className="border-none shadow-premium rounded-[2rem] p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-bold">{owner.name}</h3>
+                    <p className="text-xs text-muted-foreground">{owner.email}</p>
+                  </div>
+                  <Badge variant={owner.status === 'active' ? 'default' : 'outline'}>{owner.status}</Badge>
                 </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Owner Name</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Contact</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allOwners.map((owner) => (
-                      <TableRow key={owner.id}>
-                        <TableCell className="font-medium">
-                          {owner.name}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={owner.status === 'active' ? 'default' : 'destructive'}>
-                            {owner.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-xs">
-                            <p>{owner.email}</p>
-                            <p className="text-muted-foreground">{owner.phoneNumber}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                             {owner.status === 'pending' && (
-                              <Button 
-                                size="sm" 
-                                onClick={() => handleApprove('storeOwners', owner.userId)}
-                                className="bg-green-600 hover:bg-green-700 text-white"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                                <span className="hidden sm:inline ml-2">Approve</span>
-                              </Button>
-                            )}
-                            <Button 
-                              size="sm" 
-                              variant="destructive"
-                              onClick={() => handleDelete(`users/${owner.userId}/storeOwners/${owner.userId}`, 'Owner')}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              <span className="hidden sm:inline ml-2">Delete</span>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                <div className="flex gap-2 mt-6">
+                  {owner.status === 'pending' && (
+                    <Button size="sm" className="flex-1 rounded-xl" onClick={() => handleApprove('storeOwners', owner.userId)}>Approve</Button>
+                  )}
+                  <Button size="sm" variant="outline" className="flex-1 rounded-xl text-muted-foreground">Manage</Button>
+                </div>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
-
+        
         <TabsContent value="restaurants">
-          <Card>
-            <CardHeader>
-              <CardTitle>Restaurant Directory</CardTitle>
-              <CardDescription>View and manage all stores currently listed on the platform.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isGlobalLoading ? (
-                <TableSkeleton />
-              ) : !allRestaurants || allRestaurants.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <p>No restaurants found.</p>
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {loadingRestaurants ? <Skeleton className="h-40 w-full rounded-3xl" /> : allRestaurants?.map(store => (
+              <Card key={store.id} className="border-none shadow-premium rounded-[2rem] p-6 overflow-hidden">
+                <div className="relative h-32 -mx-6 -mt-6 mb-4">
+                   <img src={store.bannerUrl} className="w-full h-full object-cover" alt="banner" />
+                   <div className="absolute bottom-2 right-2 h-10 w-10 bg-white p-1 rounded-lg">
+                      <img src={store.logoUrl} className="w-full h-full object-cover rounded-md" alt="logo" />
+                   </div>
                 </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Store Name</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allRestaurants.map((restaurant) => (
-                      <TableRow key={restaurant.id}>
-                        <TableCell className="font-medium">
-                          {restaurant.name}
-                        </TableCell>
-                        <TableCell>{restaurant.category}</TableCell>
-                        <TableCell>
-                          <Badge variant={restaurant.status === 'active' ? 'default' : 'secondary'}>
-                            {restaurant.status || 'active'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            onClick={() => handleDelete(`restaurants/${restaurant.id}`, 'Restaurant')}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="hidden sm:inline ml-2">Delete</span>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                <h3 className="font-bold">{store.name}</h3>
+                <p className="text-xs text-muted-foreground">{store.category}</p>
+                <div className="flex justify-between items-center mt-4">
+                  <Badge variant="secondary">Active</Badge>
+                  <Button size="sm" variant="ghost" className="text-destructive h-8 px-2 hover:bg-destructive/10"><Trash2 className="h-4 w-4" /></Button>
+                </div>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
       </Tabs>
     </div>
   );
+}
+
+function ShoppingCart(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+  )
 }

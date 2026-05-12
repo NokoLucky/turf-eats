@@ -1,16 +1,4 @@
-import type { ImagePlaceholder } from './placeholder-images';
-import { PlaceHolderImages } from './placeholder-images';
 import type { Timestamp } from 'firebase/firestore';
-
-
-const findImage = (id: string): ImagePlaceholder => {
-  const image = PlaceHolderImages.find((img) => img.id === id);
-  if (!image) {
-    // Fallback to a default image if not found
-    return { id: 'fallback', description: 'Placeholder', imageUrl: 'https://picsum.photos/seed/fallback/200/200', imageHint: 'placeholder' };
-  }
-  return image;
-};
 
 export type MenuItem = {
   id: string;
@@ -18,9 +6,8 @@ export type MenuItem = {
   description: string;
   price: number;
   promotionalPrice?: number;
-  image: ImagePlaceholder;
-  restaurantId: string;
   imageUrl: string;
+  restaurantId: string;
   isSoldOut?: boolean;
 };
 
@@ -29,12 +16,17 @@ export type Restaurant = {
   name: string;
   logoUrl: string;
   rating: number;
+  ratingCount?: number;
   category: string;
   bannerUrl: string;
   storeOwnerId: string;
   address: string;
   openingHours: string;
   promotionBannerText?: string;
+  deliveryFee?: number;
+  deliveryTime?: string;
+  minOrder?: number;
+  status: 'active' | 'pending' | 'inactive';
 };
 
 export type OrderStatus = 'Placed' | 'Preparing' | 'Out for Delivery' | 'Delivered' | 'Cancelled';
@@ -52,9 +44,6 @@ export type Order = {
   notes?: string;
   isRated?: boolean;
   participantUids: string[];
-  // This is a denormalized field for easier display on the customer side.
-  // It won't be fetched on the owner side.
-  restaurantName?: string;
 };
 
 export type OrderItem = {
@@ -63,7 +52,7 @@ export type OrderItem = {
     menuItemId: string;
     quantity: number;
     itemPrice: number;
-    name: string; // Denormalized for display
+    name: string;
 };
 
 export type Rating = {
@@ -78,6 +67,3 @@ export type Rating = {
     driverComment?: string;
     createdAt: Timestamp;
 }
-
-// This is placeholder and will be removed from pages that use it.
-export const orders: any[] = [];
