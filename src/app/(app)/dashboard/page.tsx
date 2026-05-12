@@ -14,6 +14,7 @@ import type { Restaurant } from '@/lib/data';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 const categories = [
   { name: 'Restaurants', icon: <Utensils /> },
@@ -54,6 +55,7 @@ export default function CustomerDashboardPage() {
 
   const [greeting, setGreeting] = React.useState('Good morning');
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [selectedCategory, setSelectedCategory] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const hour = new Date().getHours();
@@ -74,14 +76,26 @@ export default function CustomerDashboardPage() {
   const filteredStores = React.useMemo(() => {
     if (!stores) return [];
     return stores.filter(store => {
-      if (!searchTerm) return true;
       const lowercasedTerm = searchTerm.toLowerCase();
-      return (
+      const matchesSearch = !searchTerm || 
         store.name.toLowerCase().includes(lowercasedTerm) ||
-        store.category.toLowerCase().includes(lowercasedTerm)
-      );
+        store.category.toLowerCase().includes(lowercasedTerm);
+      
+      const matchesCategory = !selectedCategory || 
+        selectedCategory === 'More' || 
+        store.category === selectedCategory;
+
+      return matchesSearch && matchesCategory;
     });
-  }, [stores, searchTerm]);
+  }, [stores, searchTerm, selectedCategory]);
+
+  const handleCategoryClick = (categoryName: string) => {
+    if (selectedCategory === categoryName) {
+      setSelectedCategory(null);
+    } else {
+      setSelectedCategory(categoryName);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background pb-10">
@@ -126,20 +140,39 @@ export default function CustomerDashboardPage() {
       <div className="container px-4 sm:px-8 pt-6">
         {/* Category Grid */}
         <div className="grid grid-cols-4 gap-4 mb-10">
-          {categories.map((cat) => (
-            <div key={cat.name} className="flex flex-col items-center gap-2 group cursor-pointer">
-              <div className="bg-white shadow-premium p-4 rounded-2xl group-hover:scale-110 transition-transform">
-                {React.cloneElement(cat.icon as React.ReactElement, { className: "h-6 w-6 text-primary" })}
+          {categories.map((cat) => {
+            const isActive = selectedCategory === cat.name;
+            return (
+              <div 
+                key={cat.name} 
+                className="flex flex-col items-center gap-2 group cursor-pointer"
+                onClick={() => handleCategoryClick(cat.name)}
+              >
+                <div className={cn(
+                  "shadow-premium p-4 rounded-2xl transition-all duration-300 group-hover:scale-110",
+                  isActive ? "bg-primary text-white scale-110" : "bg-white text-primary"
+                )}>
+                  {React.cloneElement(cat.icon as React.ReactElement, { 
+                    className: cn("h-6 w-6", isActive ? "text-white" : "text-primary") 
+                  })}
+                </div>
+                <span className={cn(
+                  "text-[10px] font-bold text-center",
+                  isActive ? "text-primary" : "text-foreground"
+                )}>
+                  {cat.name}
+                </span>
               </div>
-              <span className="text-[10px] font-bold text-center">{cat.name}</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Popular Near You */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold">Popular Near You</h2>
+            <h2 className="text-lg font-bold">
+              {selectedCategory ? `${selectedCategory} near you` : 'Popular Near You'}
+            </h2>
             <Link href="#" className="text-primary text-xs font-bold">See all</Link>
           </div>
           
@@ -193,7 +226,13 @@ export default function CustomerDashboardPage() {
               ))
             ) : (
               <div className="w-full text-center py-10 bg-white rounded-3xl">
-                <p className="text-muted-foreground">No stores found near you.</p>
+                <p className="text-muted-foreground">No stores found in this category.</p>
+                <button 
+                  onClick={() => setSelectedCategory(null)}
+                  className="mt-2 text-primary text-xs font-bold"
+                >
+                  Clear filter
+                </button>
               </div>
             )}
           </div>
@@ -203,25 +242,31 @@ export default function CustomerDashboardPage() {
         <div className="mb-8">
            <h2 className="text-lg font-bold mb-4">All Stores</h2>
            <div className="space-y-4">
-              {filteredStores.map(store => (
-                <Link href={`/restaurant/${store.id}`} key={store.id} className="flex gap-4 bg-white p-3 rounded-2xl shadow-premium group">
-                  <div className="relative h-24 w-24 rounded-xl overflow-hidden flex-shrink-0">
-                    <Image src={store.logoUrl || 'https://picsum.photos/seed/logo/200/200'} alt={store.name} fill className="object-cover" />
-                  </div>
-                  <div className="flex-1 flex flex-col justify-center">
-                    <h3 className="font-bold">{store.name}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Star className="h-3 w-3 text-primary fill-primary" />
-                      <span className="text-xs font-bold">{(store.rating || 4.5).toFixed(1)}</span>
-                      <span className="text-muted-foreground text-[10px]">(150+)</span>
+              {filteredStores.length > 0 ? (
+                filteredStores.map(store => (
+                  <Link href={`/restaurant/${store.id}`} key={store.id} className="flex gap-4 bg-white p-3 rounded-2xl shadow-premium group">
+                    <div className="relative h-24 w-24 rounded-xl overflow-hidden flex-shrink-0">
+                      <Image src={store.logoUrl || 'https://picsum.photos/seed/logo/200/200'} alt={store.name} fill className="object-cover" />
                     </div>
-                    <div className="flex items-center gap-3 mt-2 text-[10px] font-medium">
-                       <span className="text-primary">Open now</span>
-                       <span className="text-muted-foreground">• Min. order R{store.minOrder || '50'}</span>
+                    <div className="flex-1 flex flex-col justify-center">
+                      <h3 className="font-bold">{store.name}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Star className="h-3 w-3 text-primary fill-primary" />
+                        <span className="text-xs font-bold">{(store.rating || 4.5).toFixed(1)}</span>
+                        <span className="text-muted-foreground text-[10px]">(150+)</span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-2 text-[10px] font-medium">
+                         <span className="text-primary">Open now</span>
+                         <span className="text-muted-foreground">• Min. order R{store.minOrder || '50'}</span>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))
+              ) : (
+                <div className="text-center py-10">
+                   <p className="text-muted-foreground">No results match your search and filters.</p>
+                </div>
+              )}
            </div>
         </div>
       </div>
