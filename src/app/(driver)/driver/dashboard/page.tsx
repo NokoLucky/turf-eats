@@ -7,7 +7,7 @@ import {
   Bike, CheckCircle, Package, Clock, MapPin, 
   TrendingUp, Star, DollarSign, SwitchCamera, LogOut
 } from 'lucide-react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc, query, where, updateDoc, arrayUnion } from 'firebase/firestore';
 import type { Order } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,12 +17,28 @@ import { Badge } from '@/components/ui/badge';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useDriverLocationTracking } from '@/hooks/use-driver-location-tracking';
+import { cn } from '@/lib/utils';
 
 export default function DriverDashboard() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isOnline, setIsOnline] = useState(true);
+  const [greeting, setGreeting] = useState('Good morning');
+
+  React.useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Good morning');
+    else if (hour < 18) setGreeting('Good afternoon');
+    else setGreeting('Good evening');
+  }, []);
+
+  // Fetch driver profile to get the most up-to-date name
+  const driverRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, `users/${user.uid}/drivers/${user.uid}`);
+  }, [user?.uid, firestore]);
+  const { data: driverProfile } = useDoc(driverRef);
 
   // My Active Deliveries
   const myDeliveriesQuery = useMemoFirebase(() => {
@@ -32,7 +48,7 @@ export default function DriverDashboard() {
       where('participantUids', 'array-contains', user.uid),
       where('status', '==', 'Out for Delivery')
     );
-  }, [user, firestore]);
+  }, [user?.uid, firestore]);
 
   // Available Deliveries (nearby/unassigned)
   const availableDeliveriesQuery = useMemoFirebase(() => {
@@ -80,6 +96,9 @@ export default function DriverDashboard() {
     });
   };
 
+  const displayName = driverProfile?.name || user?.displayName || 'Lucas';
+  const firstName = displayName.split(' ')[0];
+
   return (
     <div className="min-h-screen bg-[#111] text-white pb-20">
       {/* Driver Profile Header */}
@@ -90,7 +109,7 @@ export default function DriverDashboard() {
               <img src={user?.photoURL || `https://picsum.photos/seed/${user?.uid}/100/100`} alt="profile" className="object-cover" />
             </div>
             <div>
-              <h1 className="text-lg font-bold">{user?.displayName || 'Lucas'}</h1>
+              <h1 className="text-lg font-bold">{greeting}, {firstName} 👋</h1>
               <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
                 <Star className="h-3 w-3 text-primary fill-primary" />
                 <span className="font-bold text-white">4.8</span>

@@ -8,8 +8,8 @@ import {
   Pill, Droplets, Shirt, Package, MoreHorizontal, Bell, MapPin, 
   Clock, Truck
 } from 'lucide-react';
-import { collection, query, where } from 'firebase/firestore';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import type { Restaurant } from '@/lib/data';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -45,13 +45,32 @@ function StoreCardSkeleton() {
 export default function CustomerDashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+
+  // Fetch customer profile to get the most up-to-date name
+  const customerRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, `users/${user.uid}/customers/${user.uid}`);
+  }, [user?.uid, firestore]);
+  const { data: customerProfile } = useDoc(customerRef);
+
+  const [greeting, setGreeting] = React.useState('Good morning');
+  const [searchTerm, setSearchTerm] = React.useState('');
+
+  React.useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Good morning');
+    else if (hour < 18) setGreeting('Good afternoon');
+    else setGreeting('Good evening');
+  }, []);
+
   const storesRef = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'restaurants'), where('status', '==', 'active')) : null),
     [firestore]
   );
   const { data: stores, isLoading } = useCollection<Omit<Restaurant, 'menu'>>(storesRef);
 
-  const [searchTerm, setSearchTerm] = React.useState('');
+  const displayName = customerProfile?.name || user?.displayName || 'User';
+  const firstName = displayName.split(' ')[0];
 
   const filteredStores = React.useMemo(() => {
     if (!stores) return [];
@@ -88,7 +107,7 @@ export default function CustomerDashboardPage() {
         </div>
 
         <div className="mb-6">
-          <h1 className="text-xl font-bold">Good morning, {user?.displayName?.split(' ')[0] || 'User'} 👋</h1>
+          <h1 className="text-xl font-bold">{greeting}, {firstName} 👋</h1>
           <p className="text-2xl font-bold mt-1 leading-tight">
             Anything you need, <span className="text-primary">delivered fast</span> in Turfloop & Polokwane.
           </p>

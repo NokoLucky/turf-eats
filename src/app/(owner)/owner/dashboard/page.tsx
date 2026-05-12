@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
-import { collection, query, where } from 'firebase/firestore';
+import { useMemo, useState, useEffect } from 'react';
+import { collection, query, where, doc } from 'firebase/firestore';
 import { format, formatDistanceToNow } from 'date-fns';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import type { Order, OrderItem } from '@/lib/data';
 import Link from 'next/link';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts"
@@ -18,11 +18,26 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } f
 export default function OwnerDashboard() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const [greeting, setGreeting] = useState('Welcome back');
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Good morning');
+    else if (hour < 18) setGreeting('Good afternoon');
+    else setGreeting('Good evening');
+  }, []);
+
+  // Fetch owner profile to get the most up-to-date name
+  const ownerRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, `users/${user.uid}/storeOwners/${user.uid}`);
+  }, [user?.uid, firestore]);
+  const { data: ownerProfile } = useDoc(ownerRef);
 
   const ordersQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(collection(firestore, 'orders'), where('participantUids', 'array-contains', user.uid));
-  }, [user, firestore]);
+  }, [user?.uid, firestore]);
 
   const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
 
@@ -47,12 +62,15 @@ export default function OwnerDashboard() {
     return Object.entries(salesByDay).map(([date, amount]) => ({ date, amount }));
   }, [orders]);
 
+  const displayName = ownerProfile?.name || user?.displayName || 'Store Owner';
+  const firstName = displayName.split(' ')[0];
+
   return (
     <div className="container py-10 px-4 sm:px-8">
       {/* Dynamic Header */}
       <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Welcome back, {user?.displayName || 'Store Owner'} 🍤</h1>
+          <h1 className="text-3xl font-bold">{greeting}, {firstName} 🍤</h1>
           <p className="text-muted-foreground mt-1">Your store received <span className="text-primary font-bold">{orders?.length || 0}</span> new orders today.</p>
         </div>
         <div className="flex gap-2">
