@@ -20,7 +20,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useDriverLocationTracking } from '@/hooks/use-driver-location-tracking';
 import { cn } from '@/lib/utils';
-import { startOfDay, startOfWeek, isAfter } from 'date-fns';
+import { startOfDay, startOfWeek, isAfter, isSameDay } from 'date-fns';
 
 /**
  * Component to display an active task with navigation and status controls.
@@ -142,7 +142,7 @@ export default function DriverDashboard() {
     );
   }, [firestore]);
 
-  // General query for driver orders to calculate history/earnings without composite index issues
+  // General query for all orders assigned to this driver to calculate earnings
   const allDriverOrdersQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(
@@ -162,7 +162,7 @@ export default function DriverDashboard() {
     
     const now = new Date();
     const todayStart = startOfDay(now);
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Start week on Monday
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
 
     // Driver gets 80% of R30 delivery fee = R24.00
     const payoutPerOrder = 24; 
@@ -170,11 +170,21 @@ export default function DriverDashboard() {
     return allOrders
       .filter(order => order.status === 'Delivered')
       .reduce((acc, order) => {
+        // Guard against null timestamps from serverTimestamp() during optimistic updates
         if (!order.orderDate) return acc;
         
         const orderDate = order.orderDate.toDate();
-        if (isAfter(orderDate, todayStart)) acc.today += payoutPerOrder;
-        if (isAfter(orderDate, weekStart)) acc.week += payoutPerOrder;
+        
+        // Count for Today
+        if (isSameDay(orderDate, now)) {
+          acc.today += payoutPerOrder;
+        }
+        
+        // Count for Week
+        if (isAfter(orderDate, weekStart) || isSameDay(orderDate, weekStart)) {
+          acc.week += payoutPerOrder;
+        }
+        
         acc.count += 1;
         return acc;
       }, { today: 0, week: 0, count: 0 });
