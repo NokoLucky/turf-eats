@@ -1,10 +1,9 @@
-
 'use client';
 
 import Image from 'next/image';
 import { notFound, useParams } from 'next/navigation';
-import { Star, Utensils, PlusCircle, ArrowLeft } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { Star, Utensils, PlusCircle, ArrowLeft, LayoutGrid } from 'lucide-react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
@@ -27,6 +26,7 @@ export default function RestaurantMenuPage() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedMenuCategory, setSelectedMenuCategory] = useState('All');
 
   useEffect(() => {
     if (!firestore || !id) return;
@@ -58,7 +58,7 @@ export default function RestaurantMenuPage() {
     fetchData();
   }, [firestore, id]);
 
-  const menuByCategory = React.useMemo(() => {
+  const menuByCategory = useMemo(() => {
     if (!menuItems) return {};
     const grouped = menuItems.reduce((acc, item) => {
       const category = item.category || 'General';
@@ -78,6 +78,16 @@ export default function RestaurantMenuPage() {
     }, {} as Record<string, MenuItem[]>);
 
   }, [menuItems]);
+
+  const categories = useMemo(() => {
+    const list = Object.keys(menuByCategory);
+    return ['All', ...list];
+  }, [menuByCategory]);
+
+  const filteredMenu = useMemo(() => {
+    if (selectedMenuCategory === 'All') return Object.entries(menuByCategory);
+    return Object.entries(menuByCategory).filter(([name]) => name === selectedMenuCategory);
+  }, [menuByCategory, selectedMenuCategory]);
 
   const handleAddToCart = (item: MenuItem) => {
     const priceToUse = item.promotionalPrice && item.promotionalPrice > 0 ? item.promotionalPrice : item.price;
@@ -180,28 +190,53 @@ export default function RestaurantMenuPage() {
             </div>
           )}
 
-          <div className="container py-12 px-4 sm:px-8">
-            <div className="mb-10">
-                <h2 className="font-headline text-4xl font-bold mb-2">Our Menu</h2>
-                <div className="h-1.5 w-20 bg-primary rounded-full"></div>
+          <div className="container py-8 px-4 sm:px-8">
+            <div className="mb-6 flex flex-col gap-6">
+                <div>
+                  <h2 className="font-headline text-3xl font-bold mb-1">Our Menu</h2>
+                  <div className="h-1 w-12 bg-primary rounded-full"></div>
+                </div>
+
+                {/* Category Slider */}
+                <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
+                  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
+                    {categories.map((cat) => (
+                      <Button
+                        key={cat}
+                        variant={selectedMenuCategory === cat ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setSelectedMenuCategory(cat)}
+                        className={cn(
+                          "rounded-full whitespace-nowrap px-6 h-10 font-bold transition-all",
+                          selectedMenuCategory === cat 
+                            ? "bg-primary text-white shadow-lg shadow-primary/20 scale-105" 
+                            : "bg-white text-muted-foreground hover:bg-primary/5 hover:text-primary border-muted"
+                        )}
+                      >
+                        {cat === 'All' && <LayoutGrid className="mr-2 h-3.5 w-3.5" />}
+                        {cat}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
             </div>
             
-            {Object.keys(menuByCategory).length > 0 ? (
-                <div className="space-y-16">
-                    {Object.entries(menuByCategory).map(([categoryName, items]) => (
+            {filteredMenu.length > 0 ? (
+                <div className="space-y-12">
+                    {filteredMenu.map(([categoryName, items]) => (
                         <section key={categoryName}>
-                            <div className="flex items-center gap-4 mb-8">
-                                <h3 className="text-2xl font-bold text-foreground">{categoryName}</h3>
+                            <div className="flex items-center gap-4 mb-6">
+                                <h3 className="text-xl font-bold text-foreground">{categoryName}</h3>
                                 <div className="h-px flex-1 bg-muted"></div>
-                                <Badge variant="outline" className="rounded-full text-muted-foreground border-muted">{items.length} items</Badge>
+                                <Badge variant="outline" className="rounded-full text-[10px] uppercase font-bold text-muted-foreground border-muted">{items.length} items</Badge>
                             </div>
-                            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                                 {items.map((item) => {
                                     const hasPromo = item.promotionalPrice && item.promotionalPrice > 0 && item.promotionalPrice < item.price;
                                     const displayPrice = hasPromo ? item.promotionalPrice : item.price;
 
                                     return (
-                                        <Card key={item.id} className={cn("border-none shadow-premium rounded-[2.5rem] overflow-hidden flex flex-col group transition-all duration-300 hover:shadow-2xl hover:-translate-y-1", item.isSoldOut && "opacity-70 bg-muted/30")}>
+                                        <Card key={item.id} className={cn("border-none shadow-premium rounded-[2rem] overflow-hidden flex flex-col group transition-all duration-300 hover:shadow-xl hover:-translate-y-1", item.isSoldOut && "opacity-70 bg-muted/30")}>
                                             <CardHeader className="p-0 relative">
                                                 <div className="relative aspect-video w-full overflow-hidden">
                                                     <Image
@@ -221,12 +256,12 @@ export default function RestaurantMenuPage() {
                                                     )}
                                                 </div>
                                             </CardHeader>
-                                            <CardContent className="flex flex-1 flex-col p-6">
-                                                <CardTitle className="font-headline text-xl group-hover:text-primary transition-colors">{item.name}</CardTitle>
-                                                <CardDescription className="mt-2 flex-1 text-xs leading-relaxed line-clamp-2">{item.description}</CardDescription>
-                                                <div className="mt-6 flex items-center justify-between">
+                                            <CardContent className="flex flex-1 flex-col p-5">
+                                                <CardTitle className="font-headline text-lg group-hover:text-primary transition-colors">{item.name}</CardTitle>
+                                                <CardDescription className="mt-1 flex-1 text-xs leading-relaxed line-clamp-2">{item.description}</CardDescription>
+                                                <div className="mt-5 flex items-center justify-between">
                                                     <div className="flex flex-col">
-                                                        <p className="text-xl font-bold text-primary">R{displayPrice.toFixed(2)}</p>
+                                                        <p className="text-lg font-bold text-primary">R{displayPrice.toFixed(2)}</p>
                                                         {hasPromo && (
                                                             <p className="text-[10px] text-muted-foreground line-through opacity-70">R{item.price.toFixed(2)}</p>
                                                         )}
@@ -235,8 +270,8 @@ export default function RestaurantMenuPage() {
                                                         onClick={() => handleAddToCart(item)} 
                                                         disabled={item.isSoldOut}
                                                         className={cn(
-                                                            "rounded-2xl h-11 px-5 font-bold shadow-lg transition-all",
-                                                            !item.isSoldOut && "shadow-primary/20 hover:shadow-primary/40"
+                                                            "rounded-xl h-10 px-4 font-bold shadow-md transition-all",
+                                                            !item.isSoldOut && "shadow-primary/10 hover:shadow-primary/30"
                                                         )}
                                                     >
                                                         {item.isSoldOut ? 'Unavailable' : (
@@ -256,12 +291,13 @@ export default function RestaurantMenuPage() {
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-20 bg-white rounded-[3rem] shadow-premium">
-                    <div className="bg-muted w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Utensils className="h-10 w-10 text-muted-foreground/30" />
+                <div className="text-center py-20 bg-white rounded-[2rem] shadow-premium">
+                    <div className="bg-muted w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Utensils className="h-8 w-8 text-muted-foreground/30" />
                     </div>
-                    <h2 className="text-2xl font-bold">Menu is coming soon</h2>
-                    <p className="text-muted-foreground mt-2 max-w-xs mx-auto">This store hasn't added any items to their menu yet. Check back later!</p>
+                    <h2 className="text-xl font-bold">No items found</h2>
+                    <p className="text-muted-foreground mt-2 max-w-xs mx-auto text-sm">We couldn't find any items in this category. Try selecting another one!</p>
+                    <Button variant="link" onClick={() => setSelectedMenuCategory('All')} className="mt-2 text-primary font-bold">Show All Items</Button>
                 </div>
             )}
           </div>
