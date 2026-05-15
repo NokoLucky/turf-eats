@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFirestore, useUser } from '@/firebase';
 import { writeBatch, doc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
-import type { Order, Rating, Driver } from '@/lib/data';
+import type { Order, Rating } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -26,7 +26,6 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { StarRating } from '@/components/ui/star-rating';
-import { Separator } from './ui/separator';
 
 interface RatingDialogProps {
   order: Order | null;
@@ -124,7 +123,7 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
 
       toast({
         title: 'Rating Submitted!',
-        description: 'Thank you for your feedback.',
+        description: 'Thank you for your feedback. We appreciate your support!',
       });
 
       onRatingSubmitted();
@@ -135,7 +134,7 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
       toast({
         variant: 'destructive',
         title: 'Submission Failed',
-        description: error.message || 'Could not submit your rating.',
+        description: error.message || 'Could not submit your rating. Please try again.',
       });
     }
   };
@@ -144,24 +143,31 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] rounded-[2rem] border-none shadow-premium">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Rate Your Order</DialogTitle>
-          <DialogDescription>
-            Let us know how we did. Your feedback helps everyone in Turfloop.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-[500px] rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden">
+        <div className="bg-primary p-8 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-3xl font-bold text-white">Rate Your Order</DialogTitle>
+            <DialogDescription className="text-white/80 text-base">
+              Share your experience to help the community and reward local excellence.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
+        
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="bg-primary/5 p-6 rounded-2xl">
-              <h3 className="font-bold mb-3 flex items-center gap-2 text-primary">Rate the Restaurant</h3>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-8">
+            {/* Restaurant Rating */}
+            <div className="space-y-4">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                <div className="w-1.5 h-6 bg-primary rounded-full" />
+                Store Experience
+              </h3>
               <FormField
                 control={form.control}
                 name="restaurantRating"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="bg-primary/5 p-6 rounded-2xl">
                     <FormControl>
-                      <StarRating value={field.value} onChange={field.onChange} size={32} />
+                      <StarRating value={field.value} onChange={field.onChange} size={40} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -171,26 +177,33 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
                 control={form.control}
                 name="restaurantComment"
                 render={({ field }) => (
-                  <FormItem className="mt-4">
-                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Comment (optional)</FormLabel>
+                  <FormItem>
                     <FormControl>
-                      <Textarea placeholder="What did you think of the food?" {...field} className="rounded-xl bg-white border-none shadow-sm" />
+                      <Textarea 
+                        placeholder="What did you think of the products?" 
+                        {...field} 
+                        className="rounded-2xl bg-secondary/50 border-none shadow-sm min-h-[100px] resize-none" 
+                      />
                     </FormControl>
                   </FormItem>
                 )}
               />
             </div>
             
+            {/* Driver Rating */}
             {order.driverId && (
-              <div className="bg-secondary/50 p-6 rounded-2xl">
-                <h3 className="font-bold mb-3 flex items-center gap-2">Rate the Delivery</h3>
+              <div className="space-y-4">
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                   <div className="w-1.5 h-6 bg-primary rounded-full" />
+                   Delivery Experience
+                </h3>
                    <FormField
                     control={form.control}
                     name="driverRating"
                     render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="bg-primary/5 p-6 rounded-2xl">
                         <FormControl>
-                        <StarRating value={field.value || 0} onChange={field.onChange} size={32} />
+                        <StarRating value={field.value || 0} onChange={field.onChange} size={40} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -200,10 +213,13 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
                     control={form.control}
                     name="driverComment"
                     render={({ field }) => (
-                      <FormItem className="mt-4">
-                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Comment (optional)</FormLabel>
+                      <FormItem>
                         <FormControl>
-                          <Textarea placeholder="How was the delivery experience?" {...field} className="rounded-xl bg-white border-none shadow-sm" />
+                          <Textarea 
+                            placeholder="How was the delivery service?" 
+                            {...field} 
+                            className="rounded-2xl bg-secondary/50 border-none shadow-sm min-h-[100px] resize-none" 
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -211,9 +227,9 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
               </div>
             )}
             
-            <DialogFooter>
-              <Button type="submit" disabled={form.formState.isSubmitting} className="w-full h-12 rounded-xl font-bold shadow-lg shadow-primary/20">
-                {form.formState.isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+            <DialogFooter className="pt-2">
+              <Button type="submit" disabled={form.formState.isSubmitting} className="w-full h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20">
+                {form.formState.isSubmitting ? 'Sending Feedback...' : 'Submit Review'}
               </Button>
             </DialogFooter>
           </form>

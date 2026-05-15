@@ -150,13 +150,34 @@ export default function OrderDetailsPage() {
                <Clock className="h-4 w-4" /> Ordered from <span className="font-bold text-foreground">{restaurant?.name || '...'}</span> on {order.orderDate ? format(order.orderDate.toDate(), 'PPP') : 'N/A'}
             </p>
         </div>
-        {order.status === 'Delivered' && !order.isRated && (
-            <Button className="rounded-xl px-6 h-12 shadow-lg shadow-primary/20" onClick={() => setRatingOpen(true)}>
-                <Star className="mr-2 h-4 w-4" />
-                Rate Order
-            </Button>
-        )}
       </div>
+
+      {/* Prominent Rating Prompt for Delivered Orders */}
+      {order.status === 'Delivered' && (
+        <Card className="mb-10 border-none shadow-premium bg-gradient-to-br from-orange-50 to-primary/5 rounded-[2.5rem] overflow-hidden">
+          <CardContent className="p-8 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="flex items-center gap-6">
+              <div className="bg-white p-4 rounded-[1.5rem] shadow-sm transform -rotate-3">
+                <Star className="h-10 w-10 text-primary fill-primary" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold">How was everything?</h3>
+                <p className="text-muted-foreground mt-1">Your feedback helps Turfloop's local community grow.</p>
+              </div>
+            </div>
+            {!order.isRated ? (
+              <Button onClick={() => setRatingOpen(true)} className="rounded-2xl px-10 h-14 font-bold text-lg shadow-xl shadow-primary/20 hover:scale-105 transition-transform">
+                Rate Order
+              </Button>
+            ) : (
+              <div className="flex items-center gap-3 bg-green-500 text-white py-3 px-6 rounded-2xl font-bold shadow-lg">
+                <CheckCircle className="h-5 w-5" />
+                <span>THANKS FOR YOUR RATING!</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
