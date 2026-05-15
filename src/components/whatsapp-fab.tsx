@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 
 export default function WhatsAppFAB() {
   const handleSupport = () => {
-    // Replace with actual support number
-    window.open('https://wa.me/27123456789', '_blank');
+    // Updated to the new support number: 0707529446
+    window.open('https://wa.me/27707529446', '_blank');
   };
 
   return (

@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "Customer": {
@@ -89,6 +88,10 @@
             "active",
             "inactive"
           ]
+        },
+        "rating": {
+          "type": "number",
+          "description": "The average rating of the driver."
         }
       },
       "required": [
@@ -253,7 +256,7 @@
         },
         "category": {
           "type": "string",
-          "description": "The sub-category of the menu item (e.g., Burgers, Drinks, Medicine)."
+          "description": "The sub-category of the menu item."
         }
       },
       "required": [
@@ -277,19 +280,19 @@
         },
         "customerId": {
           "type": "string",
-          "description": "Reference to the Customer. (Relationship: Customer 1:N Order)"
+          "description": "Reference to the Customer."
         },
         "restaurantId": {
           "type": "string",
-          "description": "Reference to the Restaurant. (Relationship: Restaurant 1:N Order)"
+          "description": "Reference to the Restaurant."
         },
         "storeOwnerId": {
           "type": "string",
-          "description": "Denormalized reference to the StoreOwner for query authorization."
+          "description": "Reference to the StoreOwner."
         },
         "driverId": {
           "type": "string",
-          "description": "Reference to the Driver. (Relationship: Driver 1:N Order)"
+          "description": "Reference to the Driver."
         },
         "orderDate": {
           "type": "string",
@@ -298,11 +301,11 @@
         },
         "status": {
           "type": "string",
-          "description": "The current status of the order (e.g., Placed, Accepted, Preparing, Out for Delivery, Delivered)."
+          "description": "The current status of the order."
         },
         "itemsTotal": {
           "type": "number",
-          "description": "The subtotal amount of the order (sum of item prices)."
+          "description": "The subtotal amount of the order."
         },
         "totalAmount": {
           "type": "number",
@@ -312,17 +315,21 @@
           "type": "string",
           "description": "The delivery address for the order."
         },
+        "paymentMethod": {
+          "type": "string",
+          "description": "The chosen payment method (e.g., cod, payshap)."
+        },
         "notes": {
           "type": "string",
-          "description": "Optional special instructions or notes from the customer for the order."
+          "description": "Optional instructions from the customer."
         },
         "isRated": {
           "type": "boolean",
-          "description": "Flag to indicate if the order has been rated by the customer."
+          "description": "Flag to indicate if the order has been rated."
         },
         "participantUids": {
           "type": "array",
-          "description": "An array of user IDs who are allowed to read the order (customer, storeOwner, driver). Used for security rules.",
+          "description": "An array of user IDs who are allowed to read the order.",
           "items": {
             "type": "string"
           }
@@ -353,19 +360,23 @@
         },
         "orderId": {
           "type": "string",
-          "description": "Reference to the Order. (Relationship: Order 1:N OrderItem)"
+          "description": "Reference to the Order."
         },
         "menuItemId": {
           "type": "string",
-          "description": "Reference to the MenuItem. (Relationship: MenuItem 1:N OrderItem)"
+          "description": "Reference to the MenuItem."
         },
         "quantity": {
           "type": "number",
-          "description": "The quantity of the menu item in the order."
+          "description": "The quantity of the menu item."
         },
         "itemPrice": {
           "type": "number",
-          "description": "The price of this particular menu item"
+          "description": "The price of this particular menu item."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the item at the time of purchase."
         }
       },
       "required": [
@@ -373,7 +384,8 @@
         "orderId",
         "menuItemId",
         "quantity",
-        "itemPrice"
+        "itemPrice",
+        "name"
       ]
     },
     "DriverLocation": {
@@ -414,23 +426,23 @@
         },
         "orderId": {
           "type": "string",
-          "description": "Reference to the Order. (Relationship: Order 1:1 Rating)"
+          "description": "Reference to the Order."
         },
         "customerId": {
           "type": "string",
-          "description": "Reference to the Customer who made the rating."
+          "description": "Reference to the Customer."
         },
         "restaurantId": {
           "type": "string",
-          "description": "Reference to the Restaurant being rated."
+          "description": "Reference to the Restaurant."
         },
         "driverId": {
           "type": "string",
-          "description": "Reference to the Driver being rated."
+          "description": "Reference to the Driver."
         },
         "restaurantRating": {
           "type": "number",
-          "description": "Rating for the restaurant (e.g., 1-5)."
+          "description": "Rating for the restaurant."
         },
         "restaurantComment": {
           "type": "string",
@@ -438,7 +450,7 @@
         },
         "driverRating": {
           "type": "number",
-          "description": "Rating for the driver (e.g., 1-5)."
+          "description": "Rating for the driver."
         },
         "driverComment": {
           "type": "string",
@@ -455,130 +467,6 @@
         "orderId",
         "customerId",
         "restaurantId"
-      ]
-    },
-    "Transaction": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Transaction",
-      "type": "object",
-      "description": "Represents the financial ledger entry for a single order.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the transaction record."
-        },
-        "orderId": {
-          "type": "string",
-          "description": "Reference to the completed Order."
-        },
-        "gatewayTransactionId": {
-          "type": "string",
-          "description": "The unique ID for this transaction from the payment gateway (e.g., PayFast, Yoco)."
-        },
-        "totalAmount": {
-          "type": "number",
-          "description": "The total amount charged to the customer."
-        },
-        "platformFee": {
-          "type": "number",
-          "description": "The portion of the total amount that belongs to the Pin2You platform."
-        },
-        "restaurantPayout": {
-          "type": "number",
-          "description": "The amount to be paid out to the restaurant for this order."
-        },
-        "driverPayout": {
-          "type": "number",
-          "description": "The amount to be paid out to the driver for this delivery."
-        },
-        "status": {
-          "type": "string",
-          "description": "The financial status of this transaction.",
-          "enum": [
-            "Completed",
-            "Refunded",
-            "PaidOut"
-          ]
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp when the transaction was recorded."
-        }
-      },
-      "required": [
-        "id",
-        "orderId",
-        "gatewayTransactionId",
-        "totalAmount",
-        "platformFee",
-        "restaurantPayout",
-        "driverPayout",
-        "status",
-        "createdAt"
-      ]
-    },
-    "Payout": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Payout",
-      "type": "object",
-      "description": "Represents a batch payout made to a driver or store owner.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the payout record."
-        },
-        "recipientId": {
-          "type": "string",
-          "description": "The user ID of the driver or store owner receiving the payout."
-        },
-        "recipientType": {
-          "type": "string",
-          "description": "The role of the recipient.",
-          "enum": [
-            "Driver",
-            "StoreOwner"
-          ]
-        },
-        "gatewayPayoutId": {
-          "type": "string",
-          "description": "The unique ID for this payout from the payment gateway."
-        },
-        "amount": {
-          "type": "number",
-          "description": "The total amount paid out."
-        },
-        "status": {
-          "type": "string",
-          "description": "The status of the payout.",
-          "enum": [
-            "Pending",
-            "Completed",
-            "Failed"
-          ]
-        },
-        "transactionIds": {
-          "type": "array",
-          "description": "An array of Transaction IDs included in this payout batch.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "payoutDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp when the payout was initiated."
-        }
-      },
-      "required": [
-        "id",
-        "recipientId",
-        "recipientType",
-        "gatewayPayoutId",
-        "amount",
-        "status",
-        "transactionIds",
-        "payoutDate"
       ]
     }
   },
@@ -597,17 +485,7 @@
           "schema": {
             "$ref": "#/backend/entities/Customer"
           },
-          "description": "Stores customer profiles. Uses path-based ownership, secured by userId. Ensures only the authenticated user can access their Customer profile.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The ID of the authenticated user."
-            },
-            {
-              "name": "customerId",
-              "description": "The ID of the customer profile. Must match userId."
-            }
-          ]
+          "description": "Stores customer profiles."
         }
       },
       {
@@ -617,17 +495,7 @@
           "schema": {
             "$ref": "#/backend/entities/Driver"
           },
-          "description": "Stores driver profiles. Uses path-based ownership, secured by userId. Ensures only the authenticated user can access their Driver profile.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The ID of the authenticated user."
-            },
-            {
-              "name": "driverId",
-              "description": "The ID of the driver profile. Must match userId."
-            }
-          ]
+          "description": "Stores driver profiles."
         }
       },
       {
@@ -637,17 +505,7 @@
           "schema": {
             "$ref": "#/backend/entities/StoreOwner"
           },
-          "description": "Stores store owner profiles. Uses path-based ownership, secured by userId. Ensures only the authenticated user can access their StoreOwner profile.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The ID of the authenticated user."
-            },
-            {
-              "name": "storeOwnerId",
-              "description": "The ID of the store owner profile. Must match userId."
-            }
-          ]
+          "description": "Stores store owner profiles."
         }
       },
       {
@@ -657,13 +515,7 @@
           "schema": {
             "$ref": "#/backend/entities/Restaurant"
           },
-          "description": "Stores restaurant information. Allows listing of all restaurants.  Access control is based on the storeOwnerId field, which allows filtering restaurants by their owner.",
-          "params": [
-            {
-              "name": "restaurantId",
-              "description": "The ID of the restaurant."
-            }
-          ]
+          "description": "Stores restaurant information."
         }
       },
       {
@@ -673,17 +525,7 @@
           "schema": {
             "$ref": "#/backend/entities/MenuItem"
           },
-          "description": "Stores menu items for each restaurant. Access control can be based on the parent restaurant's storeOwnerId to verify ownership.",
-          "params": [
-            {
-              "name": "restaurantId",
-              "description": "The ID of the restaurant."
-            },
-            {
-              "name": "menuItemId",
-              "description": "The ID of the menu item."
-            }
-          ]
+          "description": "Stores menu items."
         }
       },
       {
@@ -693,13 +535,7 @@
           "schema": {
             "$ref": "#/backend/entities/Order"
           },
-          "description": "Stores order information. Includes denormalized customerId, restaurantId, and driverId for authorization independence.",
-          "params": [
-            {
-              "name": "orderId",
-              "description": "The ID of the order."
-            }
-          ]
+          "description": "Stores order information."
         }
       },
       {
@@ -709,17 +545,7 @@
           "schema": {
             "$ref": "#/backend/entities/OrderItem"
           },
-          "description": "Stores individual items within an order. Access control is based on the parent order's customerId, restaurantId, and driverId.",
-          "params": [
-            {
-              "name": "orderId",
-              "description": "The ID of the order."
-            },
-            {
-              "name": "orderItemId",
-              "description": "The ID of the order item."
-            }
-          ]
+          "description": "Stores individual items within an order."
         }
       },
       {
@@ -729,13 +555,7 @@
           "schema": {
             "$ref": "#/backend/entities/DriverLocation"
           },
-          "description": "Stores the last known location of a driver. Secured by driverId, ensuring only the authenticated driver can update their own location.",
-          "params": [
-            {
-              "name": "driverId",
-              "description": "The ID of the driver. Must match the authenticated user's ID."
-            }
-          ]
+          "description": "Stores the last known location of a driver."
         }
       },
       {
@@ -745,48 +565,10 @@
           "schema": {
             "$ref": "#/backend/entities/Rating"
           },
-          "description": "Stores customer ratings for orders, restaurants, and drivers. Secured by customerId, ensuring only the user who placed the order can create a rating for it.",
-          "params": [
-            {
-              "name": "ratingId",
-              "description": "The ID of the rating."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/transactions/{transactionId}",
-        "definition": {
-          "entityName": "Transaction",
-          "schema": {
-            "$ref": "#/backend/entities/Transaction"
-          },
-          "description": "Stores financial transaction records for each order. Access is restricted to backend processes/admin roles.",
-          "params": [
-            {
-              "name": "transactionId",
-              "description": "The ID of the transaction."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/payouts/{payoutId}",
-        "definition": {
-          "entityName": "Payout",
-          "schema": {
-            "$ref": "#/backend/entities/Payout"
-          },
-          "description": "Stores records of batch payouts to drivers and store owners. Access is restricted to backend processes/admin roles.",
-          "params": [
-            {
-              "name": "payoutId",
-              "description": "The ID of the payout."
-            }
-          ]
+          "description": "Stores customer ratings."
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to align with the application's core features, focusing on role-based access control and data ownership. The design prioritizes Authorization Independence by denormalizing relevant authorization data, specifically for Restaurants and Orders. This eliminates the need for `get()` calls in security rules, ensuring atomicity of operations. Structural Segregation is used to isolate data based on access needs, as seen in the `/users/{userId}` collection, which houses user-specific data. The application uses Path-Based Ownership for `Customer`, `Driver`, and `StoreOwner` profiles which are placed under `/users/{userId}`. Restaurants are under `/restaurants/{restaurantId}` with `storeOwnerId` attribute which could be used to list resources owned by the user. Order data are placed under the `/orders/{orderId}`, with denormalized `customerId`, `restaurantId`, and `driverId`. The structure enables simple and secure `list` operations, effectively addressing QAPs. Explicit state modeling is used via the `status` field in the `Order` entity.\n\nAuthorization Independence is achieved by avoiding hierarchical dependencies. For example, access to Orders does not require fetching customer or restaurant details. The `customerId`, `restaurantId` and `driverId` within the `/orders/{orderId}` collection allow for querying and filtering orders based on these IDs directly, without needing to perform additional reads.\n\nFor QAPs, the structure supports secure `list` operations via collection-based access control. Listing Restaurants could be restricted based on `storeOwnerId` or `category`. Orders can be listed based on `customerId`, `restaurantId`, or `driverId`.\n\nData integrity is supported by the inherent structure (e.g., 1:N relationships are represented through subcollections or document references)."
+    "reasoning": "Standard Firestore structure focused on path-based ownership and flat order management."
   }
 }

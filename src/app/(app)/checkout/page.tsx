@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { CreditCard, Landmark, Truck, MapPin, Phone, User as UserIcon } from 'lucide-react';
+import { CreditCard, Landmark, Truck, MapPin, Phone, User as UserIcon, Send } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp, writeBatch, doc, getDoc } from 'firebase/firestore';
 import FreeAddressAutocomplete from '@/components/free-address-autocomplete';
@@ -32,6 +32,7 @@ export default function CheckoutPage() {
 
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [notes, setNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('cod');
 
   useEffect(() => {
     if(customerData?.address) {
@@ -107,6 +108,7 @@ export default function CheckoutPage() {
         totalAmount: total,
         deliveryAddress: deliveryAddress,
         notes: notes,
+        paymentMethod: paymentMethod,
         participantUids: [user.uid, storeOwnerId],
       });
 
@@ -196,24 +198,24 @@ export default function CheckoutPage() {
                     <CardDescription>Select how you'd like to pay for your delivery.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <RadioGroup defaultValue="cod" className="space-y-4">
-                        <div className="flex items-center space-x-3 p-4 rounded-xl border border-primary/20 bg-primary/5">
+                    <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-4">
+                        <div className={`flex items-center space-x-3 p-4 rounded-xl border transition-colors ${paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-muted'}`}>
                             <RadioGroupItem value="cod" id="cod" />
                             <Label htmlFor="cod" className='flex items-center gap-3 cursor-pointer w-full'>
-                                <div className="bg-white p-2 rounded-lg"><Truck className='h-5 w-5 text-primary' /></div>
+                                <div className="bg-white p-2 rounded-lg shadow-sm"><Truck className='h-5 w-5 text-primary' /></div>
                                 <div className="flex-1">
                                     <p className="font-bold">Cash on Delivery</p>
                                     <p className="text-xs text-muted-foreground">Pay when your food arrives.</p>
                                 </div>
                             </Label>
                         </div>
-                         <div className="flex items-center space-x-3 p-4 rounded-xl border border-muted opacity-50">
-                            <RadioGroupItem value="card" id="card" disabled/>
-                             <Label htmlFor="card" className='flex items-center gap-3 cursor-not-allowed w-full'>
-                                <div className="bg-muted p-2 rounded-lg"><CreditCard className='h-5 w-5 text-muted-foreground' /></div>
+                         <div className={`flex items-center space-x-3 p-4 rounded-xl border transition-colors ${paymentMethod === 'payshap' ? 'border-primary bg-primary/5' : 'border-muted'}`}>
+                            <RadioGroupItem value="payshap" id="payshap" />
+                             <Label htmlFor="payshap" className='flex items-center gap-3 cursor-pointer w-full'>
+                                <div className="bg-white p-2 rounded-lg shadow-sm"><Send className='h-5 w-5 text-primary' /></div>
                                 <div className="flex-1">
-                                    <p className="font-bold text-muted-foreground">Credit / Debit Card</p>
-                                    <p className="text-xs">Coming soon</p>
+                                    <p className="font-bold">PayShap</p>
+                                    <p className="text-xs text-muted-foreground">Send to 0707529446 (WhatsApp Number).</p>
                                 </div>
                             </Label>
                         </div>
