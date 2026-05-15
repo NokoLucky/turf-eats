@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,11 +10,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { CreditCard, Landmark, Truck, MapPin, Phone, User as UserIcon, Send } from 'lucide-react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { CreditCard, Landmark, Truck, MapPin, Phone, User as UserIcon, Send, PlusCircle, Sparkles } from 'lucide-react';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, addDoc, serverTimestamp, writeBatch, doc, getDoc } from 'firebase/firestore';
 import FreeAddressAutocomplete from '@/components/free-address-autocomplete';
 import { Textarea } from '@/components/ui/textarea';
+import Image from 'next/image';
+import type { MenuItem } from '@/lib/data';
 
 export default function CheckoutPage() {
   const { state, dispatch } = useCart();
@@ -28,17 +30,23 @@ export default function CheckoutPage() {
     return doc(firestore, `users/${user.uid}/customers/${user.uid}`);
   }, [user, firestore]);
 
-  const { data: customerData } = useDoc<{address: string}>(customerRef);
+  const { data: customerData } = useDoc<{address: string, name: string}>(customerRef);
 
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cod');
+  const [customerName, setCustomerName] = useState('');
 
   useEffect(() => {
     if(customerData?.address) {
       setDeliveryAddress(customerData.address);
     }
-  }, [customerData]);
+    if(customerData?.name) {
+      setCustomerName(customerData.name);
+    } else if (user?.displayName) {
+      setCustomerName(user.displayName);
+    }
+  }, [customerData, user]);
 
 
   useEffect(() => {
@@ -46,6 +54,24 @@ export default function CheckoutPage() {
       router.replace('/dashboard');
     }
   }, [state.items, router]);
+
+  // Logic to fetch "Related Items" (other items from the same store)
+  const restaurantId = state.items[0]?.restaurantId;
+  const menuItemsRef = useMemoFirebase(() => {
+    if (!firestore || !restaurantId) return null;
+    return collection(firestore, 'restaurants', restaurantId, 'menuItems');
+  }, [firestore, restaurantId]);
+
+  const { data: allMenuItems } = useCollection<MenuItem>(menuItemsRef);
+
+  const upsellItems = useMemo(() => {
+    if (!allMenuItems) return [];
+    const currentItemIds = new Set(state.items.map(item => item.id));
+    // Suggest items not in cart, prioritized by availability
+    return allMenuItems
+      .filter(item => !currentItemIds.has(item.id) && !item.isSoldOut)
+      .slice(0, 4);
+  }, [allMenuItems, state.items]);
 
   if (state.items.length === 0) {
     return null;
@@ -55,6 +81,27 @@ export default function CheckoutPage() {
   const serviceFee = 5.0; // Standard R5 service fee
   const deliveryFee = 30.0; // Standard R30 delivery fee
   const total = subtotal + serviceFee + deliveryFee;
+
+  const handleAddToCart = (item: MenuItem) => {
+    const priceToUse = item.promotionalPrice && item.promotionalPrice > 0 ? item.promotionalPrice : item.price;
+    dispatch({
+      type: 'ADD_ITEM',
+      payload: {
+        ...item,
+        price: priceToUse,
+        image: {
+          id: item.id,
+          imageUrl: item.imageUrl,
+          description: item.name,
+          imageHint: 'food item',
+        },
+      },
+    });
+    toast({
+      title: 'Added!',
+      description: `${item.name} added to your order.`,
+    });
+  };
 
   const handleConfirmOrder = async () => {
     if (!user || !firestore) {
@@ -75,7 +122,6 @@ export default function CheckoutPage() {
       return;
     }
 
-    const restaurantId = state.items[0]?.restaurantId;
     if (!restaurantId) {
        toast({
         variant: 'destructive',
@@ -152,17 +198,23 @@ export default function CheckoutPage() {
         <div className="lg:col-span-2 space-y-8">
             <Card className="border-none shadow-premium rounded-[2rem]">
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /> Delivery Address</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /> Delivery Details</CardTitle>
                 </CardHeader>
                 <CardContent className='space-y-6'>
                     <div className='grid sm:grid-cols-2 gap-4'>
                         <div className="space-y-2">
                             <Label htmlFor="name" className="flex items-center gap-1.5"><UserIcon className="h-3.5 w-3.5 text-muted-foreground" /> Full Name</Label>
-                            <Input id="name" defaultValue={user?.displayName || "Turfloop User"} className="rounded-xl" />
+                            <Input 
+                              id="name" 
+                              value={customerName} 
+                              onChange={(e) => setCustomerName(e.target.value)}
+                              placeholder="Your full name"
+                              className="rounded-xl" 
+                            />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="phone" className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-muted-foreground" /> Phone Number</Label>
-                            <Input id="phone" defaultValue={user?.phoneNumber || "+27 72 123 4567"} className="rounded-xl" />
+                            <Input id="phone" defaultValue={user?.phoneNumber || ""} placeholder="+27 ..." className="rounded-xl" />
                         </div>
                     </div>
                      <div className="space-y-2">
@@ -174,6 +226,39 @@ export default function CheckoutPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Usually Bought With / Upsell Section */}
+            {upsellItems.length > 0 && (
+              <section className="space-y-4">
+                <div className="flex items-center gap-2 px-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  <h2 className="text-xl font-bold">Usually bought with this</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {upsellItems.map((item) => (
+                    <Card key={item.id} className="border-none shadow-sm rounded-2xl overflow-hidden bg-white hover:shadow-md transition-shadow">
+                      <div className="flex items-center p-3 gap-4">
+                        <div className="relative h-16 w-16 rounded-xl overflow-hidden flex-shrink-0 bg-muted">
+                           <Image src={item.imageUrl || 'https://picsum.photos/seed/food/100/100'} alt={item.name} fill className="object-cover" />
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                          <h3 className="font-bold text-sm truncate">{item.name}</h3>
+                          <p className="text-primary font-bold text-sm">R{item.price.toFixed(2)}</p>
+                        </div>
+                        <Button 
+                          size="icon" 
+                          variant="secondary" 
+                          className="h-10 w-10 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white"
+                          onClick={() => handleAddToCart(item)}
+                        >
+                          <PlusCircle className="h-5 w-5" />
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </section>
+            )}
             
             <Card className="border-none shadow-premium rounded-[2rem]">
                 <CardHeader>
