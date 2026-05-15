@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Customer": {
@@ -249,6 +250,10 @@
         "isSoldOut": {
           "type": "boolean",
           "description": "Indicates if the menu item is currently sold out."
+        },
+        "category": {
+          "type": "string",
+          "description": "The sub-category of the menu item (e.g., Burgers, Drinks, Medicine)."
         }
       },
       "required": [
@@ -256,7 +261,8 @@
         "restaurantId",
         "name",
         "description",
-        "price"
+        "price",
+        "category"
       ]
     },
     "Order": {

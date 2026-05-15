@@ -1,9 +1,11 @@
+
 'use client';
 
 import Image from 'next/image';
 import { notFound, useParams } from 'next/navigation';
-import { Star, Utensils, PlusCircle } from 'lucide-react';
+import { Star, Utensils, PlusCircle, ArrowLeft } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,15 +58,25 @@ export default function RestaurantMenuPage() {
     fetchData();
   }, [firestore, id]);
 
-  const sortedMenuItems = React.useMemo(() => {
-    if (!menuItems) return [];
-    return [...menuItems].sort((a, b) => {
-      const aHasPromo = a.promotionalPrice && a.promotionalPrice > 0 && a.promotionalPrice < a.price;
-      const bHasPromo = b.promotionalPrice && b.promotionalPrice > 0 && b.promotionalPrice < b.price;
-      if (aHasPromo && !bHasPromo) return -1;
-      if (!aHasPromo && bHasPromo) return 1;
-      return 0;
-    });
+  const menuByCategory = React.useMemo(() => {
+    if (!menuItems) return {};
+    const grouped = menuItems.reduce((acc, item) => {
+      const category = item.category || 'General';
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(item);
+      return acc;
+    }, {} as Record<string, MenuItem[]>);
+
+    // Sort categories alphabetically but keep General at the end if it exists
+    return Object.keys(grouped).sort((a, b) => {
+        if (a === 'General') return 1;
+        if (b === 'General') return -1;
+        return a.localeCompare(b);
+    }).reduce((obj, key) => {
+        obj[key] = grouped[key];
+        return obj;
+    }, {} as Record<string, MenuItem[]>);
+
   }, [menuItems]);
 
   const handleAddToCart = (item: MenuItem) => {
@@ -93,7 +105,7 @@ export default function RestaurantMenuPage() {
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-[#fafafa]">
       {isLoading || !restaurant ? (
         <>
           <Skeleton className="h-64 w-full" />
@@ -119,7 +131,7 @@ export default function RestaurantMenuPage() {
         </>
       ) : (
         <>
-          <div className="relative h-64 w-full">
+          <div className="relative h-64 sm:h-80 w-full">
             <Image
               src={restaurant.bannerUrl || 'https://picsum.photos/seed/banner/1200/400'}
               alt={`Promotional image for ${restaurant.name}`}
@@ -128,85 +140,130 @@ export default function RestaurantMenuPage() {
               className="object-cover"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-            <div className="container relative flex h-full items-end pb-8 px-4 sm:px-8">
-              <div>
-                <h1 className="font-headline text-4xl sm:text-5xl font-bold text-white">
-                  {restaurant.name}
-                </h1>
-                <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-neutral-200">
-                  <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 text-primary fill-primary" />
-                    <span>{(restaurant.rating || 0).toFixed(1)}</span>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+            
+            <div className="absolute top-6 left-4 sm:left-8 z-10">
+                <Button asChild variant="outline" className="bg-white/10 backdrop-blur-md border-white/20 text-white rounded-full hover:bg-white/20 hover:text-white">
+                    <Link href="/dashboard"><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link>
+                </Button>
+            </div>
+
+            <div className="container relative flex h-full items-end pb-10 px-4 sm:px-8">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between w-full gap-6">
+                <div>
+                  <h1 className="font-headline text-4xl sm:text-6xl font-bold text-white drop-shadow-xl">
+                    {restaurant.name}
+                  </h1>
+                  <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-neutral-200">
+                    <div className="bg-primary/20 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1.5 border border-primary/20">
+                      <Star className="h-3.5 w-3.5 text-primary fill-primary" />
+                      <span className="font-bold text-white">{(restaurant.rating || 0).toFixed(1)}</span>
+                      <span className="text-[10px] opacity-70">(150+ ratings)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 opacity-90">
+                      <Utensils className="h-4 w-4 text-primary" />
+                      <span className="font-medium">{restaurant.category}</span>
+                    </div>
+                     {restaurant.openingHours && <StoreStatusBadge openingHours={restaurant.openingHours} className="rounded-full px-4" />}
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Utensils className="h-4 w-4" />
-                    <span>{restaurant.category}</span>
-                  </div>
-                   {restaurant.openingHours && <StoreStatusBadge openingHours={restaurant.openingHours} />}
+                </div>
+                <div className="hidden sm:block h-24 w-24 relative rounded-3xl overflow-hidden border-4 border-white shadow-2xl bg-white">
+                   <Image src={restaurant.logoUrl || 'https://picsum.photos/seed/logo/200/200'} alt="logo" fill className="object-cover" />
                 </div>
               </div>
             </div>
           </div>
           
           {restaurant.promotionBannerText && (
-            <div className="bg-accent text-accent-foreground text-center p-3 font-semibold text-sm sm:text-base">
-                {restaurant.promotionBannerText}
+            <div className="bg-primary text-white text-center py-4 px-4 font-bold text-sm sm:text-base animate-pulse">
+               ⚡️ {restaurant.promotionBannerText}
             </div>
           )}
 
           <div className="container py-12 px-4 sm:px-8">
-            <h2 className="font-headline text-3xl font-bold mb-8">Menu</h2>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {sortedMenuItems?.map((item) => {
-                const hasPromo = item.promotionalPrice && item.promotionalPrice > 0 && item.promotionalPrice < item.price;
-                const displayPrice = hasPromo ? item.promotionalPrice : item.price;
-
-                return (
-                    <Card key={item.id} className={cn("flex flex-col overflow-hidden", item.isSoldOut && "bg-muted/50")}>
-                      <CardHeader className="p-0">
-                          <div className="relative aspect-video w-full">
-                          <Image
-                              src={item.imageUrl || 'https://picsum.photos/seed/menu/400/300'}
-                              alt={item.name}
-                              data-ai-hint="food item"
-                              fill
-                              className={cn("object-cover", item.isSoldOut && "grayscale")}
-                          />
-                          {hasPromo && !item.isSoldOut && (
-                              <Badge variant="destructive" className="absolute top-2 left-2 shadow-lg">Promotion</Badge>
-                          )}
-                          {item.isSoldOut && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                                <Badge variant="outline" className="bg-white text-black text-lg font-bold py-2 px-4 border-2 border-white">SOLD OUT</Badge>
-                            </div>
-                          )}
-                          </div>
-                      </CardHeader>
-                      <CardContent className="flex flex-1 flex-col p-4">
-                          <CardTitle className="font-headline text-xl">{item.name}</CardTitle>
-                          <CardDescription className="mt-2 flex-1">{item.description}</CardDescription>
-                          <div className="mt-4 flex items-center justify-between">
-                              <div className="flex items-baseline gap-2">
-                                  <p className="text-lg font-bold text-primary">R{displayPrice.toFixed(2)}</p>
-                                  {hasPromo && (
-                                      <p className="text-sm text-muted-foreground line-through">R{item.price.toFixed(2)}</p>
-                                  )}
-                              </div>
-                              <Button onClick={() => handleAddToCart(item)} disabled={item.isSoldOut}>
-                                  {item.isSoldOut ? 'Unavailable' : (
-                                    <>
-                                        <PlusCircle className="mr-2 h-4 w-4" />
-                                        Add to Cart
-                                    </>
-                                  )}
-                              </Button>
-                          </div>
-                      </CardContent>
-                    </Card>
-                )
-              })}
+            <div className="mb-10">
+                <h2 className="font-headline text-4xl font-bold mb-2">Our Menu</h2>
+                <div className="h-1.5 w-20 bg-primary rounded-full"></div>
             </div>
+            
+            {Object.keys(menuByCategory).length > 0 ? (
+                <div className="space-y-16">
+                    {Object.entries(menuByCategory).map(([categoryName, items]) => (
+                        <section key={categoryName}>
+                            <div className="flex items-center gap-4 mb-8">
+                                <h3 className="text-2xl font-bold text-foreground">{categoryName}</h3>
+                                <div className="h-px flex-1 bg-muted"></div>
+                                <Badge variant="outline" className="rounded-full text-muted-foreground border-muted">{items.length} items</Badge>
+                            </div>
+                            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                {items.map((item) => {
+                                    const hasPromo = item.promotionalPrice && item.promotionalPrice > 0 && item.promotionalPrice < item.price;
+                                    const displayPrice = hasPromo ? item.promotionalPrice : item.price;
+
+                                    return (
+                                        <Card key={item.id} className={cn("border-none shadow-premium rounded-[2.5rem] overflow-hidden flex flex-col group transition-all duration-300 hover:shadow-2xl hover:-translate-y-1", item.isSoldOut && "opacity-70 bg-muted/30")}>
+                                            <CardHeader className="p-0 relative">
+                                                <div className="relative aspect-video w-full overflow-hidden">
+                                                    <Image
+                                                        src={item.imageUrl || 'https://picsum.photos/seed/menu/400/300'}
+                                                        alt={item.name}
+                                                        data-ai-hint="food item"
+                                                        fill
+                                                        className={cn("object-cover transition-transform duration-500 group-hover:scale-110", item.isSoldOut && "grayscale")}
+                                                    />
+                                                    {hasPromo && !item.isSoldOut && (
+                                                        <div className="absolute top-4 left-4 bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">PROMO</div>
+                                                    )}
+                                                    {item.isSoldOut && (
+                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+                                                            <div className="bg-white text-black px-6 py-2 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl border-2 border-black/10">SOLD OUT</div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent className="flex flex-1 flex-col p-6">
+                                                <CardTitle className="font-headline text-xl group-hover:text-primary transition-colors">{item.name}</CardTitle>
+                                                <CardDescription className="mt-2 flex-1 text-xs leading-relaxed line-clamp-2">{item.description}</CardDescription>
+                                                <div className="mt-6 flex items-center justify-between">
+                                                    <div className="flex flex-col">
+                                                        <p className="text-xl font-bold text-primary">R{displayPrice.toFixed(2)}</p>
+                                                        {hasPromo && (
+                                                            <p className="text-[10px] text-muted-foreground line-through opacity-70">R{item.price.toFixed(2)}</p>
+                                                        )}
+                                                    </div>
+                                                    <Button 
+                                                        onClick={() => handleAddToCart(item)} 
+                                                        disabled={item.isSoldOut}
+                                                        className={cn(
+                                                            "rounded-2xl h-11 px-5 font-bold shadow-lg transition-all",
+                                                            !item.isSoldOut && "shadow-primary/20 hover:shadow-primary/40"
+                                                        )}
+                                                    >
+                                                        {item.isSoldOut ? 'Unavailable' : (
+                                                            <>
+                                                                <PlusCircle className="mr-2 h-4 w-4" />
+                                                                Add
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    )
+                                })}
+                            </div>
+                        </section>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-20 bg-white rounded-[3rem] shadow-premium">
+                    <div className="bg-muted w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Utensils className="h-10 w-10 text-muted-foreground/30" />
+                    </div>
+                    <h2 className="text-2xl font-bold">Menu is coming soon</h2>
+                    <p className="text-muted-foreground mt-2 max-w-xs mx-auto">This store hasn't added any items to their menu yet. Check back later!</p>
+                </div>
+            )}
           </div>
         </>
       )}

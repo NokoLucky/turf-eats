@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { collection, doc, query, where, limit } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,6 +32,7 @@ import {
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import ImageUploader from '@/components/image-uploader';
@@ -40,6 +42,7 @@ const productSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, 'Name is too short'),
   description: z.string().min(10, 'Description is too short'),
+  category: z.string().min(1, 'Please select a category'),
   price: z.preprocess(
     (val) => (typeof val === 'string' ? parseFloat(val) : val),
     z.number().positive('Price must be positive')
@@ -67,11 +70,13 @@ function ProductDialog({
   product,
   onOpenChange,
   open,
+  storeCategory,
 }: {
   onSubmit: (data: ProductFormValues) => void;
   product?: ProductFormValues;
   onOpenChange: (open: boolean) => void;
   open: boolean;
+  storeCategory?: string;
 }) {
   
   const form = useForm<ProductFormValues>({
@@ -79,6 +84,7 @@ function ProductDialog({
     defaultValues: product || {
       name: '',
       description: '',
+      category: '',
       price: 0,
       imageUrl: '',
       promotionalPrice: '',
@@ -87,8 +93,23 @@ function ProductDialog({
   });
   
   useEffect(() => {
-    form.reset(product || { name: '', description: '', price: 0, imageUrl: '', promotionalPrice: '', isSoldOut: false });
+    form.reset(product || { name: '', description: '', category: '', price: 0, imageUrl: '', promotionalPrice: '', isSoldOut: false });
   }, [product, form]);
+
+  const categoryOptions = useMemo(() => {
+    switch (storeCategory) {
+      case 'Restaurants':
+        return ['Burgers', 'Meat', 'Deserts', 'Cold Drinks', 'Hot Drinks', 'Other Drinks'];
+      case 'Liquor':
+        return ['Ciders and Beer', 'Wine', 'Gin', 'Whiskeys', 'Tequila', 'Champagne', 'Cocktails'];
+      case 'Pharmacy':
+        return ['Self Medication', 'Prescribed Meds', 'Cosmetics'];
+      case 'Groceries':
+        return ['Fresh Produce', 'Dairy', 'Bakery', 'Snacks', 'Pantry', 'Frozen Goods'];
+      default:
+        return ['General', 'Other'];
+    }
+  }, [storeCategory]);
 
   const handleFormSubmit = (data: ProductFormValues) => {
     onSubmit(data);
@@ -97,7 +118,7 @@ function ProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{product?.id ? 'Edit Product' : 'Add New Product'}</DialogTitle>
           <DialogDescription>Fill in the details for your product.</DialogDescription>
@@ -121,19 +142,43 @@ function ProductDialog({
                 </FormItem>
                 )}
             />
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Product Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Product Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} className="rounded-xl" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Product Category</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {categoryOptions.map(cat => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="description"
@@ -141,7 +186,7 @@ function ProductDialog({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea {...field} />
+                    <Textarea {...field} className="rounded-xl" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -155,7 +200,7 @@ function ProductDialog({
                     <FormItem>
                     <FormLabel>Price (ZAR)</FormLabel>
                     <FormControl>
-                        <Input type="number" step="0.01" {...field} />
+                        <Input type="number" step="0.01" {...field} className="rounded-xl" />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -168,7 +213,7 @@ function ProductDialog({
                     <FormItem>
                     <FormLabel>Promotional Price</FormLabel>
                     <FormControl>
-                        <Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="e.g. 89.99" />
+                        <Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="e.g. 89.99" className="rounded-xl" />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -179,7 +224,7 @@ function ProductDialog({
                 control={form.control}
                 name="isSoldOut"
                 render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm mt-4">
+                <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 shadow-sm mt-4">
                     <div className="space-y-0.5">
                         <FormLabel>Sold Out</FormLabel>
                         <FormDescription>
@@ -197,7 +242,7 @@ function ProductDialog({
             />
             
             <DialogFooter>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button type="submit" disabled={form.formState.isSubmitting} className="rounded-xl font-bold px-8">
                 {form.formState.isSubmitting ? 'Saving...' : 'Save Product'}
               </Button>
             </DialogFooter>
@@ -297,18 +342,18 @@ export default function ProductsManagementPage() {
   const isLoading = !firestore || isRestaurantLoading || isMenuLoading;
 
   if (isRestaurantLoading && !restaurant) {
-    return <div className="container py-12"><Skeleton className="h-8 w-64 mb-8" /><Skeleton className="h-10 w-40" /></div>
+    return <div className="container py-12 px-4 sm:px-8"><Skeleton className="h-8 w-64 mb-8" /><Skeleton className="h-10 w-40" /></div>
   }
 
   if (!isRestaurantLoading && !restaurant) {
     return (
-      <div className="container py-12 text-center">
+      <div className="container py-12 px-4 sm:px-8 text-center">
         <Store className="mx-auto h-16 w-16 text-muted-foreground" />
         <h1 className="mt-4 font-headline text-2xl font-bold">No Store Found</h1>
         <p className="mt-2 text-muted-foreground">
           Please create your store profile before adding products.
         </p>
-        <Button asChild className="mt-4">
+        <Button asChild className="mt-4 rounded-xl">
           <a href="/owner/restaurant">Create Store</a>
         </Button>
       </div>
@@ -316,53 +361,56 @@ export default function ProductsManagementPage() {
   }
 
   return (
-    <div className="container py-12">
-      <div className="flex items-center justify-between mb-8">
+    <div className="container py-12 px-4 sm:px-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="font-headline text-4xl font-bold">Manage Your Products</h1>
           {restaurant && <p className="mt-2 text-muted-foreground">Add, edit, or remove products for <span className="font-semibold text-primary">{restaurant.name}</span>.</p>}
         </div>
-        <Button onClick={handleAddNew} disabled={!restaurantId}>
-          <PlusCircle className="mr-2" />
+        <Button onClick={handleAddNew} disabled={!restaurantId} className="rounded-xl px-6 font-bold shadow-lg shadow-primary/20">
+          <PlusCircle className="mr-2 h-4 w-4" />
           Add New Product
         </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {isLoading && Array.from({length: 4}).map((_, i) => <Card key={i}><CardContent className="p-4 space-y-2"><Skeleton className="aspect-video w-full" /><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-1/2" /></CardContent></Card>)}
+        {isLoading && Array.from({length: 4}).map((_, i) => <Card key={i} className="border-none shadow-premium rounded-[2rem] overflow-hidden"><CardContent className="p-4 space-y-2"><Skeleton className="aspect-video w-full rounded-2xl" /><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-1/2" /></CardContent></Card>)}
 
-        {products?.map((item) => (
-          <Card key={item.id} className={cn(item.isSoldOut && "opacity-60")}>
-            <CardHeader className="p-0">
+        {!isLoading && products?.map((item) => (
+          <Card key={item.id} className={cn("border-none shadow-premium rounded-[2rem] overflow-hidden group", item.isSoldOut && "opacity-60")}>
+            <CardHeader className="p-0 relative">
               <div className="relative aspect-video w-full overflow-hidden">
-                <Image src={item.imageUrl || 'https://picsum.photos/seed/product/400/300'} alt={item.name} fill className="object-cover" />
+                <Image src={item.imageUrl || 'https://picsum.photos/seed/product/400/300'} alt={item.name} fill className="object-cover transition-transform group-hover:scale-105" />
                  {item.isSoldOut && (
-                    <Badge variant="destructive" className="absolute top-2 right-2 shadow-lg">SOLD OUT</Badge>
+                    <Badge variant="destructive" className="absolute top-4 right-4 shadow-lg uppercase font-bold text-[10px]">SOLD OUT</Badge>
                 )}
+                <Badge variant="secondary" className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm text-primary font-bold text-[10px] border-none">
+                  {item.category || 'General'}
+                </Badge>
               </div>
             </CardHeader>
-            <CardContent className="p-4">
-              <CardTitle className="font-headline text-xl">{item.name}</CardTitle>
-              <CardDescription className="mt-1 h-10 overflow-hidden text-ellipsis">
+            <CardContent className="p-6">
+              <CardTitle className="font-headline text-xl group-hover:text-primary transition-colors">{item.name}</CardTitle>
+              <CardDescription className="mt-1 h-12 overflow-hidden text-ellipsis line-clamp-2">
                 {item.description}
               </CardDescription>
             </CardContent>
-            <CardFooter className="flex justify-between items-center p-4 pt-0">
-              <div className="flex items-baseline gap-2">
+            <CardFooter className="flex justify-between items-center p-6 pt-0">
+              <div className="flex flex-col">
                 <p className="text-lg font-bold text-primary">R{(item.promotionalPrice && item.promotionalPrice > 0 ? item.promotionalPrice : item.price).toFixed(2)}</p>
-                {item.promotionalPrice && item.promotionalPrice > 0 && <p className="text-sm font-medium text-muted-foreground line-through">R{item.price.toFixed(2)}</p>}
+                {item.promotionalPrice && item.promotionalPrice > 0 && <p className="text-xs font-medium text-muted-foreground line-through">R{item.price.toFixed(2)}</p>}
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal />
+                  <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10 hover:text-primary">
+                    <MoreHorizontal className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onSelect={() => handleEdit(item)}>
+                <DropdownMenuContent align="end" className="rounded-xl border-none shadow-premium">
+                  <DropdownMenuItem onSelect={() => handleEdit(item)} className="rounded-lg cursor-pointer">
                     <Edit className="mr-2 h-4 w-4" /> Edit
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleDelete(item.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                  <DropdownMenuItem onSelect={() => handleDelete(item.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10 rounded-lg cursor-pointer">
                     <Trash2 className="mr-2 h-4 w-4" /> Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -372,12 +420,23 @@ export default function ProductsManagementPage() {
         ))}
       </div>
       
+       {!isLoading && (!products || products.length === 0) && (
+          <div className="text-center py-20 bg-white rounded-[3rem] shadow-premium">
+             <div className="bg-primary/5 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <PlusCircle className="h-10 w-10 text-primary/30" />
+             </div>
+             <h2 className="text-xl font-bold">No products yet</h2>
+             <p className="text-muted-foreground mt-1">Start adding items to your store menu.</p>
+          </div>
+       )}
+
        {isDialogOpen && (
         <ProductDialog 
           onSubmit={handleSubmitProduct}
           product={editingProduct}
           open={isDialogOpen}
           onOpenChange={handleDialogChange}
+          storeCategory={restaurant?.category}
         />
       )}
 

@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export type MenuItem = {
@@ -9,6 +10,7 @@ export type MenuItem = {
   imageUrl: string;
   restaurantId: string;
   isSoldOut?: boolean;
+  category: string;
 };
 
 export type Restaurant = {
