@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -9,14 +10,15 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Trash2, ShoppingBag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
 
 export default function CartPage() {
   const { state, dispatch } = useCart();
   const router = useRouter();
 
   const subtotal = state.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const serviceFee = 5.0; // Standard service fee
-  const deliveryFee = 30.0; // Standard delivery fee
+  const serviceFee = 5.0; 
+  const deliveryFee = 30.0; 
   const total = subtotal + serviceFee + deliveryFee;
 
   const updateQuantity = (id: string, quantity: number) => {
@@ -57,16 +59,26 @@ export default function CartPage() {
                     <li key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 sm:p-6">
                       <div className="relative h-20 w-20 rounded-xl overflow-hidden flex-shrink-0">
                         <Image
-                            src={item.image.imageUrl.trim()}
-                            alt={item.image.description}
-                            data-ai-hint={item.image.imageHint}
+                            src={item.imageUrl.trim()}
+                            alt={item.name}
                             fill
                             className="object-cover"
                         />
                       </div>
                       <div className="flex-1">
                         <h3 className="font-bold">{item.name}</h3>
-                        <p className="text-xs text-muted-foreground">R{item.price.toFixed(2)}</p>
+                        {item.selectedOptions && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {Object.entries(item.selectedOptions).map(([group, choices]) => (
+                               choices.map(choice => (
+                                 <Badge key={`${group}-${choice}`} variant="outline" className="text-[10px] font-normal py-0">
+                                   {group}: {choice}
+                                 </Badge>
+                               ))
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">R{item.price.toFixed(2)} each</p>
                       </div>
                       <div className="flex items-center gap-2 self-end sm:self-center">
                         <Input
@@ -78,7 +90,6 @@ export default function CartPage() {
                         />
                          <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="text-destructive">
                             <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Remove item</span>
                         </Button>
                       </div>
                       <p className="hidden sm:block w-20 text-right font-bold text-primary">R{(item.price * item.quantity).toFixed(2)}</p>

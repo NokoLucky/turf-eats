@@ -3,15 +3,15 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { collection, doc, query, where, limit } from 'firebase/firestore';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Trash2, Edit, MoreHorizontal, Store } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, MoreHorizontal, Store, Plus, X } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
-import type { MenuItem, Restaurant } from '@/lib/data';
+import type { MenuItem, Restaurant, MenuItemOptionGroup } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,6 +37,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import ImageUploader from '@/components/image-uploader';
 import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 
 const productSchema = z.object({
   id: z.string().optional(),
@@ -53,6 +54,15 @@ const productSchema = z.object({
       z.number().nonnegative('Price cannot be negative.').optional()
   ),
   isSoldOut: z.boolean().default(false),
+  options: z.array(z.object({
+    id: z.string(),
+    name: z.string().min(1, 'Option group name is required'),
+    type: z.enum(['radio', 'checkbox']),
+    choices: z.array(z.string()).min(1, 'At least one choice is required'),
+    minSelections: z.number().optional(),
+    maxSelections: z.number().optional(),
+    isRequired: z.boolean().default(false),
+  })).optional(),
 }).refine(data => {
     if (data.promotionalPrice === undefined || data.promotionalPrice === null) return true;
     if (isNaN(data.price)) return true;
@@ -89,11 +99,17 @@ function ProductDialog({
       imageUrl: '',
       promotionalPrice: '',
       isSoldOut: false,
+      options: [],
     },
+  });
+
+  const { fields: optionFields, append: appendOption, remove: removeOption } = useFieldArray({
+    control: form.control,
+    name: "options"
   });
   
   useEffect(() => {
-    form.reset(product || { name: '', description: '', category: '', price: 0, imageUrl: '', promotionalPrice: '', isSoldOut: false });
+    form.reset(product || { name: '', description: '', category: '', price: 0, imageUrl: '', promotionalPrice: '', isSoldOut: false, options: [] });
   }, [product, form]);
 
   const categoryOptions = useMemo(() => {
@@ -116,15 +132,25 @@ function ProductDialog({
     onOpenChange(false);
   }
 
+  const addOptionGroup = () => {
+    appendOption({
+      id: Math.random().toString(36).substr(2, 9),
+      name: '',
+      type: 'radio',
+      choices: [''],
+      isRequired: false,
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{product?.id ? 'Edit Product' : 'Add New Product'}</DialogTitle>
           <DialogDescription>Fill in the details for your product.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
             <FormField
                 control={form.control}
                 name="imageUrl"
@@ -220,6 +246,106 @@ function ProductDialog({
                 )}
                 />
             </div>
+
+            <Separator />
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold">Customization Options</h3>
+                <Button type="button" variant="outline" size="sm" onClick={addOptionGroup} className="rounded-full">
+                  <Plus className="h-4 w-4 mr-2" /> Add Choice Group
+                </Button>
+              </div>
+
+              {optionFields.map((field, index) => (
+                <Card key={field.id} className="p-4 border-dashed relative">
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute top-2 right-2 h-8 w-8 text-destructive"
+                    onClick={() => removeOption(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <div className="grid sm:grid-cols-2 gap-4 mb-4">
+                    <FormField
+                      control={form.control}
+                      name={`options.${index}.name`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Group Name (e.g., "Choose Salads")</FormLabel>
+                          <FormControl><Input {...field} placeholder="Group Name" className="rounded-xl" /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`options.${index}.type`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Selection Type</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl><SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              <SelectItem value="radio">Single Choice (Radio)</SelectItem>
+                              <SelectItem value="checkbox">Multiple Choice (Checkbox)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name={`options.${index}.choices`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Choices (comma separated)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            value={field.value.join(', ')} 
+                            onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()))}
+                            placeholder="Choice 1, Choice 2, Choice 3"
+                            className="rounded-xl"
+                          />
+                        </FormControl>
+                        <FormDescription>Separate choices with a comma.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {form.watch(`options.${index}.type`) === 'checkbox' && (
+                    <div className="grid grid-cols-2 gap-4 mt-4">
+                      <FormField
+                        control={form.control}
+                        name={`options.${index}.minSelections`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Min Selections</FormLabel>
+                            <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} className="rounded-xl" /></FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`options.${index}.maxSelections`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Max Selections</FormLabel>
+                            <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} className="rounded-xl" /></FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
+
              <FormField
                 control={form.control}
                 name="isSoldOut"
@@ -394,6 +520,15 @@ export default function ProductsManagementPage() {
               <CardDescription className="mt-1 h-12 overflow-hidden text-ellipsis line-clamp-2">
                 {item.description}
               </CardDescription>
+              {item.options && item.options.length > 0 && (
+                <div className="mt-4 flex gap-2 flex-wrap">
+                  {item.options.map(opt => (
+                    <Badge key={opt.id} variant="outline" className="text-[9px] uppercase border-primary/20 text-primary bg-primary/5">
+                      {opt.name} ({opt.choices.length})
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </CardContent>
             <CardFooter className="flex justify-between items-center p-6 pt-0">
               <div className="flex flex-col">

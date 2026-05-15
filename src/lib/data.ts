@@ -1,6 +1,21 @@
 
 import type { Timestamp } from 'firebase/firestore';
 
+export type MenuItemOptionChoice = {
+  name: string;
+  priceDelta?: number; // Optional price increase for this choice
+};
+
+export type MenuItemOptionGroup = {
+  id: string;
+  name: string;
+  type: 'radio' | 'checkbox';
+  choices: string[];
+  minSelections?: number;
+  maxSelections?: number;
+  isRequired?: boolean;
+};
+
 export type MenuItem = {
   id: string;
   name: string;
@@ -11,6 +26,7 @@ export type MenuItem = {
   restaurantId: string;
   isSoldOut?: boolean;
   category: string;
+  options?: MenuItemOptionGroup[];
 };
 
 export type Restaurant = {
@@ -71,6 +87,7 @@ export type OrderItem = {
     quantity: number;
     itemPrice: number;
     name: string;
+    selectedOptions?: Record<string, string[]>; // Group Name -> Array of choice names
 };
 
 export type Rating = {

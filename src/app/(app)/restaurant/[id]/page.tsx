@@ -1,8 +1,9 @@
+
 'use client';
 
 import Image from 'next/image';
 import { notFound, useParams } from 'next/navigation';
-import { Star, Utensils, PlusCircle, ArrowLeft, LayoutGrid } from 'lucide-react';
+import { Star, Utensils, PlusCircle, ArrowLeft, LayoutGrid, Check } from 'lucide-react';
 import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/cart-context';
@@ -11,11 +12,143 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { doc, collection, getDoc, getDocs } from 'firebase/firestore';
-import type { Restaurant, MenuItem } from '@/lib/data';
+import type { Restaurant, MenuItem, MenuItemOptionGroup } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { StoreStatusBadge } from '@/components/store-status-badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
+
+function SelectionDialog({
+  item,
+  open,
+  onOpenChange,
+  onConfirm
+}: {
+  item: MenuItem | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: (selections: Record<string, string[]>) => void;
+}) {
+  const [selections, setSelections] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    if (open && item?.options) {
+      const initial: Record<string, string[]> = {};
+      item.options.forEach(opt => {
+        initial[opt.name] = opt.type === 'radio' ? [opt.choices[0]] : [];
+      });
+      setSelections(initial);
+    }
+  }, [open, item]);
+
+  if (!item) return null;
+
+  const handleRadioChange = (groupName: string, choice: string) => {
+    setSelections(prev => ({ ...prev, [groupName]: [choice] }));
+  };
+
+  const handleCheckboxChange = (groupName: string, choice: string, checked: boolean, min?: number, max?: number) => {
+    setSelections(prev => {
+      const current = prev[groupName] || [];
+      if (checked) {
+        if (max && current.length >= max) return prev;
+        return { ...prev, [groupName]: [...current, choice] };
+      } else {
+        return { ...prev, [groupName]: current.filter(c => c !== choice) };
+      }
+    });
+  };
+
+  const isValid = () => {
+    if (!item.options) return true;
+    return item.options.every(opt => {
+      const selected = selections[opt.name] || [];
+      if (opt.isRequired && selected.length === 0) return false;
+      if (opt.minSelections && selected.length < opt.minSelections) return false;
+      return true;
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden rounded-[2rem] border-none shadow-2xl">
+        <div className="relative h-40 w-full">
+           <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
+           <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+           <div className="absolute bottom-4 left-6">
+              <h3 className="text-2xl font-bold text-white">{item.name}</h3>
+              <p className="text-white/70 text-sm">Customize your meal</p>
+           </div>
+        </div>
+        <div className="p-6 space-y-8 max-h-[60vh] overflow-y-auto">
+          {item.options?.map((group) => (
+            <div key={group.id} className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-lg">{group.name}</h4>
+                  {group.maxSelections && (
+                    <p className="text-xs text-muted-foreground">Select up to {group.maxSelections}</p>
+                  )}
+                </div>
+                {group.isRequired && <Badge variant="secondary" className="text-[9px] bg-primary/10 text-primary border-none">REQUIRED</Badge>}
+              </div>
+
+              {group.type === 'radio' ? (
+                <RadioGroup 
+                  value={selections[group.name]?.[0]} 
+                  onValueChange={(val) => handleRadioChange(group.name, val)}
+                  className="space-y-3"
+                >
+                  {group.choices.map((choice) => (
+                    <div key={choice} className="flex items-center space-x-3 p-3 rounded-xl border hover:bg-muted/50 transition-colors cursor-pointer">
+                      <RadioGroupItem value={choice} id={`${group.id}-${choice}`} />
+                      <Label htmlFor={`${group.id}-${choice}`} className="flex-1 cursor-pointer font-medium">{choice}</Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              ) : (
+                <div className="space-y-3">
+                   {group.choices.map((choice) => {
+                     const isChecked = selections[group.name]?.includes(choice);
+                     return (
+                      <div 
+                        key={choice} 
+                        className={cn(
+                          "flex items-center space-x-3 p-3 rounded-xl border transition-all cursor-pointer",
+                          isChecked ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                        )}
+                        onClick={() => handleCheckboxChange(group.name, choice, !isChecked, group.minSelections, group.maxSelections)}
+                      >
+                        <Checkbox checked={isChecked} id={`${group.id}-${choice}`} />
+                        <Label htmlFor={`${group.id}-${choice}`} className="flex-1 cursor-pointer font-medium">{choice}</Label>
+                      </div>
+                     )
+                   })}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <DialogFooter className="p-6 bg-muted/30">
+          <Button onClick={() => onConfirm(selections)} disabled={!isValid()} className="w-full h-14 rounded-2xl font-bold text-lg shadow-xl shadow-primary/20">
+             Confirm Selection
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function RestaurantMenuPage() {
   const params = useParams();
@@ -27,6 +160,9 @@ export default function RestaurantMenuPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMenuCategory, setSelectedMenuCategory] = useState('All');
+  
+  const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
+  const [isSelectionOpen, setSelectionOpen] = useState(false);
 
   useEffect(() => {
     if (!firestore || !id) return;
@@ -67,7 +203,6 @@ export default function RestaurantMenuPage() {
       return acc;
     }, {} as Record<string, MenuItem[]>);
 
-    // Sort categories alphabetically but keep General at the end if it exists
     return Object.keys(grouped).sort((a, b) => {
         if (a === 'General') return 1;
         if (b === 'General') return -1;
@@ -89,13 +224,22 @@ export default function RestaurantMenuPage() {
     return Object.entries(menuByCategory).filter(([name]) => name === selectedMenuCategory);
   }, [menuByCategory, selectedMenuCategory]);
 
-  const handleAddToCart = (item: MenuItem) => {
+  const handleAddToCart = (item: MenuItem, selectedOptions?: Record<string, string[]>) => {
     const priceToUse = item.promotionalPrice && item.promotionalPrice > 0 ? item.promotionalPrice : item.price;
+    
+    // Generate a unique ID for customized variations
+    const cartId = selectedOptions 
+      ? `${item.id}-${Object.values(selectedOptions).flat().join('-')}` 
+      : item.id;
+
     dispatch({
       type: 'ADD_ITEM',
       payload: {
         ...item,
+        id: cartId, // Use variations ID
+        actualId: item.id, // Keep the real Firestore ID
         price: priceToUse,
+        selectedOptions,
         image: {
           id: item.id,
           imageUrl: item.imageUrl,
@@ -104,10 +248,22 @@ export default function RestaurantMenuPage() {
         },
       },
     });
+
     toast({
       title: 'Added to cart!',
       description: `${item.name} has been added to your cart.`,
     });
+    
+    setSelectionOpen(false);
+  };
+
+  const onAddClick = (item: MenuItem) => {
+    if (item.options && item.options.length > 0) {
+      setCustomizingItem(item);
+      setSelectionOpen(true);
+    } else {
+      handleAddToCart(item);
+    }
   };
 
   if (!isLoading && !restaurant) {
@@ -116,6 +272,13 @@ export default function RestaurantMenuPage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
+      <SelectionDialog 
+        item={customizingItem}
+        open={isSelectionOpen}
+        onOpenChange={setSelectionOpen}
+        onConfirm={(selections) => handleAddToCart(customizingItem!, selections)}
+      />
+
       {isLoading || !restaurant ? (
         <>
           <Skeleton className="h-64 w-full" />
@@ -168,7 +331,6 @@ export default function RestaurantMenuPage() {
                     <div className="bg-primary/20 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1.5 border border-primary/20">
                       <Star className="h-3.5 w-3.5 text-primary fill-primary" />
                       <span className="font-bold text-white">{(restaurant.rating || 0).toFixed(1)}</span>
-                      <span className="text-[10px] opacity-70">(150+ ratings)</span>
                     </div>
                     <div className="flex items-center gap-1.5 opacity-90">
                       <Utensils className="h-4 w-4 text-primary" />
@@ -184,12 +346,6 @@ export default function RestaurantMenuPage() {
             </div>
           </div>
           
-          {restaurant.promotionBannerText && (
-            <div className="bg-primary text-white text-center py-4 px-4 font-bold text-sm sm:text-base animate-pulse">
-               ⚡️ {restaurant.promotionBannerText}
-            </div>
-          )}
-
           <div className="container py-8 px-4 sm:px-8">
             <div className="mb-6 flex flex-col gap-6">
                 <div>
@@ -197,7 +353,6 @@ export default function RestaurantMenuPage() {
                   <div className="h-1 w-12 bg-primary rounded-full"></div>
                 </div>
 
-                {/* Category Slider */}
                 <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
                   <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
                     {categories.map((cat) => (
@@ -228,7 +383,6 @@ export default function RestaurantMenuPage() {
                             <div className="flex items-center gap-4 mb-6">
                                 <h3 className="text-xl font-bold text-foreground">{categoryName}</h3>
                                 <div className="h-px flex-1 bg-muted"></div>
-                                <Badge variant="outline" className="rounded-full text-[10px] uppercase font-bold text-muted-foreground border-muted">{items.length} items</Badge>
                             </div>
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                                 {items.map((item) => {
@@ -242,7 +396,6 @@ export default function RestaurantMenuPage() {
                                                     <Image
                                                         src={item.imageUrl || 'https://picsum.photos/seed/menu/400/300'}
                                                         alt={item.name}
-                                                        data-ai-hint="food item"
                                                         fill
                                                         className={cn("object-cover transition-transform duration-500 group-hover:scale-110", item.isSoldOut && "grayscale")}
                                                     />
@@ -267,7 +420,7 @@ export default function RestaurantMenuPage() {
                                                         )}
                                                     </div>
                                                     <Button 
-                                                        onClick={() => handleAddToCart(item)} 
+                                                        onClick={() => onAddClick(item)} 
                                                         disabled={item.isSoldOut}
                                                         className={cn(
                                                             "rounded-xl h-10 px-4 font-bold shadow-md transition-all",

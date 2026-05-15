@@ -1,17 +1,22 @@
+
 'use client';
 
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useReducer } from 'react';
 import type { MenuItem } from '@/lib/data';
 
-type CartItem = MenuItem & { quantity: number };
+type CartItem = MenuItem & { 
+  quantity: number; 
+  actualId: string; // The real Firestore ID
+  selectedOptions?: Record<string, string[]>; 
+};
 
 type CartState = {
   items: CartItem[];
 };
 
 type CartAction =
-  | { type: 'ADD_ITEM'; payload: MenuItem }
+  | { type: 'ADD_ITEM'; payload: Omit<CartItem, 'quantity'> }
   | { type: 'REMOVE_ITEM'; payload: { id: string } }
   | { type: 'UPDATE_QUANTITY'; payload: { id:string, quantity: number } }
   | { type: 'CLEAR_CART' };
@@ -24,6 +29,7 @@ const CartContext = createContext<{
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD_ITEM': {
+      // payload.id is already the unique variation ID (originalId + selection names)
       const existingItem = state.items.find((item) => item.id === action.payload.id);
       if (existingItem) {
         return {

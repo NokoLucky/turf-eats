@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Customer": {
@@ -6,569 +7,84 @@
       "type": "object",
       "description": "Represents a customer in the Pin2You application.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the customer."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the user's authentication ID. (Relationship: User 1:1 Customer)"
-        },
-        "name": {
-          "type": "string",
-          "description": "The customer's full name."
-        },
-        "email": {
-          "type": "string",
-          "description": "The customer's email address.",
-          "format": "email"
-        },
-        "phoneNumber": {
-          "type": "string",
-          "description": "The customer's phone number."
-        },
-        "address": {
-          "type": "string",
-          "description": "The customer's address."
-        }
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phoneNumber": { "type": "string" },
+        "address": { "type": "string" }
       },
-      "required": [
-        "id",
-        "userId",
-        "name"
-      ]
-    },
-    "Driver": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Driver",
-      "type": "object",
-      "description": "Represents a driver in the Pin2You application.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the driver."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the user's authentication ID. (Relationship: User 1:1 Driver)"
-        },
-        "name": {
-          "type": "string",
-          "description": "The driver's full name."
-        },
-        "phoneNumber": {
-          "type": "string",
-          "description": "The driver's phone number."
-        },
-        "vehicleType": {
-          "type": "string",
-          "description": "The type of vehicle the driver uses."
-        },
-        "licenseNumber": {
-          "type": "string",
-          "description": "The driver's license number."
-        },
-        "vehicleRegistration": {
-          "type": "string",
-          "description": "The driver's vehicle registration number."
-        },
-        "paymentGatewayRecipientId": {
-          "type": "string",
-          "description": "The secure ID from the payment gateway for this driver's bank account."
-        },
-        "licenseUrl": {
-          "type": "string",
-          "description": "URL for the driver's license image."
-        },
-        "status": {
-          "type": "string",
-          "description": "The approval status of the driver.",
-          "enum": [
-            "pending",
-            "active",
-            "inactive"
-          ]
-        },
-        "rating": {
-          "type": "number",
-          "description": "The average rating of the driver."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "name",
-        "vehicleType",
-        "licenseNumber",
-        "licenseUrl",
-        "status"
-      ]
-    },
-    "StoreOwner": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "StoreOwner",
-      "type": "object",
-      "description": "Represents a store owner in the Pin2You application.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the store owner."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the user's authentication ID. (Relationship: User 1:1 StoreOwner)"
-        },
-        "name": {
-          "type": "string",
-          "description": "The store owner's full name."
-        },
-        "email": {
-          "type": "string",
-          "description": "The store owner's email address.",
-          "format": "email"
-        },
-        "phoneNumber": {
-          "type": "string",
-          "description": "The store owner's phone number."
-        },
-        "paymentGatewayRecipientId": {
-          "type": "string",
-          "description": "The secure ID from the payment gateway for this owner's bank account."
-        },
-        "status": {
-          "type": "string",
-          "description": "The approval status of the store owner.",
-          "enum": [
-            "pending",
-            "active",
-            "inactive"
-          ]
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "name",
-        "status"
-      ]
-    },
-    "Restaurant": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Restaurant",
-      "type": "object",
-      "description": "Represents a restaurant or store in the Pin2You application.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the restaurant."
-        },
-        "storeOwnerId": {
-          "type": "string",
-          "description": "Reference to the StoreOwner. (Relationship: StoreOwner 1:N Restaurant)"
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the restaurant."
-        },
-        "logoUrl": {
-          "type": "string",
-          "description": "URL of the restaurant's logo."
-        },
-        "rating": {
-          "type": "number",
-          "description": "The restaurant's average rating."
-        },
-        "category": {
-          "type": "string",
-          "description": "The restaurant's category (e.g., Italian, Mexican)."
-        },
-        "address": {
-          "type": "string",
-          "description": "The restaurant's address."
-        },
-        "openingHours": {
-          "type": "string",
-          "description": "The restaurant's opening hours."
-        },
-        "promotionBannerText": {
-          "type": "string",
-          "description": "A short text to display as a promotional banner on the store's page."
-        },
-        "status": {
-          "type": "string",
-          "description": "The approval status of the restaurant.",
-          "enum": [
-            "pending",
-            "active",
-            "inactive"
-          ]
-        }
-      },
-      "required": [
-        "id",
-        "storeOwnerId",
-        "name",
-        "logoUrl",
-        "rating",
-        "category",
-        "address",
-        "openingHours",
-        "status"
-      ]
+      "required": ["id", "userId", "name"]
     },
     "MenuItem": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MenuItem",
       "type": "object",
-      "description": "Represents a menu item offered by a restaurant.",
+      "description": "Represents a menu item with optional customization groups.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the menu item."
-        },
-        "restaurantId": {
-          "type": "string",
-          "description": "Reference to the Restaurant. (Relationship: Restaurant 1:N MenuItem)"
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the menu item."
-        },
-        "description": {
-          "type": "string",
-          "description": "A description of the menu item."
-        },
-        "price": {
-          "type": "number",
-          "description": "The price of the menu item."
-        },
-        "promotionalPrice": {
-          "type": "number",
-          "description": "The discounted price of the menu item, if a promotion is active."
-        },
-        "imageUrl": {
-          "type": "string",
-          "description": "URL of the menu item's image."
-        },
-        "isSoldOut": {
-          "type": "boolean",
-          "description": "Indicates if the menu item is currently sold out."
-        },
-        "category": {
-          "type": "string",
-          "description": "The sub-category of the menu item."
-        }
-      },
-      "required": [
-        "id",
-        "restaurantId",
-        "name",
-        "description",
-        "price",
-        "category"
-      ]
-    },
-    "Order": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Order",
-      "type": "object",
-      "description": "Represents an order placed by a customer.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the order."
-        },
-        "customerId": {
-          "type": "string",
-          "description": "Reference to the Customer."
-        },
-        "restaurantId": {
-          "type": "string",
-          "description": "Reference to the Restaurant."
-        },
-        "storeOwnerId": {
-          "type": "string",
-          "description": "Reference to the StoreOwner."
-        },
-        "driverId": {
-          "type": "string",
-          "description": "Reference to the Driver."
-        },
-        "orderDate": {
-          "type": "string",
-          "description": "The date and time the order was placed.",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the order."
-        },
-        "itemsTotal": {
-          "type": "number",
-          "description": "The subtotal amount of the order."
-        },
-        "totalAmount": {
-          "type": "number",
-          "description": "The total amount of the order."
-        },
-        "deliveryAddress": {
-          "type": "string",
-          "description": "The delivery address for the order."
-        },
-        "paymentMethod": {
-          "type": "string",
-          "description": "The chosen payment method (e.g., cod, payshap)."
-        },
-        "notes": {
-          "type": "string",
-          "description": "Optional instructions from the customer."
-        },
-        "isRated": {
-          "type": "boolean",
-          "description": "Flag to indicate if the order has been rated."
-        },
-        "participantUids": {
+        "id": { "type": "string" },
+        "restaurantId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "promotionalPrice": { "type": "number" },
+        "imageUrl": { "type": "string" },
+        "isSoldOut": { "type": "boolean" },
+        "category": { "type": "string" },
+        "options": {
           "type": "array",
-          "description": "An array of user IDs who are allowed to read the order.",
           "items": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "type": { "type": "string", "enum": ["radio", "checkbox"] },
+              "choices": { "type": "array", "items": { "type": "string" } },
+              "minSelections": { "type": "number" },
+              "maxSelections": { "type": "number" },
+              "isRequired": { "type": "boolean" }
+            }
           }
         }
       },
-      "required": [
-        "id",
-        "customerId",
-        "restaurantId",
-        "storeOwnerId",
-        "orderDate",
-        "status",
-        "itemsTotal",
-        "totalAmount",
-        "deliveryAddress",
-        "participantUids"
-      ]
+      "required": ["id", "restaurantId", "name", "price", "category"]
     },
     "OrderItem": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "OrderItem",
       "type": "object",
-      "description": "Represents an item within an order.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the order item."
-        },
-        "orderId": {
-          "type": "string",
-          "description": "Reference to the Order."
-        },
-        "menuItemId": {
-          "type": "string",
-          "description": "Reference to the MenuItem."
-        },
-        "quantity": {
-          "type": "number",
-          "description": "The quantity of the menu item."
-        },
-        "itemPrice": {
-          "type": "number",
-          "description": "The price of this particular menu item."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the item at the time of purchase."
-        }
-      },
-      "required": [
-        "id",
-        "orderId",
-        "menuItemId",
-        "quantity",
-        "itemPrice",
-        "name"
-      ]
-    },
-    "DriverLocation": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "DriverLocation",
-      "type": "object",
-      "description": "Represents the real-time location of a driver.",
-      "properties": {
-        "lat": {
-          "type": "number",
-          "description": "The latitude of the driver's location."
-        },
-        "lng": {
-          "type": "number",
-          "description": "The longitude of the driver's location."
-        },
-        "updatedAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The timestamp when the location was last updated."
-        }
-      },
-      "required": [
-        "lat",
-        "lng",
-        "updatedAt"
-      ]
-    },
-    "Rating": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Rating",
-      "type": "object",
-      "description": "Represents a rating provided by a customer for an order.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the rating."
-        },
-        "orderId": {
-          "type": "string",
-          "description": "Reference to the Order."
-        },
-        "customerId": {
-          "type": "string",
-          "description": "Reference to the Customer."
-        },
-        "restaurantId": {
-          "type": "string",
-          "description": "Reference to the Restaurant."
-        },
-        "driverId": {
-          "type": "string",
-          "description": "Reference to the Driver."
-        },
-        "restaurantRating": {
-          "type": "number",
-          "description": "Rating for the restaurant."
-        },
-        "restaurantComment": {
-          "type": "string",
-          "description": "Optional comment for the restaurant rating."
-        },
-        "driverRating": {
-          "type": "number",
-          "description": "Rating for the driver."
-        },
-        "driverComment": {
-          "type": "string",
-          "description": "Optional comment for the driver rating."
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The timestamp when the rating was submitted."
-        }
-      },
-      "required": [
-        "id",
-        "orderId",
-        "customerId",
-        "restaurantId"
-      ]
+        "id": { "type": "string" },
+        "orderId": { "type": "string" },
+        "menuItemId": { "type": "string" },
+        "quantity": { "type": "number" },
+        "itemPrice": { "type": "number" },
+        "name": { "type": "string" },
+        "selectedOptions": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string" } } }
+      }
     }
   },
   "auth": {
-    "providers": [
-      "email",
-      "phone"
-    ]
+    "providers": ["email"]
   },
   "firestore": {
     "structure": [
       {
         "path": "/users/{userId}/customers/{customerId}",
-        "definition": {
-          "entityName": "Customer",
-          "schema": {
-            "$ref": "#/backend/entities/Customer"
-          },
-          "description": "Stores customer profiles."
-        }
-      },
-      {
-        "path": "/users/{userId}/drivers/{driverId}",
-        "definition": {
-          "entityName": "Driver",
-          "schema": {
-            "$ref": "#/backend/entities/Driver"
-          },
-          "description": "Stores driver profiles."
-        }
-      },
-      {
-        "path": "/users/{userId}/storeOwners/{storeOwnerId}",
-        "definition": {
-          "entityName": "StoreOwner",
-          "schema": {
-            "$ref": "#/backend/entities/StoreOwner"
-          },
-          "description": "Stores store owner profiles."
-        }
-      },
-      {
-        "path": "/restaurants/{restaurantId}",
-        "definition": {
-          "entityName": "Restaurant",
-          "schema": {
-            "$ref": "#/backend/entities/Restaurant"
-          },
-          "description": "Stores restaurant information."
-        }
+        "definition": { "entityName": "Customer", "schema": { "$ref": "#/backend/entities/Customer" }, "description": "Stores customer profiles." }
       },
       {
         "path": "/restaurants/{restaurantId}/menuItems/{menuItemId}",
-        "definition": {
-          "entityName": "MenuItem",
-          "schema": {
-            "$ref": "#/backend/entities/MenuItem"
-          },
-          "description": "Stores menu items."
-        }
+        "definition": { "entityName": "MenuItem", "schema": { "$ref": "#/backend/entities/MenuItem" }, "description": "Stores menu items with options." }
       },
       {
         "path": "/orders/{orderId}",
-        "definition": {
-          "entityName": "Order",
-          "schema": {
-            "$ref": "#/backend/entities/Order"
-          },
-          "description": "Stores order information."
-        }
+        "definition": { "entityName": "Order", "schema": { "$ref": "#/backend/entities/Order" }, "description": "Stores order information." }
       },
       {
         "path": "/orders/{orderId}/orderItems/{orderItemId}",
-        "definition": {
-          "entityName": "OrderItem",
-          "schema": {
-            "$ref": "#/backend/entities/OrderItem"
-          },
-          "description": "Stores individual items within an order."
-        }
-      },
-      {
-        "path": "/locations/{driverId}",
-        "definition": {
-          "entityName": "DriverLocation",
-          "schema": {
-            "$ref": "#/backend/entities/DriverLocation"
-          },
-          "description": "Stores the last known location of a driver."
-        }
-      },
-      {
-        "path": "/ratings/{ratingId}",
-        "definition": {
-          "entityName": "Rating",
-          "schema": {
-            "$ref": "#/backend/entities/Rating"
-          },
-          "description": "Stores customer ratings."
-        }
+        "definition": { "entityName": "OrderItem", "schema": { "$ref": "#/backend/entities/OrderItem" }, "description": "Stores customized items within an order." }
       }
     ],
-    "reasoning": "Standard Firestore structure focused on path-based ownership and flat order management."
+    "reasoning": "Standard Firestore structure with sub-collections for menu items and order items to support deep customization."
   }
 }

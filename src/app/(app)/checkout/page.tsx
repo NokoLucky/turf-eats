@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -10,13 +11,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { CreditCard, Landmark, Truck, MapPin, Phone, User as UserIcon, Send, PlusCircle, Sparkles } from 'lucide-react';
+import { MapPin, Phone, User as UserIcon, Send, PlusCircle, Sparkles, Truck } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, addDoc, serverTimestamp, writeBatch, doc, getDoc } from 'firebase/firestore';
 import FreeAddressAutocomplete from '@/components/free-address-autocomplete';
 import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
 import type { MenuItem } from '@/lib/data';
+import { Badge } from '@/components/ui/badge';
 
 export default function CheckoutPage() {
   const { state, dispatch } = useCart();
@@ -38,14 +40,9 @@ export default function CheckoutPage() {
   const [customerName, setCustomerName] = useState('');
 
   useEffect(() => {
-    if(customerData?.address) {
-      setDeliveryAddress(customerData.address);
-    }
-    if(customerData?.name) {
-      setCustomerName(customerData.name);
-    } else if (user?.displayName) {
-      setCustomerName(user.displayName);
-    }
+    if(customerData?.address) setDeliveryAddress(customerData.address);
+    if(customerData?.name) setCustomerName(customerData.name);
+    else if (user?.displayName) setCustomerName(user.displayName);
   }, [customerData, user]);
 
 
@@ -55,7 +52,6 @@ export default function CheckoutPage() {
     }
   }, [state.items, router]);
 
-  // Logic to fetch "Related Items" (other items from the same store)
   const restaurantId = state.items[0]?.restaurantId;
   const menuItemsRef = useMemoFirebase(() => {
     if (!firestore || !restaurantId) return null;
@@ -66,20 +62,17 @@ export default function CheckoutPage() {
 
   const upsellItems = useMemo(() => {
     if (!allMenuItems) return [];
-    const currentItemIds = new Set(state.items.map(item => item.id));
-    // Suggest items not in cart, prioritized by availability
+    const currentItemIds = new Set(state.items.map(item => item.actualId));
     return allMenuItems
       .filter(item => !currentItemIds.has(item.id) && !item.isSoldOut)
       .slice(0, 4);
   }, [allMenuItems, state.items]);
 
-  if (state.items.length === 0) {
-    return null;
-  }
+  if (state.items.length === 0) return null;
 
   const subtotal = state.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const serviceFee = 5.0; // Standard R5 service fee
-  const deliveryFee = 30.0; // Standard R30 delivery fee
+  const serviceFee = 5.0; 
+  const deliveryFee = 30.0; 
   const total = subtotal + serviceFee + deliveryFee;
 
   const handleAddToCart = (item: MenuItem) => {
@@ -88,6 +81,7 @@ export default function CheckoutPage() {
       type: 'ADD_ITEM',
       payload: {
         ...item,
+        actualId: item.id,
         price: priceToUse,
         image: {
           id: item.id,
@@ -97,46 +91,24 @@ export default function CheckoutPage() {
         },
       },
     });
-    toast({
-      title: 'Added!',
-      description: `${item.name} added to your order.`,
-    });
+    toast({ title: 'Added!', description: `${item.name} added to your order.` });
   };
 
   const handleConfirmOrder = async () => {
     if (!user || !firestore) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'You must be logged in to place an order.',
-      });
+      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to place an order.' });
       return;
     }
     
     if (!deliveryAddress) {
-       toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Please select a delivery address.',
-      });
-      return;
-    }
-
-    if (!restaurantId) {
-       toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not determine the restaurant for this order.',
-      });
+       toast({ variant: 'destructive', title: 'Error', description: 'Please select a delivery address.' });
       return;
     }
 
     try {
       const restaurantRef = doc(firestore, 'restaurants', restaurantId);
       const restaurantSnap = await getDoc(restaurantRef);
-      if (!restaurantSnap.exists()) {
-        throw new Error("Restaurant not found!");
-      }
+      if (!restaurantSnap.exists()) throw new Error("Restaurant not found!");
       const restaurantData = restaurantSnap.data();
       const storeOwnerId = restaurantData.storeOwnerId;
 
@@ -164,30 +136,22 @@ export default function CheckoutPage() {
         const orderItemRef = doc(collection(firestore, `orders/${orderDocRef.id}/orderItems`));
         batch.set(orderItemRef, {
             orderId: orderDocRef.id,
-            menuItemId: item.id,
+            menuItemId: item.actualId,
             quantity: item.quantity,
             itemPrice: item.price,
             name: item.name,
+            selectedOptions: item.selectedOptions || null,
         });
       }
 
       await batch.commit();
-
-      toast({
-          title: "Order Placed!",
-          description: "Thank you for your order. You can track it in the 'My Orders' section.",
-      });
-
+      toast({ title: "Order Placed!", description: "Thank you for your order. Tracking is now available." });
       dispatch({ type: 'CLEAR_CART' });
       router.push('/orders');
 
     } catch (error: any) {
       console.error("Error placing order:", error);
-      toast({
-        variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: error.message || "Could not place your order. Please try again.",
-      });
+      toast({ variant: "destructive", title: "Order Failed", description: error.message || "Please try again." });
     }
   };
 
@@ -227,7 +191,6 @@ export default function CheckoutPage() {
                 </CardContent>
             </Card>
 
-            {/* Usually Bought With / Upsell Section */}
             {upsellItems.length > 0 && (
               <section className="space-y-4">
                 <div className="flex items-center gap-2 px-2">
@@ -239,7 +202,7 @@ export default function CheckoutPage() {
                     <Card key={item.id} className="border-none shadow-sm rounded-2xl overflow-hidden bg-white hover:shadow-md transition-shadow">
                       <div className="flex items-center p-3 gap-4">
                         <div className="relative h-16 w-16 rounded-xl overflow-hidden flex-shrink-0 bg-muted">
-                           <Image src={item.imageUrl || 'https://picsum.photos/seed/food/100/100'} alt={item.name} fill className="object-cover" />
+                           <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
                         </div>
                         <div className="flex-1 overflow-hidden">
                           <h3 className="font-bold text-sm truncate">{item.name}</h3>
@@ -248,7 +211,7 @@ export default function CheckoutPage() {
                         <Button 
                           size="icon" 
                           variant="secondary" 
-                          className="h-10 w-10 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white"
+                          className="h-10 w-10 rounded-xl bg-primary/10 text-primary"
                           onClick={() => handleAddToCart(item)}
                         >
                           <PlusCircle className="h-5 w-5" />
@@ -261,15 +224,10 @@ export default function CheckoutPage() {
             )}
             
             <Card className="border-none shadow-premium rounded-[2rem]">
-                <CardHeader>
-                    <CardTitle>Order Notes</CardTitle>
-                    <CardDescription>
-                        Have any special instructions? Let the restaurant know.
-                    </CardDescription>
-                </CardHeader>
+                <CardHeader><CardTitle>Order Notes</CardTitle></CardHeader>
                 <CardContent>
                     <Textarea
-                        placeholder="e.g., 'No cheese on the burger, please.'"
+                        placeholder="e.g., 'Ring the bell twice, please.'"
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         className="rounded-xl min-h-[100px]"
@@ -278,10 +236,7 @@ export default function CheckoutPage() {
             </Card>
 
              <Card className="border-none shadow-premium rounded-[2rem]">
-                <CardHeader>
-                    <CardTitle>Payment Method</CardTitle>
-                    <CardDescription>Select how you'd like to pay for your delivery.</CardDescription>
-                </CardHeader>
+                <CardHeader><CardTitle>Payment Method</CardTitle></CardHeader>
                 <CardContent>
                     <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-4">
                         <div className={`flex items-center space-x-3 p-4 rounded-xl border transition-colors ${paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-muted'}`}>
@@ -300,7 +255,7 @@ export default function CheckoutPage() {
                                 <div className="bg-white p-2 rounded-lg shadow-sm"><Send className='h-5 w-5 text-primary' /></div>
                                 <div className="flex-1">
                                     <p className="font-bold">PayShap</p>
-                                    <p className="text-xs text-muted-foreground">Send to 0707529446 (WhatsApp Number).</p>
+                                    <p className="text-xs text-muted-foreground">Send to 0707529446.</p>
                                 </div>
                             </Label>
                         </div>
@@ -311,14 +266,21 @@ export default function CheckoutPage() {
 
         <div>
             <Card className="border-none shadow-premium rounded-[2rem] sticky top-24">
-              <CardHeader>
-                <CardTitle className="font-headline text-2xl">Order Summary</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="font-headline text-2xl">Summary</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 {state.items.map(item => (
-                    <div key={item.id} className="flex justify-between items-center text-sm">
-                        <span className="flex-1 truncate pr-2 text-muted-foreground">{item.quantity} x {item.name}</span>
-                        <span className='font-bold'>R{(item.price * item.quantity).toFixed(2)}</span>
+                    <div key={item.id} className="flex flex-col gap-1">
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="flex-1 truncate pr-2 font-medium">{item.quantity} x {item.name}</span>
+                            <span className='font-bold'>R{(item.price * item.quantity).toFixed(2)}</span>
+                        </div>
+                        {item.selectedOptions && (
+                          <div className="flex flex-wrap gap-1">
+                             {Object.entries(item.selectedOptions).map(([group, choices]) => (
+                               choices.map(c => <Badge key={`${group}-${c}`} variant="secondary" className="text-[8px] font-normal py-0 h-4">{c}</Badge>)
+                             ))}
+                          </div>
+                        )}
                     </div>
                 ))}
                 <Separator />
@@ -327,12 +289,8 @@ export default function CheckoutPage() {
                   <span className="font-medium">R{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Service Fee</span>
-                  <span className="font-medium">R{serviceFee.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Delivery Fee</span>
-                  <span className="font-medium text-green-600">R{deliveryFee.toFixed(2)}</span>
+                  <span className="text-muted-foreground">Service & Delivery</span>
+                  <span className="font-medium text-green-600">R{(serviceFee + deliveryFee).toFixed(2)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-xl font-bold">
@@ -342,7 +300,7 @@ export default function CheckoutPage() {
               </CardContent>
               <CardFooter>
                 <Button className="w-full font-bold h-14 rounded-xl text-lg shadow-lg shadow-primary/20" size="lg" onClick={handleConfirmOrder}>
-                  Confirm & Place Order
+                  Place Order
                 </Button>
               </CardFooter>
             </Card>
