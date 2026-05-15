@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -32,17 +31,21 @@ export default function CheckoutPage() {
     return doc(firestore, `users/${user.uid}/customers/${user.uid}`);
   }, [user, firestore]);
 
-  const { data: customerData } = useDoc<{address: string, name: string}>(customerRef);
+  const { data: customerData } = useDoc<{address: string, name: string, phoneNumber: string}>(customerRef);
 
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
 
   useEffect(() => {
     if(customerData?.address) setDeliveryAddress(customerData.address);
     if(customerData?.name) setCustomerName(customerData.name);
     else if (user?.displayName) setCustomerName(user.displayName);
+
+    if(customerData?.phoneNumber) setCustomerPhone(customerData.phoneNumber);
+    else if (user?.phoneNumber) setCustomerPhone(user.phoneNumber);
   }, [customerData, user]);
 
 
@@ -115,6 +118,8 @@ export default function CheckoutPage() {
       const ordersCollection = collection(firestore, 'orders');
       const orderDocRef = await addDoc(ordersCollection, {
         customerId: user.uid,
+        customerName: customerName,
+        customerPhone: customerPhone,
         restaurantId: restaurantId,
         storeOwnerId: storeOwnerId,
         driverId: null,
@@ -178,7 +183,13 @@ export default function CheckoutPage() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="phone" className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-muted-foreground" /> Phone Number</Label>
-                            <Input id="phone" defaultValue={user?.phoneNumber || ""} placeholder="+27 ..." className="rounded-xl" />
+                            <Input 
+                              id="phone" 
+                              value={customerPhone} 
+                              onChange={(e) => setCustomerPhone(e.target.value)} 
+                              placeholder="+27 ..." 
+                              className="rounded-xl" 
+                            />
                         </div>
                     </div>
                      <div className="space-y-2">
