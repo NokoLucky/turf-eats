@@ -24,8 +24,9 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
 import { StarRating } from '@/components/ui/star-rating';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 interface RatingDialogProps {
   order: Order | null;
@@ -37,7 +38,6 @@ interface RatingDialogProps {
 export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: RatingDialogProps) {
   const { user } = useUser();
   const firestore = useFirestore();
-  const { toast } = useToast();
 
   const ratingSchema = z.object({
     restaurantRating: z.number().min(1, 'Please select a rating for the restaurant.'),
@@ -79,64 +79,66 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
   const onSubmit = async (data: RatingFormValues) => {
     if (!firestore || !user || !order) return;
 
-    try {
-      const batch = writeBatch(firestore);
-
-      // 1. Calculate and update Restaurant Average
-      const newRestaurantAvg = await calculateNewAverage(order.restaurantId, 'restaurantId', data.restaurantRating);
-      const restaurantRef = doc(firestore, 'restaurants', order.restaurantId);
-      batch.update(restaurantRef, { rating: newRestaurantAvg });
-
-      // 2. Calculate and update Driver Average (if applicable)
-      if (order.driverId && data.driverRating && data.driverRating > 0) {
-        const newDriverAvg = await calculateNewAverage(order.driverId, 'driverId', data.driverRating);
-        const driverRef = doc(firestore, `users/${order.driverId}/drivers/${order.driverId}`);
-        batch.update(driverRef, { rating: newDriverAvg });
-      }
-
-      // 3. Create the new rating document
-      const newRatingRef = doc(collection(firestore, 'ratings'));
-      const ratingData: any = {
-        restaurantRating: data.restaurantRating,
-        restaurantComment: data.restaurantComment,
-        orderId: order.id,
-        customerId: user.uid,
-        restaurantId: order.restaurantId,
-        createdAt: serverTimestamp(),
-      };
-
-      if (order.driverId && data.driverRating && data.driverRating > 0) {
-        ratingData.driverId = order.driverId;
-        ratingData.driverRating = data.driverRating;
-        if (data.driverComment) {
-          ratingData.driverComment = data.driverComment;
-        }
-      }
-
-      batch.set(newRatingRef, ratingData);
-
-      // 4. Update the order to mark it as rated
-      const orderRef = doc(firestore, 'orders', order.id);
-      batch.update(orderRef, { isRated: true });
-
-      await batch.commit();
-
-      toast({
-        title: 'Rating Submitted!',
-        description: 'Thank you for your feedback. We appreciate your support!',
-      });
-
-      onRatingSubmitted();
-      onOpenChange(false);
-      form.reset();
-    } catch (error: any) {
-      console.error('Error submitting rating:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Submission Failed',
-        description: error.message || 'Could not submit your rating. Please try again.',
-      });
+    // 1. Calculate Averages (Reads are performed before mutations)
+    const newRestaurantAvg = await calculateNewAverage(order.restaurantId, 'restaurantId', data.restaurantRating);
+    
+    let newDriverAvg: number | null = null;
+    if (order.driverId && data.driverRating && data.driverRating > 0) {
+      newDriverAvg = await calculateNewAverage(order.driverId, 'driverId', data.driverRating);
     }
+
+    const batch = writeBatch(firestore);
+
+    // 2. Prepare Restaurant Update (Using set with merge to be idempotent)
+    const restaurantRef = doc(firestore, 'restaurants', order.restaurantId);
+    batch.set(restaurantRef, { rating: newRestaurantAvg }, { merge: true });
+
+    // 3. Prepare Driver Update (if applicable, using set with merge)
+    if (order.driverId && newDriverAvg !== null) {
+      const driverRef = doc(firestore, `users/${order.driverId}/drivers/${order.driverId}`);
+      batch.set(driverRef, { rating: newDriverAvg }, { merge: true });
+    }
+
+    // 4. Create Rating Document
+    const newRatingRef = doc(collection(firestore, 'ratings'));
+    const ratingData: any = {
+      restaurantRating: data.restaurantRating,
+      restaurantComment: data.restaurantComment || '',
+      orderId: order.id,
+      customerId: user.uid,
+      restaurantId: order.restaurantId,
+      createdAt: serverTimestamp(),
+    };
+
+    if (order.driverId && data.driverRating && data.driverRating > 0) {
+      ratingData.driverId = order.driverId;
+      ratingData.driverRating = data.driverRating;
+      if (data.driverComment) {
+        ratingData.driverComment = data.driverComment;
+      }
+    }
+    batch.set(newRatingRef, ratingData);
+
+    // 5. Mark Order as Rated
+    const orderRef = doc(firestore, 'orders', order.id);
+    batch.update(orderRef, { isRated: true });
+
+    // 6. Commit Mutations (Non-blocking as per guidelines)
+    batch.commit()
+      .then(() => {
+        onRatingSubmitted();
+        onOpenChange(false);
+        form.reset();
+      })
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: 'orders/ratings/batch',
+          operation: 'write',
+          requestResourceData: ratingData,
+        } satisfies SecurityRuleContext);
+
+        errorEmitter.emit('permission-error', permissionError);
+      });
   };
 
   if (!order) return null;
@@ -155,7 +157,6 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-8">
-            {/* Restaurant Rating */}
             <div className="space-y-4">
               <h3 className="font-bold text-lg flex items-center gap-2">
                 <div className="w-1.5 h-6 bg-primary rounded-full" />
@@ -190,7 +191,6 @@ export function RatingDialog({ order, open, onOpenChange, onRatingSubmitted }: R
               />
             </div>
             
-            {/* Driver Rating */}
             {order.driverId && (
               <div className="space-y-4">
                 <h3 className="font-bold text-lg flex items-center gap-2">

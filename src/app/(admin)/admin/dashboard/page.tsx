@@ -1,23 +1,21 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { collectionGroup, collection, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collectionGroup, collection, doc, deleteDoc, setDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Store, Bike, Trash2, TrendingUp, ShoppingCart, Users } from 'lucide-react';
+import { Store, Bike, Trash2, TrendingUp, ShoppingCart } from 'lucide-react';
 import type { Order, Driver, Restaurant } from '@/lib/data';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 export default function AdminDashboard() {
   const firestore = useFirestore();
   const { user } = useUser();
-  const { toast } = useToast();
 
   const driversQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -63,27 +61,36 @@ export default function AdminDashboard() {
     ];
   }, [allOrders, allDrivers, allRestaurants]);
 
-  const handleApprove = async (collectionName: 'drivers' | 'storeOwners', userId: string) => {
+  const handleApprove = (collectionName: 'drivers' | 'storeOwners', userId: string) => {
     if (!firestore) return;
     const docPath = `users/${userId}/${collectionName}/${userId}`;
     const docRef = doc(firestore, docPath);
     
-    updateDoc(docRef, { status: 'active' }).then(() => {
-        toast({ title: "Approval Successful", description: "Profile has been activated." });
-    }).catch(err => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'update', requestResourceData: { status: 'active' } }));
-    });
+    const updateData = { status: 'active' };
+
+    // Using setDoc with merge to be idempotent and avoid "No document to update" errors
+    setDoc(docRef, updateData, { merge: true })
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: updateData,
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+      });
   };
 
-  const handleDelete = async (path: string) => {
+  const handleDelete = (path: string) => {
     if (!firestore) return;
     if (!confirm("Are you sure you want to permanently delete this record? This action cannot be undone.")) return;
 
     const docRef = doc(firestore, path);
-    deleteDoc(docRef).then(() => {
-        toast({ title: "Deleted", description: "Record has been removed from the system.", variant: "destructive" });
-    }).catch(err => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'delete' }));
+    deleteDoc(docRef).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'delete',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
     });
   };
 
