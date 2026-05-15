@@ -97,7 +97,7 @@ function ProductDialog({
       category: '',
       price: 0,
       imageUrl: '',
-      promotionalPrice: '',
+      promotionalPrice: undefined,
       isSoldOut: false,
       options: [],
     },
@@ -109,7 +109,16 @@ function ProductDialog({
   });
   
   useEffect(() => {
-    form.reset(product || { name: '', description: '', category: '', price: 0, imageUrl: '', promotionalPrice: '', isSoldOut: false, options: [] });
+    form.reset(product || { 
+      name: '', 
+      description: '', 
+      category: '', 
+      price: 0, 
+      imageUrl: '', 
+      promotionalPrice: undefined, 
+      isSoldOut: false, 
+      options: [] 
+    });
   }, [product, form]);
 
   const categoryOptions = useMemo(() => {
@@ -176,7 +185,7 @@ function ProductDialog({
                   <FormItem>
                     <FormLabel>Product Name</FormLabel>
                     <FormControl>
-                      <Input {...field} className="rounded-xl" />
+                      <Input {...field} value={field.value || ''} className="rounded-xl" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -188,7 +197,7 @@ function ProductDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Product Category</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger className="rounded-xl">
                           <SelectValue placeholder="Select a category" />
@@ -212,7 +221,7 @@ function ProductDialog({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea {...field} className="rounded-xl" />
+                    <Textarea {...field} value={field.value || ''} className="rounded-xl" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -226,7 +235,7 @@ function ProductDialog({
                     <FormItem>
                     <FormLabel>Price (ZAR)</FormLabel>
                     <FormControl>
-                        <Input type="number" step="0.01" {...field} className="rounded-xl" />
+                        <Input type="number" step="0.01" {...field} value={field.value ?? ''} className="rounded-xl" />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -275,7 +284,7 @@ function ProductDialog({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Group Name (e.g., "Choose Salads")</FormLabel>
-                          <FormControl><Input {...field} placeholder="Group Name" className="rounded-xl" /></FormControl>
+                          <FormControl><Input {...field} value={field.value || ''} placeholder="Group Name" className="rounded-xl" /></FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -286,7 +295,7 @@ function ProductDialog({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Selection Type</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value || "radio"}>
                             <FormControl><SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger></FormControl>
                             <SelectContent>
                               <SelectItem value="radio">Single Choice (Radio)</SelectItem>
@@ -306,7 +315,7 @@ function ProductDialog({
                         <FormLabel>Choices (comma separated)</FormLabel>
                         <FormControl>
                           <Input 
-                            value={field.value.join(', ')} 
+                            value={Array.isArray(field.value) ? field.value.join(', ') : ''} 
                             onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()))}
                             placeholder="Choice 1, Choice 2, Choice 3"
                             className="rounded-xl"
@@ -326,7 +335,7 @@ function ProductDialog({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Min Selections</FormLabel>
-                            <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} className="rounded-xl" /></FormControl>
+                            <FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseInt(e.target.value))} className="rounded-xl" /></FormControl>
                           </FormItem>
                         )}
                       />
@@ -336,7 +345,7 @@ function ProductDialog({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Max Selections</FormLabel>
-                            <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} className="rounded-xl" /></FormControl>
+                            <FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseInt(e.target.value))} className="rounded-xl" /></FormControl>
                           </FormItem>
                         )}
                       />
