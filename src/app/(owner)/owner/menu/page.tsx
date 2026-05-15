@@ -99,7 +99,7 @@ function ProductDialog({
   const categoryOptions = useMemo(() => {
     switch (storeCategory) {
       case 'Restaurants':
-        return ['Burgers', 'Meat', 'Deserts', 'Cold Drinks', 'Hot Drinks', 'Other Drinks'];
+        return ['Meals', 'Sides', 'Extras', 'Burgers', 'Meat', 'Deserts', 'Cold Drinks', 'Hot Drinks', 'Other Drinks'];
       case 'Liquor':
         return ['Ciders and Beer', 'Wine', 'Gin', 'Whiskeys', 'Tequila', 'Champagne', 'Cocktails'];
       case 'Pharmacy':
