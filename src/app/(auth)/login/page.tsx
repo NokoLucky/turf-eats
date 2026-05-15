@@ -157,10 +157,11 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="email">
-              <TabsList className="grid w-full grid-cols-2">
+              {/* Phone login temporarily disabled */}
+              {/* <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="email">Email</TabsTrigger>
                 <TabsTrigger value="phone">Phone</TabsTrigger>
-              </TabsList>
+              </TabsList> */}
               <TabsContent value="email" className="min-h-[16rem]">
                 <Form {...emailForm}>
                   <form onSubmit={emailForm.handleSubmit(handleLogin)} className="space-y-4 pt-4">
@@ -206,7 +207,8 @@ export default function LoginPage() {
                   </form>
                 </Form>
               </TabsContent>
-              <TabsContent value="phone" className="min-h-[16rem]">
+              {/* Phone login content temporarily commented out */}
+              {/* <TabsContent value="phone" className="min-h-[16rem]">
                  {phoneAuthState === 'enter-phone' ? (
                   <Form {...phoneForm}>
                     <form key="phone-form" onSubmit={phoneForm.handleSubmit(handlePhoneLogin)} className="space-y-4 pt-4">
@@ -253,7 +255,7 @@ export default function LoginPage() {
                     </form>
                   </Form>
                 )}
-              </TabsContent>
+              </TabsContent> */}
             </Tabs>
             <div className="mt-6 text-center text-sm">
               Don't have an account?{' '}
