@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { 
   Star, Search, Utensils, ShoppingBasket, Wine, 
   Pill, Droplets, Shirt, Package, MoreHorizontal, Bell, MapPin, 
-  Clock, Truck
+  Clock, Truck, ChevronDown
 } from 'lucide-react';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
@@ -16,15 +16,16 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
+// Define categories with specific brand colors for a "colorful" premium look
 const categories = [
-  { name: 'Restaurants', icon: <Utensils /> },
-  { name: 'Groceries', icon: <ShoppingBasket /> },
-  { name: 'Liquor', icon: <Wine /> },
-  { name: 'Pharmacy', icon: <Pill /> },
-  { name: 'Water', icon: <Droplets /> },
-  { name: 'Laundry', icon: <Shirt /> },
-  { name: 'Parcels', icon: <Package /> },
-  { name: 'More', icon: <MoreHorizontal /> },
+  { name: 'Restaurants', icon: <Utensils />, color: 'text-orange-500', bg: 'bg-orange-50', border: 'border-orange-200' },
+  { name: 'Groceries', icon: <ShoppingBasket />, color: 'text-green-500', bg: 'bg-green-50', border: 'border-green-200' },
+  { name: 'Liquor', icon: <Wine />, color: 'text-purple-500', bg: 'bg-purple-50', border: 'border-purple-200' },
+  { name: 'Pharmacy', icon: <Pill />, color: 'text-blue-500', bg: 'bg-blue-50', border: 'border-blue-200' },
+  { name: 'Water', icon: <Droplets />, color: 'text-cyan-500', bg: 'bg-cyan-50', border: 'border-cyan-200' },
+  { name: 'Laundry', icon: <Shirt />, color: 'text-pink-500', bg: 'bg-pink-50', border: 'border-pink-200' },
+  { name: 'Parcels', icon: <Package />, color: 'text-amber-500', bg: 'bg-amber-50', border: 'border-amber-200' },
+  { name: 'More', icon: <MoreHorizontal />, color: 'text-slate-500', bg: 'bg-slate-50', border: 'border-slate-200' },
 ];
 
 function StoreCardSkeleton() {
@@ -108,7 +109,7 @@ export default function CustomerDashboardPage() {
             </div>
             <div>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Delivering to</p>
-              <h2 className="text-sm font-bold flex items-center gap-1">
+              <h2 className="text-sm font-bold flex items-center gap-1 cursor-pointer">
                 Turfloop, Polokwane <ChevronDown className="h-3 w-3" />
               </h2>
             </div>
@@ -138,8 +139,8 @@ export default function CustomerDashboardPage() {
       </div>
 
       <div className="container px-4 sm:px-8 pt-6">
-        {/* Category Grid */}
-        <div className="grid grid-cols-4 gap-4 mb-10">
+        {/* Colorful Category Grid */}
+        <div className="grid grid-cols-4 gap-x-4 gap-y-6 mb-10">
           {categories.map((cat) => {
             const isActive = selectedCategory === cat.name;
             return (
@@ -149,16 +150,22 @@ export default function CustomerDashboardPage() {
                 onClick={() => handleCategoryClick(cat.name)}
               >
                 <div className={cn(
-                  "shadow-premium p-4 rounded-2xl transition-all duration-300 group-hover:scale-110",
-                  isActive ? "bg-primary text-white scale-110" : "bg-white text-primary"
+                  "relative h-16 w-16 flex items-center justify-center rounded-2xl transition-all duration-300 shadow-sm border",
+                  cat.bg,
+                  isActive ? cn("scale-110 shadow-lg ring-2 ring-offset-2", cat.border.replace('border-', 'ring-')) : "border-transparent group-hover:scale-105"
                 )}>
                   {React.cloneElement(cat.icon as React.ReactElement, { 
-                    className: cn("h-6 w-6", isActive ? "text-white" : "text-primary") 
+                    className: cn("h-7 w-7", cat.color) 
                   })}
+                  {isActive && (
+                    <div className={cn("absolute -top-1 -right-1 h-4 w-4 rounded-full flex items-center justify-center text-[8px] text-white", cat.color.replace('text-', 'bg-'))}>
+                       ✓
+                    </div>
+                  )}
                 </div>
                 <span className={cn(
-                  "text-[10px] font-bold text-center",
-                  isActive ? "text-primary" : "text-foreground"
+                  "text-[10px] font-bold text-center transition-colors",
+                  isActive ? cat.color : "text-foreground"
                 )}>
                   {cat.name}
                 </span>
@@ -212,7 +219,7 @@ export default function CustomerDashboardPage() {
                             </div>
                             <div className="flex items-center gap-1">
                               <Truck className="h-3 w-3 text-primary" />
-                              <span>R{store.deliveryFee || '20'} delivery</span>
+                              <span>R{store.deliveryFee || '30'} delivery</span>
                             </div>
                           </div>
                         </div>
@@ -272,10 +279,4 @@ export default function CustomerDashboardPage() {
       </div>
     </div>
   );
-}
-
-function ChevronDown(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-  )
 }
