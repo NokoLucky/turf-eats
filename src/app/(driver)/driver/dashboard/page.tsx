@@ -10,7 +10,7 @@ import {
   Navigation, ShoppingBag, ArrowRight
 } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, query, where, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import { collection, doc, query, where, updateDoc, arrayUnion, getDoc, serverTimestamp } from 'firebase/firestore';
 import type { Order, Restaurant, Driver } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -170,18 +170,26 @@ export default function DriverDashboard() {
     return allOrders
       .filter(order => order.status === 'Delivered')
       .reduce((acc, order) => {
-        // Guard against null timestamps from serverTimestamp() during optimistic updates
-        if (!order.orderDate) return acc;
+        // Use deliveredAt as the primary date source for accurate work tracking.
+        // Fallback to orderDate if deliveredAt isn't set yet (for older data).
+        const timestamp = order.deliveredAt || order.orderDate;
         
-        const orderDate = order.orderDate.toDate();
+        // If status is Delivered but timestamp is null (optimistic update),
+        // we treat it as happening 'now'.
+        let date: Date;
+        if (timestamp) {
+          date = timestamp.toDate();
+        } else {
+          date = now;
+        }
         
-        // Count for Today
-        if (isSameDay(orderDate, now)) {
+        // Count for Today (Midnight to now)
+        if (isSameDay(date, now) || isAfter(date, todayStart)) {
           acc.today += payoutPerOrder;
         }
         
-        // Count for Week
-        if (isAfter(orderDate, weekStart) || isSameDay(orderDate, weekStart)) {
+        // Count for Week (Monday to now)
+        if (isSameDay(date, weekStart) || isAfter(date, weekStart)) {
           acc.week += payoutPerOrder;
         }
         
@@ -193,7 +201,12 @@ export default function DriverDashboard() {
   const handleStatusChange = async (orderId: string, status: Order['status']) => {
     if (!firestore) return;
     const orderRef = doc(firestore, 'orders', orderId);
-    const updateData = { status };
+    
+    // Add deliveredAt timestamp when marking as Delivered
+    const updateData: any = { status };
+    if (status === 'Delivered') {
+      updateData.deliveredAt = serverTimestamp();
+    }
     
     updateDoc(orderRef, updateData).then(() => {
       toast({ 

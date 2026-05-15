@@ -52,6 +52,7 @@ export type Order = {
   restaurantId: string;
   driverId: string | null;
   orderDate: Timestamp;
+  deliveredAt?: Timestamp;
   status: OrderStatus;
   itemsTotal: number;
   deliveryFee: number;
