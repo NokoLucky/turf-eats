@@ -4,8 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { 
-  Star, Search, Utensils, ShoppingBasket, Wine, 
-  Pill, Droplets, Shirt, Package, MoreHorizontal, Bell, MapPin, 
+  Star, Search, Bell, MapPin, 
   Clock, Truck, ChevronDown
 } from 'lucide-react';
 import { collection, query, where, doc } from 'firebase/firestore';
@@ -16,16 +15,16 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
-// Define categories with specific brand colors for a "colorful" premium look
+// Define categories with colorful emojis for a "vibrant super-app" look
 const categories = [
-  { name: 'Restaurants', icon: <Utensils />, color: 'text-orange-500', bg: 'bg-orange-50', border: 'border-orange-200' },
-  { name: 'Groceries', icon: <ShoppingBasket />, color: 'text-green-500', bg: 'bg-green-50', border: 'border-green-200' },
-  { name: 'Liquor', icon: <Wine />, color: 'text-purple-500', bg: 'bg-purple-50', border: 'border-purple-200' },
-  { name: 'Pharmacy', icon: <Pill />, color: 'text-blue-500', bg: 'bg-blue-50', border: 'border-blue-200' },
-  { name: 'Water', icon: <Droplets />, color: 'text-cyan-500', bg: 'bg-cyan-50', border: 'border-cyan-200' },
-  { name: 'Laundry', icon: <Shirt />, color: 'text-pink-500', bg: 'bg-pink-50', border: 'border-pink-200' },
-  { name: 'Parcels', icon: <Package />, color: 'text-amber-500', bg: 'bg-amber-50', border: 'border-amber-200' },
-  { name: 'More', icon: <MoreHorizontal />, color: 'text-slate-500', bg: 'bg-slate-50', border: 'border-slate-200' },
+  { name: 'Restaurants', emoji: '🍔', color: 'text-orange-500', bg: 'bg-orange-50', border: 'border-orange-200' },
+  { name: 'Groceries', emoji: '🍎', color: 'text-green-500', bg: 'bg-green-50', border: 'border-green-200' },
+  { name: 'Liquor', emoji: '🍷', color: 'text-purple-500', bg: 'bg-purple-50', border: 'border-purple-200' },
+  { name: 'Pharmacy', emoji: '💊', color: 'text-blue-500', bg: 'bg-blue-50', border: 'border-blue-200' },
+  { name: 'Water', emoji: '💧', color: 'text-cyan-500', bg: 'bg-cyan-50', border: 'border-cyan-200' },
+  { name: 'Laundry', emoji: '🧺', color: 'text-pink-500', bg: 'bg-pink-50', border: 'border-pink-200' },
+  { name: 'Parcels', emoji: '📦', color: 'text-amber-500', bg: 'bg-amber-50', border: 'border-amber-200' },
+  { name: 'More', emoji: '✨', color: 'text-slate-500', bg: 'bg-slate-50', border: 'border-slate-200' },
 ];
 
 function StoreCardSkeleton() {
@@ -139,7 +138,7 @@ export default function CustomerDashboardPage() {
       </div>
 
       <div className="container px-4 sm:px-8 pt-6">
-        {/* Colorful Category Grid */}
+        {/* Colorful Category Grid with Emojis */}
         <div className="grid grid-cols-4 gap-x-4 gap-y-6 mb-10">
           {categories.map((cat) => {
             const isActive = selectedCategory === cat.name;
@@ -150,15 +149,13 @@ export default function CustomerDashboardPage() {
                 onClick={() => handleCategoryClick(cat.name)}
               >
                 <div className={cn(
-                  "relative h-16 w-16 flex items-center justify-center rounded-2xl transition-all duration-300 shadow-sm border",
+                  "relative h-16 w-16 flex items-center justify-center rounded-2xl transition-all duration-300 shadow-sm border text-2xl",
                   cat.bg,
                   isActive ? cn("scale-110 shadow-lg ring-2 ring-offset-2", cat.border.replace('border-', 'ring-')) : "border-transparent group-hover:scale-105"
                 )}>
-                  {React.cloneElement(cat.icon as React.ReactElement, { 
-                    className: cn("h-7 w-7", cat.color) 
-                  })}
+                  {cat.emoji}
                   {isActive && (
-                    <div className={cn("absolute -top-1 -right-1 h-4 w-4 rounded-full flex items-center justify-center text-[8px] text-white", cat.color.replace('text-', 'bg-'))}>
+                    <div className={cn("absolute -top-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold", cat.color.replace('text-', 'bg-'))}>
                        ✓
                     </div>
                   )}
