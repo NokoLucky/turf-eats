@@ -14,16 +14,19 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Logo from '@/components/logo';
 import { useAuth } from '@/firebase';
-import { createUserWithEmailAndPassword, sendEmailVerification, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult, updateProfile } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { getFriendlyErrorMessage } from '@/firebase/errors';
 
 const emailSchema = z.object({
+  name: z.string().min(2, { message: 'Full name must be at least 2 characters.' }),
   email: z.string().email({ message: 'Please enter a valid email address.' }),
+  phone: z.string().min(10, { message: 'Please enter a valid phone number.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
 });
 
 const phoneSchema = z.object({
+  name: z.string().min(2, { message: 'Full name must be at least 2 characters.' }),
   phone: z.string().min(10, { message: 'Please enter a valid phone number, including the country code (e.g. +27).' }),
 });
 
@@ -39,6 +42,7 @@ export default function SignupPage() {
 
   const [phoneAuthState, setPhoneAuthState] = useState<'enter-phone' | 'enter-code'>('enter-phone');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [pendingName, setPendingName] = useState('');
 
   useEffect(() => {
     if (!auth) return;
@@ -52,12 +56,12 @@ export default function SignupPage() {
 
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { name: '', email: '', phone: '', password: '' },
   });
 
   const phoneForm = useForm<z.infer<typeof phoneSchema>>({
     resolver: zodResolver(phoneSchema),
-    defaultValues: { phone: '' },
+    defaultValues: { name: '', phone: '' },
   });
 
   const codeForm = useForm<z.infer<typeof codeSchema>>({
@@ -69,13 +73,17 @@ export default function SignupPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       if (userCredential.user) {
+        // Set the display name immediately
+        await updateProfile(userCredential.user, { displayName: values.name });
+        
         await sendEmailVerification(userCredential.user);
         toast({
-            title: 'Verification Email Sent',
-            description: 'Please check your inbox to verify your email address.',
+            title: 'Account Created!',
+            description: 'Check your inbox to verify your email address.',
         });
       }
-      router.push('/role-selection');
+      // Pass the phone number to role selection since email auth doesn't store it
+      router.push(`/role-selection?phone=${encodeURIComponent(values.phone)}`);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -90,6 +98,7 @@ export default function SignupPage() {
       const verifier = (window as any).recaptchaVerifier;
       const result = await signInWithPhoneNumber(auth, values.phone, verifier);
       setConfirmationResult(result);
+      setPendingName(values.name);
       setPhoneAuthState('enter-code');
       toast({ title: "Verification Code Sent", description: "Please enter the code sent to your phone to complete signup."});
     } catch (error: any) {
@@ -104,7 +113,10 @@ export default function SignupPage() {
   const handleVerifyCode = async (values: z.infer<typeof codeSchema>) => {
     if (!confirmationResult) return;
     try {
-      await confirmationResult.confirm(values.code);
+      const userCredential = await confirmationResult.confirm(values.code);
+      if (userCredential.user) {
+          await updateProfile(userCredential.user, { displayName: pendingName });
+      }
       router.push('/role-selection');
     } catch (error: any) {
       toast({
@@ -127,12 +139,25 @@ export default function SignupPage() {
         <CardContent>
           <Tabs defaultValue="email">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="email">Email</TabsTrigger>
-              <TabsTrigger value="phone">Phone</TabsTrigger>
+              <TabsTrigger value="email">Email Signup</TabsTrigger>
+              <TabsTrigger value="phone">Phone Signup</TabsTrigger>
             </TabsList>
             <TabsContent value="email" className="min-h-[16rem]">
               <Form {...emailForm}>
                 <form onSubmit={emailForm.handleSubmit(handleSignup)} className="space-y-4 pt-4">
+                  <FormField
+                    control={emailForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="John Doe" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={emailForm.control}
                     name="email"
@@ -141,6 +166,19 @@ export default function SignupPage() {
                         <FormLabel>Email</FormLabel>
                         <FormControl>
                           <Input placeholder="you@example.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                   <FormField
+                    control={emailForm.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="+27 ..." {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -160,7 +198,7 @@ export default function SignupPage() {
                     )}
                   />
                   <Button type="submit" className="w-full font-bold">
-                    Sign Up with Email
+                    Create Account
                   </Button>
                 </form>
               </Form>
@@ -169,6 +207,19 @@ export default function SignupPage() {
                {phoneAuthState === 'enter-phone' ? (
                 <Form {...phoneForm}>
                   <form key="phone-form" onSubmit={phoneForm.handleSubmit(handlePhoneSignup)} className="space-y-4 pt-4">
+                    <FormField
+                      control={phoneForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <FormField
                       control={phoneForm.control}
                       name="phone"

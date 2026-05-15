@@ -1,14 +1,13 @@
-
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { User, Bike, Store } from 'lucide-react';
 import Logo from '@/components/logo';
 import { useFirestore, useUser, useAuth } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,8 +45,9 @@ const roles = [
   },
 ];
 
-export default function RoleSelectionPage() {
+function RoleSelectionContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const auth = useAuth();
@@ -56,6 +56,9 @@ export default function RoleSelectionPage() {
   const [isDriverDialogOpen, setDriverDialogOpen] = useState(false);
   const [licenseUrl, setLicenseUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Get pre-filled data from URL or Auth state
+  const prefilledPhone = searchParams.get('phone') || '';
 
   const handleRoleSelection = async (role: string, href: string, options?: { licenseUrl?: string }) => {
     if (!user || !auth || !firestore) {
@@ -75,15 +78,19 @@ export default function RoleSelectionPage() {
       let profilePath: string;
       let isPending = false;
 
+      // Logic to determine the best name and phone number
+      const nameToUse = displayName || (role === 'customer' ? 'New Customer' : role === 'driver' ? 'New Driver' : 'New Store Owner');
+      const phoneToUse = phoneNumber || prefilledPhone || '';
+
       switch (role) {
         case 'customer':
           profilePath = `users/${uid}/customers/${uid}`;
           profileData = {
             id: uid,
             userId: uid,
-            name: displayName || 'New Customer',
+            name: nameToUse,
             email: email,
-            phoneNumber: phoneNumber || '',
+            phoneNumber: phoneToUse,
             address: '',
           };
           break;
@@ -98,8 +105,8 @@ export default function RoleSelectionPage() {
           profileData = {
             id: uid,
             userId: uid,
-            name: displayName || 'New Driver',
-            phoneNumber: phoneNumber || '',
+            name: nameToUse,
+            phoneNumber: phoneToUse,
             vehicleType: '',
             licenseNumber: '',
             vehicleRegistration: '',
@@ -113,9 +120,9 @@ export default function RoleSelectionPage() {
           profileData = {
             id: uid,
             userId: uid,
-            name: displayName || 'New Store Owner',
+            name: nameToUse,
             email: email,
-            phoneNumber: phoneNumber || '',
+            phoneNumber: phoneToUse,
             status: 'pending'
           };
           break;
@@ -125,8 +132,7 @@ export default function RoleSelectionPage() {
       
       const docRef = doc(firestore, profilePath);
       
-      // We explicitly await the write here because we are about to sign the user out.
-      // If we don't wait, the SDK might lose the auth context before the write is sent.
+      // We explicitly await the write here because we might sign the user out for pending roles
       await setDoc(docRef, profileData, { merge: true });
 
       if (isPending) {
@@ -235,5 +241,13 @@ export default function RoleSelectionPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function RoleSelectionPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading...</div>}>
+      <RoleSelectionContent />
+    </Suspense>
   );
 }
