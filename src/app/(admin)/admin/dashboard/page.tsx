@@ -248,6 +248,7 @@ export default function AdminDashboard() {
         <DialogContent className="max-w-2xl max-h-[85vh] p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl">
           {inspectedItem && inspectionType && (
             <div className="flex flex-col h-full">
+              {/* Fixed Header */}
               <div className="bg-primary p-8 text-white">
                 <DialogHeader>
                   <div className="flex items-center gap-4 mb-2">
@@ -267,6 +268,7 @@ export default function AdminDashboard() {
                 </DialogHeader>
               </div>
 
+              {/* Scrollable Content Area */}
               <ScrollArea className="flex-1 p-8">
                 <div className="space-y-8 pb-4">
                   {/* Media Previews */}
@@ -341,6 +343,7 @@ export default function AdminDashboard() {
               
               <Separator />
               
+              {/* Fixed Footer */}
               <div className="p-6 bg-muted/30 flex gap-3">
                 <Button className="flex-1 rounded-2xl h-12 font-bold" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Close Inspection
