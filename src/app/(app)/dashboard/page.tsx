@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -5,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { 
   Star, Search, Bell, MapPin, 
-  Clock, Truck, ChevronDown
+  Clock, Truck, ChevronDown, X
 } from 'lucide-react';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
@@ -14,6 +15,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 // Define categories with colorful emojis for a "vibrant super-app" look
 const categories = [
@@ -56,6 +59,7 @@ export default function CustomerDashboardPage() {
   const [greeting, setGreeting] = React.useState('Good morning');
   const [searchTerm, setSearchTerm] = React.useState('');
   const [selectedCategory, setSelectedCategory] = React.useState<string | null>(null);
+  const [previewImage, setPreviewImage] = React.useState<{ url: string; title: string } | null>(null);
 
   React.useEffect(() => {
     const hour = new Date().getHours();
@@ -97,8 +101,42 @@ export default function CustomerDashboardPage() {
     }
   };
 
+  const handleImagePreview = (e: React.MouseEvent, url: string, title: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPreviewImage({ url, title });
+  };
+
   return (
     <div className="min-h-screen bg-background pb-10">
+      {/* Image Preview Dialog */}
+      <Dialog open={!!previewImage} onOpenChange={(open) => !open && setPreviewImage(null)}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center">
+            <div className="relative w-full h-full flex flex-col items-center justify-center">
+                {previewImage && (
+                    <>
+                        <img 
+                            src={previewImage.url} 
+                            alt={previewImage.title} 
+                            className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
+                        />
+                        <div className="mt-4 bg-black/50 backdrop-blur-md px-6 py-2 rounded-full text-white font-bold text-lg">
+                            {previewImage.title}
+                        </div>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="absolute top-2 right-2 text-white bg-black/20 hover:bg-black/40 rounded-full"
+                            onClick={() => setPreviewImage(null)}
+                        >
+                            <X className="h-6 w-6" />
+                        </Button>
+                    </>
+                )}
+            </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Header Section */}
       <div className="bg-white px-4 pt-6 pb-4 sm:px-8 border-b">
         <div className="flex items-center justify-between mb-4">
@@ -191,7 +229,10 @@ export default function CustomerDashboardPage() {
               filteredStores.map((store) => (
                 <Link href={`/restaurant/${store.id}`} key={store.id} className="min-w-[280px]">
                   <Card className="overflow-hidden border-none shadow-premium bg-white group h-full">
-                    <div className="relative h-40 w-full overflow-hidden">
+                    <div 
+                      className="relative h-40 w-full overflow-hidden cursor-zoom-in"
+                      onClick={(e) => handleImagePreview(e, store.bannerUrl, store.name)}
+                    >
                       <Image
                         src={store.bannerUrl || 'https://picsum.photos/seed/placeholder/600/400'}
                         alt={store.name}
@@ -220,7 +261,10 @@ export default function CustomerDashboardPage() {
                             </div>
                           </div>
                         </div>
-                        <div className="h-10 w-10 relative flex-shrink-0 bg-secondary rounded-lg overflow-hidden border">
+                        <div 
+                          className="h-10 w-10 relative flex-shrink-0 bg-secondary rounded-lg overflow-hidden border cursor-zoom-in"
+                          onClick={(e) => handleImagePreview(e, store.logoUrl, store.name)}
+                        >
                           <Image src={store.logoUrl || 'https://picsum.photos/seed/logo/100/100'} alt="logo" fill className="object-cover" />
                         </div>
                       </div>
@@ -249,7 +293,10 @@ export default function CustomerDashboardPage() {
               {filteredStores.length > 0 ? (
                 filteredStores.map(store => (
                   <Link href={`/restaurant/${store.id}`} key={store.id} className="flex gap-4 bg-white p-3 rounded-2xl shadow-premium group">
-                    <div className="relative h-24 w-24 rounded-xl overflow-hidden flex-shrink-0">
+                    <div 
+                      className="relative h-24 w-24 rounded-xl overflow-hidden flex-shrink-0 cursor-zoom-in"
+                      onClick={(e) => handleImagePreview(e, store.logoUrl, store.name)}
+                    >
                       <Image src={store.logoUrl || 'https://picsum.photos/seed/logo/200/200'} alt={store.name} fill className="object-cover" />
                     </div>
                     <div className="flex-1 flex flex-col justify-center">

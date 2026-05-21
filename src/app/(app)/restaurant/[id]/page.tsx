@@ -3,7 +3,7 @@
 
 import Image from 'next/image';
 import { notFound, useParams } from 'next/navigation';
-import { Star, Utensils, PlusCircle, ArrowLeft, LayoutGrid, Check } from 'lucide-react';
+import { Star, Utensils, PlusCircle, ArrowLeft, LayoutGrid, Check, X } from 'lucide-react';
 import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/cart-context';
@@ -163,6 +163,8 @@ export default function RestaurantMenuPage() {
   
   const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
   const [isSelectionOpen, setSelectionOpen] = useState(false);
+  
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
 
   useEffect(() => {
     if (!firestore || !id) return;
@@ -284,6 +286,10 @@ export default function RestaurantMenuPage() {
     }
   };
 
+  const handleImagePreview = (url: string, title: string) => {
+    setPreviewImage({ url, title });
+  };
+
   if (!isLoading && !restaurant) {
     notFound();
   }
@@ -296,6 +302,33 @@ export default function RestaurantMenuPage() {
         onOpenChange={setSelectionOpen}
         onConfirm={(selections) => handleAddToCart(customizingItem!, selections)}
       />
+
+      <Dialog open={!!previewImage} onOpenChange={(open) => !open && setPreviewImage(null)}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center">
+            <div className="relative w-full h-full flex flex-col items-center justify-center">
+                {previewImage && (
+                    <>
+                        <img 
+                            src={previewImage.url} 
+                            alt={previewImage.title} 
+                            className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
+                        />
+                        <div className="mt-4 bg-black/50 backdrop-blur-md px-6 py-2 rounded-full text-white font-bold text-lg">
+                            {previewImage.title}
+                        </div>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="absolute top-2 right-2 text-white bg-black/20 hover:bg-black/40 rounded-full"
+                            onClick={() => setPreviewImage(null)}
+                        >
+                            <X className="h-6 w-6" />
+                        </Button>
+                    </>
+                )}
+            </div>
+        </DialogContent>
+      </Dialog>
 
       {isLoading || !restaurant ? (
         <>
@@ -328,10 +361,11 @@ export default function RestaurantMenuPage() {
               alt={`Promotional image for ${restaurant.name}`}
               data-ai-hint="restaurant food"
               fill
-              className="object-cover"
+              className="object-cover cursor-zoom-in"
+              onClick={() => handleImagePreview(restaurant.bannerUrl, restaurant.name)}
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
             
             <div className="absolute top-6 left-4 sm:left-8 z-10">
                 <Button asChild variant="outline" className="bg-white/10 backdrop-blur-md border-white/20 text-white rounded-full hover:bg-white/20 hover:text-white">
@@ -339,8 +373,8 @@ export default function RestaurantMenuPage() {
                 </Button>
             </div>
 
-            <div className="container relative flex h-full items-end pb-10 px-4 sm:px-8">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between w-full gap-6">
+            <div className="container relative flex h-full items-end pb-10 px-4 sm:px-8 pointer-events-none">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between w-full gap-6 pointer-events-auto">
                 <div>
                   <h1 className="font-headline text-4xl sm:text-6xl font-bold text-white drop-shadow-xl">
                     {restaurant.name}
@@ -357,7 +391,7 @@ export default function RestaurantMenuPage() {
                      {restaurant.openingHours && <StoreStatusBadge openingHours={restaurant.openingHours} className="rounded-full px-4" />}
                   </div>
                 </div>
-                <div className="hidden sm:block h-24 w-24 relative rounded-3xl overflow-hidden border-4 border-white shadow-2xl bg-white">
+                <div className="hidden sm:block h-24 w-24 relative rounded-3xl overflow-hidden border-4 border-white shadow-2xl bg-white cursor-zoom-in pointer-events-auto" onClick={() => handleImagePreview(restaurant.logoUrl, restaurant.name)}>
                    <Image src={restaurant.logoUrl || 'https://picsum.photos/seed/logo/200/200'} alt="logo" fill className="object-cover" />
                 </div>
               </div>
@@ -410,7 +444,10 @@ export default function RestaurantMenuPage() {
                                     return (
                                         <Card key={item.id} className={cn("border-none shadow-premium rounded-[2rem] overflow-hidden flex flex-col group transition-all duration-300 hover:shadow-xl hover:-translate-y-1", item.isSoldOut && "opacity-70 bg-muted/30")}>
                                             <CardHeader className="p-0 relative">
-                                                <div className="relative aspect-video w-full overflow-hidden">
+                                                <div 
+                                                  className="relative aspect-video w-full overflow-hidden cursor-zoom-in"
+                                                  onClick={() => handleImagePreview(item.imageUrl, item.name)}
+                                                >
                                                     <Image
                                                         src={item.imageUrl || 'https://picsum.photos/seed/menu/400/300'}
                                                         alt={item.name}
