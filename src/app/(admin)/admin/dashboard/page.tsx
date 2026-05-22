@@ -12,7 +12,7 @@ import {
   Store, Bike, Trash2, TrendingUp, ShoppingCart, 
   User, Phone, Mail, MapPin, Calendar, 
   CreditCard, Info, Clock, Star, ExternalLink,
-  ChevronRight, ListFilter
+  ChevronRight, ListFilter, DollarSign
 } from 'lucide-react';
 import type { Order, Driver, Restaurant } from '@/lib/data';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -116,9 +116,14 @@ export default function AdminDashboard() {
         break;
 
       case 'Active Drivers':
+        // Calculate earnings per driver: R24 per delivered order
         data = allDrivers
           .filter(d => d.status === 'active')
-          .map(d => ({ name: d.name, value: d.vehicleType || 'Active' }));
+          .map(d => {
+            const completedCount = allOrders.filter(o => o.driverId === d.id && o.status === 'Delivered').length;
+            const earnings = completedCount * 24;
+            return { name: d.name, value: `R${earnings.toFixed(2)} earned` };
+          });
         break;
 
       case 'Active Stores':
@@ -171,6 +176,12 @@ export default function AdminDashboard() {
     setInspectedItem(item);
     setInspectionType(type);
     setIsDialogOpen(true);
+  };
+
+  const getDriverLifetimeEarnings = (driverId: string) => {
+    if (!allOrders) return 0;
+    const completedCount = allOrders.filter(o => o.driverId === driverId && o.status === 'Delivered').length;
+    return completedCount * 24;
   };
 
   return (
@@ -389,20 +400,6 @@ export default function AdminDashboard() {
                     </div>
                   )}
 
-                  {inspectionType === 'driver' && inspectedItem.licenseUrl && (
-                    <div className="space-y-2">
-                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Driver's License Document</p>
-                       <div className="relative aspect-video w-full rounded-2xl overflow-hidden border bg-muted group cursor-pointer" onClick={() => window.open(inspectedItem.licenseUrl, '_blank')}>
-                          <img src={inspectedItem.licenseUrl} className="w-full h-full object-contain" alt="license" />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                             <Button variant="secondary" size="sm" className="rounded-full">
-                               <ExternalLink className="h-4 w-4 mr-2" /> View Original
-                             </Button>
-                          </div>
-                       </div>
-                    </div>
-                  )}
-
                   {/* General Info Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <InfoItem icon={<User className="h-4 w-4" />} label="Display Name" value={inspectedItem.name} />
@@ -426,11 +423,31 @@ export default function AdminDashboard() {
                         <InfoItem icon={<CreditCard className="h-4 w-4" />} label="License No." value={inspectedItem.licenseNumber} />
                         <InfoItem icon={<Info className="h-4 w-4" />} label="Registration" value={inspectedItem.vehicleRegistration} />
                         <InfoItem icon={<Star className="h-4 w-4" />} label="Rating" value={inspectedItem.rating?.toFixed(1) || '0.0'} />
+                        {/* Driver Payouts - R24 per delivered order */}
+                        <InfoItem 
+                          icon={<DollarSign className="h-4 w-4" />} 
+                          label="Total Earnings" 
+                          value={`R${getDriverLifetimeEarnings(inspectedItem.id).toFixed(2)}`} 
+                        />
                       </>
                     )}
 
                     <InfoItem icon={<Calendar className="h-4 w-4" />} label="System UID" value={inspectedItem.userId || inspectedItem.id} />
                   </div>
+
+                  {inspectionType === 'driver' && inspectedItem.licenseUrl && (
+                    <div className="space-y-2">
+                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Driver's License Document</p>
+                       <div className="relative aspect-video w-full rounded-2xl overflow-hidden border bg-muted group cursor-pointer" onClick={() => window.open(inspectedItem.licenseUrl, '_blank')}>
+                          <img src={inspectedItem.licenseUrl} className="w-full h-full object-contain" alt="license" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                             <Button variant="secondary" size="sm" className="rounded-full">
+                               <ExternalLink className="h-4 w-4 mr-2" /> View Original
+                             </Button>
+                          </div>
+                       </div>
+                    </div>
+                  )}
 
                   {inspectionType === 'restaurant' && inspectedItem.promotionBannerText && (
                     <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100">
