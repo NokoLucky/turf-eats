@@ -12,6 +12,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp, writeBatch, doc, getDoc } from 'firebase/firestore';
 import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 export default function CheckoutPage() {
   const { state, dispatch } = useCart();
@@ -24,14 +25,20 @@ export default function CheckoutPage() {
     return doc(firestore, `users/${user.uid}/customers/${user.uid}`);
   }, [user, firestore]);
 
-  const { data: customerData } = useDoc<{address: string}>(customerRef);
+  const { data: customerData } = useDoc<{name: string; phoneNumber: string; address: string}>(customerRef);
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [deliveryOption, setDeliveryOption] = useState('standard');
 
   useEffect(() => {
-    if(customerData?.address) setDeliveryAddress(customerData.address);
+    if (customerData) {
+      if (customerData.address) setDeliveryAddress(customerData.address);
+      if (customerData.name) setCustomerName(customerData.name);
+      if (customerData.phoneNumber) setCustomerPhone(customerData.phoneNumber);
+    }
   }, [customerData]);
 
   useEffect(() => {
@@ -55,7 +62,8 @@ export default function CheckoutPage() {
 
       const orderRef = await addDoc(collection(firestore, 'orders'), {
         customerId: user.uid,
-        customerName: user.displayName || 'Guest',
+        customerName: customerName || user.displayName || 'Guest',
+        customerPhone: customerPhone || user.phoneNumber || '',
         restaurantId,
         storeOwnerId,
         orderDate: serverTimestamp(),
@@ -109,8 +117,9 @@ export default function CheckoutPage() {
               <div className="flex-1">
                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Delivering to</p>
                  <p className="text-sm font-bold mt-0.5">{deliveryAddress || 'Turfloop, Polokwane'}</p>
+                 <p className="text-[10px] text-muted-foreground mt-1">{customerName} • {customerPhone}</p>
               </div>
-              <Button variant="ghost" className="text-primary text-xs font-bold h-auto p-0">Change</Button>
+              <Button variant="ghost" className="text-primary text-xs font-bold h-auto p-0" onClick={() => router.push('/profile')}>Change</Button>
            </div>
         </Card>
 
@@ -123,7 +132,7 @@ export default function CheckoutPage() {
               )}>
                  <div className="flex items-center gap-3">
                     <RadioGroupItem value="standard" id="std" />
-                    <Label htmlFor="standard" className="cursor-pointer">
+                    <Label htmlFor="std" className="cursor-pointer">
                        <p className="text-sm font-bold">Standard Delivery</p>
                        <p className="text-[10px] text-muted-foreground">25 - 35 mins</p>
                     </Label>
@@ -136,7 +145,7 @@ export default function CheckoutPage() {
               )}>
                  <div className="flex items-center gap-3">
                     <RadioGroupItem value="express" id="exp" />
-                    <Label htmlFor="express" className="cursor-pointer">
+                    <Label htmlFor="exp" className="cursor-pointer">
                        <p className="text-sm font-bold">Express Delivery</p>
                        <p className="text-[10px] text-muted-foreground">15 - 20 mins</p>
                     </Label>

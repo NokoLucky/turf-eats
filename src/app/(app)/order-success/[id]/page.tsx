@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { Order } from '@/lib/data';
+import { cn } from '@/lib/utils';
 
 export default function OrderSuccessPage() {
   const params = useParams();

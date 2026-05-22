@@ -6,7 +6,7 @@ import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, ShoppingBag, ArrowLeft, Plus } from 'lucide-react';
+import { Trash2, ShoppingBag, ArrowLeft, Plus, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 
@@ -123,7 +123,7 @@ export default function CartPage() {
                </div>
                <div className="flex justify-between text-xs text-muted-foreground pt-1">
                   <span>Delivering to</span>
-                  <span className="flex items-center gap-1">Turfloop, Polokwane <Link href="/profile"><Badge variant="ghost" className="h-4 w-4 p-0"><X className="h-2 w-2" /></Badge></Link></span>
+                  <span className="flex items-center gap-1">Turfloop, Polokwane <Link href="/profile"><Badge variant="outline" className="h-4 w-4 p-0"><X className="h-2 w-2" /></Badge></Link></span>
                </div>
             </div>
           </>
