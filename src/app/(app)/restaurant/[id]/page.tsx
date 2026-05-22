@@ -442,9 +442,9 @@ export default function RestaurantMenuPage() {
              </div>
 
              <div className="flex items-center gap-4 text-[11px] text-muted-foreground font-bold uppercase tracking-wider mb-6">
-                <div className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> 30-40 min</div>
+                <div className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {restaurant?.openingHours}</div>
                 <div className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> 1.5 km</div>
-                <div className="flex items-center gap-1"><Badge variant="outline" className="text-[9px] border-muted">$$ • Affordable</Badge></div>
+                <div className="flex items-center gap-1"><Badge variant="outline" className="text-[9px] border-muted">30-40 min</Badge></div>
              </div>
 
              <Tabs defaultValue="menu" className="w-full">
