@@ -92,7 +92,9 @@ export default function CheckoutPage() {
       });
       await batch.commit();
       dispatch({ type: 'CLEAR_CART' });
-      router.push(`/order-success/${orderRef.id}`);
+      
+      // Navigate directly to order details/tracking instead of a transitional page
+      router.push(`/orders/${orderRef.id}`);
 
     } catch (error) {
       console.error(error);
