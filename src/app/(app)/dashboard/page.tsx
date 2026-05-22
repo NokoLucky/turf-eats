@@ -153,12 +153,6 @@ export default function CustomerDashboardPage() {
              </div>
              <span className="text-primary font-bold text-xl font-headline">Pin2You</span>
           </div>
-          <div className="flex items-center gap-3">
-            <button className="bg-orange-100 p-2 rounded-xl text-primary relative">
-              <Image src="https://picsum.photos/seed/cart/40/40" alt="Cart" width={20} height={20} />
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[10px] rounded-full flex items-center justify-center font-bold">1</span>
-            </button>
-          </div>
         </div>
 
         <div className="mb-6">
