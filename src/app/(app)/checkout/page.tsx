@@ -1,27 +1,20 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
+import { Card } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { MapPin, Phone, User as UserIcon, Send, PlusCircle, Sparkles, Truck } from 'lucide-react';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { ArrowLeft, MapPin, Truck, ShieldCheck, MessageSquare } from 'lucide-react';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp, writeBatch, doc, getDoc } from 'firebase/firestore';
-import FreeAddressAutocomplete from '@/components/free-address-autocomplete';
 import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
-import type { MenuItem } from '@/lib/data';
-import { Badge } from '@/components/ui/badge';
 
 export default function CheckoutPage() {
   const { state, dispatch } = useCart();
-  const { toast } = useToast();
   const router = useRouter();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -31,291 +24,175 @@ export default function CheckoutPage() {
     return doc(firestore, `users/${user.uid}/customers/${user.uid}`);
   }, [user, firestore]);
 
-  const { data: customerData } = useDoc<{address: string, name: string, phoneNumber: string}>(customerRef);
-
+  const { data: customerData } = useDoc<{address: string}>(customerRef);
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cod');
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
+  const [deliveryOption, setDeliveryOption] = useState('standard');
 
   useEffect(() => {
     if(customerData?.address) setDeliveryAddress(customerData.address);
-    if(customerData?.name) setCustomerName(customerData.name);
-    else if (user?.displayName) setCustomerName(user.displayName);
-
-    if(customerData?.phoneNumber) setCustomerPhone(customerData.phoneNumber);
-    else if (user?.phoneNumber) setCustomerPhone(user.phoneNumber);
-  }, [customerData, user]);
-
+  }, [customerData]);
 
   useEffect(() => {
-    if (state.items.length === 0) {
-      router.replace('/dashboard');
-    }
+    if (state.items.length === 0) router.replace('/dashboard');
   }, [state.items, router]);
-
-  const restaurantId = state.items[0]?.restaurantId;
-  const menuItemsRef = useMemoFirebase(() => {
-    if (!firestore || !restaurantId) return null;
-    return collection(firestore, 'restaurants', restaurantId, 'menuItems');
-  }, [firestore, restaurantId]);
-
-  const { data: allMenuItems } = useCollection<MenuItem>(menuItemsRef);
-
-  const upsellItems = useMemo(() => {
-    if (!allMenuItems) return [];
-    const currentItemIds = new Set(state.items.map(item => item.actualId));
-    return allMenuItems
-      .filter(item => !currentItemIds.has(item.id) && !item.isSoldOut)
-      .slice(0, 4);
-  }, [allMenuItems, state.items]);
 
   if (state.items.length === 0) return null;
 
   const subtotal = state.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const serviceFee = 5.0; 
-  const deliveryFee = 30.0; 
+  const deliveryFee = deliveryOption === 'standard' ? 30.0 : 50.0;
   const total = subtotal + serviceFee + deliveryFee;
 
-  const handleAddToCart = (item: MenuItem) => {
-    const priceToUse = item.promotionalPrice && item.promotionalPrice > 0 ? item.promotionalPrice : item.price;
-    dispatch({
-      type: 'ADD_ITEM',
-      payload: {
-        ...item,
-        actualId: item.id,
-        price: priceToUse,
-        image: {
-          id: item.id,
-          imageUrl: item.imageUrl,
-          description: item.name,
-          imageHint: 'food item',
-        },
-      },
-    });
-    toast({ title: 'Added!', description: `${item.name} added to your order.` });
-  };
-
   const handleConfirmOrder = async () => {
-    if (!user || !firestore) {
-      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to place an order.' });
-      return;
-    }
+    if (!user || !firestore) return;
     
-    if (!deliveryAddress) {
-       toast({ variant: 'destructive', title: 'Error', description: 'Please select a delivery address.' });
-      return;
-    }
-
     try {
-      const restaurantRef = doc(firestore, 'restaurants', restaurantId);
-      const restaurantSnap = await getDoc(restaurantRef);
-      if (!restaurantSnap.exists()) throw new Error("Restaurant not found!");
-      const restaurantData = restaurantSnap.data();
-      const storeOwnerId = restaurantData.storeOwnerId;
+      const restaurantId = state.items[0]?.restaurantId;
+      const restaurantSnap = await getDoc(doc(firestore, 'restaurants', restaurantId));
+      const storeOwnerId = restaurantSnap.data()?.storeOwnerId;
 
-      const ordersCollection = collection(firestore, 'orders');
-      const orderDocRef = await addDoc(ordersCollection, {
+      const orderRef = await addDoc(collection(firestore, 'orders'), {
         customerId: user.uid,
-        customerName: customerName,
-        customerPhone: customerPhone,
-        restaurantId: restaurantId,
-        storeOwnerId: storeOwnerId,
-        driverId: null,
+        customerName: user.displayName || 'Guest',
+        restaurantId,
+        storeOwnerId,
         orderDate: serverTimestamp(),
         status: 'Placed',
         itemsTotal: subtotal,
-        deliveryFee: deliveryFee,
-        serviceFee: serviceFee,
+        deliveryFee,
+        serviceFee,
         totalAmount: total,
-        deliveryAddress: deliveryAddress,
-        notes: notes,
-        paymentMethod: paymentMethod,
+        deliveryAddress: deliveryAddress || 'Turfloop, Polokwane',
+        notes,
+        paymentMethod,
         participantUids: [user.uid, storeOwnerId],
       });
 
       const batch = writeBatch(firestore);
-      
-      for (const item of state.items) {
-        const orderItemRef = doc(collection(firestore, `orders/${orderDocRef.id}/orderItems`));
+      state.items.forEach(item => {
+        const orderItemRef = doc(collection(firestore, `orders/${orderRef.id}/orderItems`));
         batch.set(orderItemRef, {
-            orderId: orderDocRef.id,
+            orderId: orderRef.id,
             menuItemId: item.actualId,
             quantity: item.quantity,
             itemPrice: item.price,
             name: item.name,
             selectedOptions: item.selectedOptions || null,
         });
-      }
-
+      });
       await batch.commit();
-      toast({ title: "Order Placed!", description: "Thank you for your order. Tracking is now available." });
       dispatch({ type: 'CLEAR_CART' });
-      router.push('/orders');
+      router.push(`/order-success/${orderRef.id}`);
 
-    } catch (error: any) {
-      console.error("Error placing order:", error);
-      toast({ variant: "destructive", title: "Order Failed", description: error.message || "Please try again." });
+    } catch (error) {
+      console.error(error);
     }
   };
 
   return (
-    <div className="container py-12 px-4 sm:px-8">
-      <h1 className="font-headline text-4xl font-bold mb-8">Confirm Your Order</h1>
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-8">
-            <Card className="border-none shadow-premium rounded-[2rem]">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><MapPin className="h-5 w-5 text-primary" /> Delivery Details</CardTitle>
-                </CardHeader>
-                <CardContent className='space-y-6'>
-                    <div className='grid sm:grid-cols-2 gap-4'>
-                        <div className="space-y-2">
-                            <Label htmlFor="name" className="flex items-center gap-1.5"><UserIcon className="h-3.5 w-3.5 text-muted-foreground" /> Full Name</Label>
-                            <Input 
-                              id="name" 
-                              value={customerName} 
-                              onChange={(e) => setCustomerName(e.target.value)}
-                              placeholder="Your full name"
-                              className="rounded-xl" 
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="phone" className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-muted-foreground" /> Phone Number</Label>
-                            <Input 
-                              id="phone" 
-                              value={customerPhone} 
-                              onChange={(e) => setCustomerPhone(e.target.value)} 
-                              placeholder="+27 ..." 
-                              className="rounded-xl" 
-                            />
-                        </div>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="address">Street Address</Label>
-                        <FreeAddressAutocomplete 
-                          onChange={(address) => setDeliveryAddress(address)}
-                          value={deliveryAddress}
-                        />
-                    </div>
-                </CardContent>
-            </Card>
+    <div className="min-h-screen bg-[#F8F9FA] pb-24">
+      <header className="bg-white border-b px-4 py-6 flex items-center gap-4">
+        <Button onClick={() => router.back()} variant="ghost" size="icon" className="rounded-full">
+           <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="text-lg font-bold">Checkout</h1>
+      </header>
 
-            {upsellItems.length > 0 && (
-              <section className="space-y-4">
-                <div className="flex items-center gap-2 px-2">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  <h2 className="text-xl font-bold">Usually bought with this</h2>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {upsellItems.map((item) => (
-                    <Card key={item.id} className="border-none shadow-sm rounded-2xl overflow-hidden bg-white hover:shadow-md transition-shadow">
-                      <div className="flex items-center p-3 gap-4">
-                        <div className="relative h-16 w-16 rounded-xl overflow-hidden flex-shrink-0 bg-muted">
-                           <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
-                        </div>
-                        <div className="flex-1 overflow-hidden">
-                          <h3 className="font-bold text-sm truncate">{item.name}</h3>
-                          <p className="text-primary font-bold text-sm">R{item.price.toFixed(2)}</p>
-                        </div>
-                        <Button 
-                          size="icon" 
-                          variant="secondary" 
-                          className="h-10 w-10 rounded-xl bg-primary/10 text-primary"
-                          onClick={() => handleAddToCart(item)}
-                        >
-                          <PlusCircle className="h-5 w-5" />
-                        </Button>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </section>
-            )}
-            
-            <Card className="border-none shadow-premium rounded-[2rem]">
-                <CardHeader><CardTitle>Order Notes</CardTitle></CardHeader>
-                <CardContent>
-                    <Textarea
-                        placeholder="e.g., 'Ring the bell twice, please.'"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        className="rounded-xl min-h-[100px]"
-                    />
-                </CardContent>
-            </Card>
+      <div className="container py-8 px-4 max-w-md mx-auto space-y-6">
+        <Card className="border-none shadow-sm rounded-2xl p-4 bg-white">
+           <div className="flex items-start gap-4">
+              <div className="bg-orange-100 p-2 rounded-xl text-primary">
+                 <MapPin className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                 <p className="text-[10px] font-bold text-muted-foreground uppercase">Delivering to</p>
+                 <p className="text-sm font-bold mt-0.5">{deliveryAddress || 'Turfloop, Polokwane'}</p>
+              </div>
+              <Button variant="ghost" className="text-primary text-xs font-bold h-auto p-0">Change</Button>
+           </div>
+        </Card>
 
-             <Card className="border-none shadow-premium rounded-[2rem]">
-                <CardHeader><CardTitle>Payment Method</CardTitle></CardHeader>
-                <CardContent>
-                    <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-4">
-                        <div className={`flex items-center space-x-3 p-4 rounded-xl border transition-colors ${paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-muted'}`}>
-                            <RadioGroupItem value="cod" id="cod" />
-                            <Label htmlFor="cod" className='flex items-center gap-3 cursor-pointer w-full'>
-                                <div className="bg-white p-2 rounded-lg shadow-sm"><Truck className='h-5 w-5 text-primary' /></div>
-                                <div className="flex-1">
-                                    <p className="font-bold">Cash on Delivery</p>
-                                    <p className="text-xs text-muted-foreground">Pay when your food arrives.</p>
-                                </div>
-                            </Label>
-                        </div>
-                         <div className={`flex items-center space-x-3 p-4 rounded-xl border transition-colors ${paymentMethod === 'payshap' ? 'border-primary bg-primary/5' : 'border-muted'}`}>
-                            <RadioGroupItem value="payshap" id="payshap" />
-                             <Label htmlFor="payshap" className='flex items-center gap-3 cursor-pointer w-full'>
-                                <div className="bg-white p-2 rounded-lg shadow-sm"><Send className='h-5 w-5 text-primary' /></div>
-                                <div className="flex-1">
-                                    <p className="font-bold">PayShap</p>
-                                    <p className="text-xs text-muted-foreground">Send to 0707529446.</p>
-                                </div>
-                            </Label>
-                        </div>
-                    </RadioGroup>
-                </CardContent>
-            </Card>
-        </div>
+        <section className="space-y-3">
+           <h2 className="text-sm font-bold">Delivery option</h2>
+           <RadioGroup value={deliveryOption} onValueChange={setDeliveryOption} className="space-y-3">
+              <div className={cn(
+                "flex items-center justify-between p-4 rounded-2xl border bg-white transition-all",
+                deliveryOption === 'standard' ? "border-primary" : "border-transparent"
+              )}>
+                 <div className="flex items-center gap-3">
+                    <RadioGroupItem value="standard" id="std" />
+                    <Label htmlFor="standard" className="cursor-pointer">
+                       <p className="text-sm font-bold">Standard Delivery</p>
+                       <p className="text-[10px] text-muted-foreground">25 - 35 mins</p>
+                    </Label>
+                 </div>
+                 <span className="text-sm font-bold">R30.00</span>
+              </div>
+              <div className={cn(
+                "flex items-center justify-between p-4 rounded-2xl border bg-white transition-all",
+                deliveryOption === 'express' ? "border-primary" : "border-transparent"
+              )}>
+                 <div className="flex items-center gap-3">
+                    <RadioGroupItem value="express" id="exp" />
+                    <Label htmlFor="express" className="cursor-pointer">
+                       <p className="text-sm font-bold">Express Delivery</p>
+                       <p className="text-[10px] text-muted-foreground">15 - 20 mins</p>
+                    </Label>
+                 </div>
+                 <span className="text-sm font-bold">R50.00</span>
+              </div>
+           </RadioGroup>
+        </section>
 
-        <div>
-            <Card className="border-none shadow-premium rounded-[2rem] sticky top-24">
-              <CardHeader><CardTitle className="font-headline text-2xl">Summary</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                {state.items.map(item => (
-                    <div key={item.id} className="flex flex-col gap-1">
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="flex-1 truncate pr-2 font-medium">{item.quantity} x {item.name}</span>
-                            <span className='font-bold'>R{(item.price * item.quantity).toFixed(2)}</span>
-                        </div>
-                        {item.selectedOptions && (
-                          <div className="flex flex-wrap gap-1">
-                             {Object.entries(item.selectedOptions).map(([group, choices]) => (
-                               choices.map(c => <Badge key={`${group}-${c}`} variant="secondary" className="text-[8px] font-normal py-0 h-4">{c}</Badge>)
-                             ))}
-                          </div>
-                        )}
-                    </div>
-                ))}
-                <Separator />
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-medium">R{subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Service & Delivery</span>
-                  <span className="font-medium text-green-600">R{(serviceFee + deliveryFee).toFixed(2)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between text-xl font-bold">
-                  <span>Total</span>
-                  <span className="text-primary">R{total.toFixed(2)}</span>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button className="w-full font-bold h-14 rounded-xl text-lg shadow-lg shadow-primary/20" size="lg" onClick={handleConfirmOrder}>
-                  Place Order
-                </Button>
-              </CardFooter>
-            </Card>
-        </div>
+        <section className="space-y-3">
+           <h2 className="text-sm font-bold">Payment method</h2>
+           <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
+              <div className="flex items-center justify-between p-4 rounded-2xl border border-transparent bg-white">
+                 <div className="flex items-center gap-3">
+                    <RadioGroupItem value="cod" id="cod" />
+                    <Label htmlFor="cod" className="text-sm font-bold cursor-pointer">Cash on Delivery</Label>
+                 </div>
+              </div>
+              <div className="flex items-center justify-between p-4 rounded-2xl border border-transparent bg-white">
+                 <div className="flex items-center gap-3">
+                    <RadioGroupItem value="card" id="card" />
+                    <Label htmlFor="card" className="text-sm font-bold cursor-pointer">Card / Online</Label>
+                 </div>
+                 <div className="flex gap-1">
+                    <div className="bg-slate-50 border rounded px-1 py-0.5"><span className="text-[8px] font-black text-blue-800">VISA</span></div>
+                    <div className="bg-slate-50 border rounded px-1 py-0.5"><span className="text-[8px] font-black text-red-600">master</span></div>
+                 </div>
+              </div>
+           </RadioGroup>
+        </section>
+
+        <section className="space-y-3">
+           <h2 className="text-sm font-bold flex items-center gap-2"><MessageSquare className="h-4 w-4" /> Note to rider <span className="text-muted-foreground font-normal">(optional)</span></h2>
+           <Textarea 
+            placeholder="Add a note for your rider..." 
+            className="rounded-2xl bg-white border-none shadow-sm min-h-[80px]"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+           />
+           <p className="text-right text-[10px] text-muted-foreground">0/100</p>
+        </section>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 bg-white p-6 shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.1)] z-50">
+           <div className="max-w-md mx-auto">
+              <div className="flex justify-between items-center text-lg font-bold mb-4">
+                 <span>Total</span>
+                 <span className="text-primary">R{total.toFixed(2)}</span>
+              </div>
+              <Button onClick={handleConfirmOrder} className="w-full h-14 rounded-2xl font-bold text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
+                 Place Order
+              </Button>
+              <p className="text-center mt-3 text-[10px] text-muted-foreground flex items-center justify-center gap-1">
+                 <ShieldCheck className="h-3 w-3" /> Safe & secure payments
+              </p>
+           </div>
       </div>
     </div>
   );

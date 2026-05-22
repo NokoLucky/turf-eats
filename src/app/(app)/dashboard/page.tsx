@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -6,7 +5,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { 
   Star, Search, Bell, MapPin, 
-  Clock, Truck, ChevronDown, X
+  Clock, Truck, ChevronDown, X,
+  MoreHorizontal
 } from 'lucide-react';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
@@ -18,21 +18,20 @@ import { cn } from '@/lib/utils';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
-// Define categories with colorful emojis for a "vibrant super-app" look
 const categories = [
-  { name: 'Restaurants', emoji: '🍔', color: 'text-orange-500', bg: 'bg-orange-50', border: 'border-orange-200' },
-  { name: 'Groceries', emoji: '🍎', color: 'text-green-500', bg: 'bg-green-50', border: 'border-green-200' },
-  { name: 'Liquor', emoji: '🍷', color: 'text-purple-500', bg: 'bg-purple-50', border: 'border-purple-200' },
-  { name: 'Pharmacy', emoji: '💊', color: 'text-blue-500', bg: 'bg-blue-50', border: 'border-blue-200' },
-  { name: 'Water', emoji: '💧', color: 'text-cyan-500', bg: 'bg-cyan-50', border: 'border-cyan-200' },
-  { name: 'Laundry', emoji: '🧺', color: 'text-pink-500', bg: 'bg-pink-50', border: 'border-pink-200' },
-  { name: 'Parcels', emoji: '📦', color: 'text-amber-500', bg: 'bg-amber-50', border: 'border-amber-200' },
-  { name: 'More', emoji: '✨', color: 'text-slate-500', bg: 'bg-slate-50', border: 'border-slate-200' },
+  { name: 'Restaurants', emoji: '🍔', bg: 'bg-orange-100', color: 'text-orange-600' },
+  { name: 'Groceries', emoji: '🍎', bg: 'bg-green-100', color: 'text-green-600' },
+  { name: 'Liquor', emoji: '🍷', bg: 'bg-purple-100', color: 'text-purple-600' },
+  { name: 'Pharmacy', emoji: '💊', bg: 'bg-blue-100', color: 'text-blue-600' },
+  { name: 'Water', emoji: '💧', bg: 'bg-cyan-100', color: 'text-cyan-600' },
+  { name: 'Laundry', emoji: '🧺', bg: 'bg-pink-100', color: 'text-pink-600' },
+  { name: 'Parcels', emoji: '📦', bg: 'bg-amber-100', color: 'text-amber-600' },
+  { name: 'More', emoji: '•••', bg: 'bg-slate-100', color: 'text-slate-600' },
 ];
 
 function StoreCardSkeleton() {
   return (
-    <Card className="overflow-hidden h-full border-none shadow-premium bg-white">
+    <Card className="overflow-hidden h-full border-none shadow-premium bg-white rounded-2xl">
       <Skeleton className="h-40 w-full" />
       <CardContent className="p-4 space-y-3">
         <Skeleton className="h-6 w-3/4" />
@@ -49,7 +48,6 @@ export default function CustomerDashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  // Fetch customer profile to get the most up-to-date name
   const customerRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return doc(firestore, `users/${user.uid}/customers/${user.uid}`);
@@ -59,7 +57,6 @@ export default function CustomerDashboardPage() {
   const [greeting, setGreeting] = React.useState('Good morning');
   const [searchTerm, setSearchTerm] = React.useState('');
   const [selectedCategory, setSelectedCategory] = React.useState<string | null>(null);
-  const [previewImage, setPreviewImage] = React.useState<{ url: string; title: string } | null>(null);
 
   React.useEffect(() => {
     const hour = new Date().getHours();
@@ -75,7 +72,7 @@ export default function CustomerDashboardPage() {
   const { data: stores, isLoading } = useCollection<Omit<Restaurant, 'menu'>>(storesRef);
 
   const rawName = customerProfile?.name || user?.displayName || '';
-  const firstName = (rawName && !rawName.startsWith('New ')) ? rawName.split(' ')[0] : '';
+  const firstName = (rawName && !rawName.startsWith('New ')) ? rawName.split(' ')[0] : 'Voxinet';
 
   const filteredStores = React.useMemo(() => {
     if (!stores) return [];
@@ -93,232 +90,112 @@ export default function CustomerDashboardPage() {
     });
   }, [stores, searchTerm, selectedCategory]);
 
-  const handleCategoryClick = (categoryName: string) => {
-    if (selectedCategory === categoryName) {
-      setSelectedCategory(null);
-    } else {
-      setSelectedCategory(categoryName);
-    }
-  };
-
-  const handleImagePreview = (e: React.MouseEvent, url: string, title: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setPreviewImage({ url, title });
-  };
-
   return (
-    <div className="min-h-screen bg-background pb-10">
-      {/* Image Preview Dialog */}
-      <Dialog open={!!previewImage} onOpenChange={(open) => !open && setPreviewImage(null)}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center">
-            <div className="relative w-full h-full flex flex-col items-center justify-center">
-                {previewImage && (
-                    <>
-                        <img 
-                            src={previewImage.url} 
-                            alt={previewImage.title} 
-                            className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
-                        />
-                        <div className="mt-4 bg-black/50 backdrop-blur-md px-6 py-2 rounded-full text-white font-bold text-lg">
-                            {previewImage.title}
-                        </div>
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="absolute top-2 right-2 text-white bg-black/20 hover:bg-black/40 rounded-full"
-                            onClick={() => setPreviewImage(null)}
-                        >
-                            <X className="h-6 w-6" />
-                        </Button>
-                    </>
-                )}
-            </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Header Section */}
-      <div className="bg-white px-4 pt-6 pb-4 sm:px-8 border-b">
+    <div className="min-h-screen bg-[#F8F9FA] pb-10">
+      <div className="bg-white px-4 pt-8 pb-6 sm:px-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="bg-primary/10 p-2 rounded-full">
-              <MapPin className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Delivering to</p>
-              <h2 className="text-sm font-bold flex items-center gap-1 cursor-pointer">
-                Turfloop, Polokwane <ChevronDown className="h-3 w-3" />
-              </h2>
-            </div>
+             <div className="bg-primary/10 p-2 rounded-full">
+               <Image src="https://picsum.photos/seed/logo/100/100" alt="Pin2You" width={24} height={24} className="rounded-full" />
+             </div>
+             <span className="text-primary font-bold text-xl font-headline">Pin2You</span>
           </div>
-          <button className="bg-secondary p-2 rounded-full relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full border-2 border-white"></span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button className="bg-orange-100 p-2 rounded-xl text-primary relative">
+              <Image src="https://picsum.photos/seed/cart/40/40" alt="Cart" width={20} height={20} />
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[10px] rounded-full flex items-center justify-center font-bold">1</span>
+            </button>
+          </div>
         </div>
 
         <div className="mb-6">
-          <h1 className="text-xl font-bold">{greeting}{firstName ? `, ${firstName}` : ''} 👋</h1>
+          <h1 className="text-sm font-medium text-muted-foreground">{greeting}, {firstName} 👋</h1>
           <p className="text-2xl font-bold mt-1 leading-tight">
             Anything you need, <span className="text-primary">delivered fast</span> in Turfloop & Polokwane.
           </p>
         </div>
 
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        <div className="relative mb-6">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
             placeholder="Search for stores, items or anything..."
-            className="pl-10 h-12 bg-secondary border-none rounded-2xl"
+            className="pl-12 h-14 bg-[#F1F3F5] border-none rounded-2xl text-base"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+
+        <div className="grid grid-cols-4 gap-y-6 mb-4">
+          {categories.map((cat) => (
+            <div 
+              key={cat.name} 
+              className="flex flex-col items-center gap-2 group cursor-pointer"
+              onClick={() => setSelectedCategory(cat.name === 'More' ? null : cat.name)}
+            >
+              <div className={cn(
+                "h-16 w-16 flex items-center justify-center rounded-full transition-all duration-300 shadow-sm text-2xl",
+                cat.bg,
+                selectedCategory === cat.name ? "ring-2 ring-primary ring-offset-2 scale-105" : ""
+              )}>
+                {cat.emoji}
+              </div>
+              <span className="text-[11px] font-bold text-center text-muted-foreground">
+                {cat.name}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="container px-4 sm:px-8 pt-6">
-        {/* Colorful Category Grid with Emojis */}
-        <div className="grid grid-cols-4 gap-x-4 gap-y-6 mb-10">
-          {categories.map((cat) => {
-            const isActive = selectedCategory === cat.name;
-            return (
-              <div 
-                key={cat.name} 
-                className="flex flex-col items-center gap-2 group cursor-pointer"
-                onClick={() => handleCategoryClick(cat.name)}
-              >
-                <div className={cn(
-                  "relative h-16 w-16 flex items-center justify-center rounded-2xl transition-all duration-300 shadow-sm border text-2xl",
-                  cat.bg,
-                  isActive ? cn("scale-110 shadow-lg ring-2 ring-offset-2", cat.border.replace('border-', 'ring-')) : "border-transparent group-hover:scale-105"
-                )}>
-                  {cat.emoji}
-                  {isActive && (
-                    <div className={cn("absolute -top-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold", cat.color.replace('text-', 'bg-'))}>
-                       ✓
-                    </div>
-                  )}
-                </div>
-                <span className={cn(
-                  "text-[10px] font-bold text-center transition-colors",
-                  isActive ? cat.color : "text-foreground"
-                )}>
-                  {cat.name}
-                </span>
-              </div>
-            );
-          })}
+      <div className="container px-4 sm:px-8 pt-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-bold">Popular Near You</h2>
+          <Link href="#" className="text-muted-foreground text-sm font-medium">See all</Link>
         </div>
-
-        {/* Popular Near You */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold">
-              {selectedCategory ? `${selectedCategory} near you` : 'Popular Near You'}
-            </h2>
-            <Link href="#" className="text-primary text-xs font-bold">See all</Link>
-          </div>
-          
-          <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
-            {isLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="min-w-[280px]">
-                  <StoreCardSkeleton />
-                </div>
-              ))
-            ) : filteredStores.length > 0 ? (
-              filteredStores.map((store) => (
-                <Link href={`/restaurant/${store.id}`} key={store.id} className="min-w-[280px]">
-                  <Card className="overflow-hidden border-none shadow-premium bg-white group h-full">
-                    <div 
-                      className="relative h-40 w-full overflow-hidden cursor-zoom-in"
-                      onClick={(e) => handleImagePreview(e, store.bannerUrl, store.name)}
-                    >
-                      <Image
-                        src={store.bannerUrl || 'https://picsum.photos/seed/placeholder/600/400'}
-                        alt={store.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform"
-                      />
-                      <div className="absolute bottom-2 left-2 flex gap-1">
-                        <span className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1">
-                          <Star className="h-3 w-3 text-primary fill-primary" />
-                          {(store.rating || 4.5).toFixed(1)}
-                        </span>
-                      </div>
-                    </div>
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 overflow-hidden">
-                          <h3 className="font-bold truncate">{store.name}</h3>
-                          <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              <span>{store.deliveryTime || '20-30 min'}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Truck className="h-3 w-3 text-primary" />
-                              <span>R{store.deliveryFee || '30'} delivery</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div 
-                          className="h-10 w-10 relative flex-shrink-0 bg-secondary rounded-lg overflow-hidden border cursor-zoom-in"
-                          onClick={(e) => handleImagePreview(e, store.logoUrl, store.name)}
-                        >
-                          <Image src={store.logoUrl || 'https://picsum.photos/seed/logo/100/100'} alt="logo" fill className="object-cover" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))
-            ) : (
-              <div className="w-full text-center py-10 bg-white rounded-3xl">
-                <p className="text-muted-foreground">No stores found in this category.</p>
-                <button 
-                  onClick={() => setSelectedCategory(null)}
-                  className="mt-2 text-primary text-xs font-bold"
-                >
-                  Clear filter
-                </button>
+        
+        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="min-w-[180px]">
+                <StoreCardSkeleton />
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* All Stores (Vertical) */}
-        <div className="mb-8">
-           <h2 className="text-lg font-bold mb-4">All Stores</h2>
-           <div className="space-y-4">
-              {filteredStores.length > 0 ? (
-                filteredStores.map(store => (
-                  <Link href={`/restaurant/${store.id}`} key={store.id} className="flex gap-4 bg-white p-3 rounded-2xl shadow-premium group">
-                    <div 
-                      className="relative h-24 w-24 rounded-xl overflow-hidden flex-shrink-0 cursor-zoom-in"
-                      onClick={(e) => handleImagePreview(e, store.logoUrl, store.name)}
-                    >
-                      <Image src={store.logoUrl || 'https://picsum.photos/seed/logo/200/200'} alt={store.name} fill className="object-cover" />
+            ))
+          ) : filteredStores.length > 0 ? (
+            filteredStores.map((store) => (
+              <Link href={`/restaurant/${store.id}`} key={store.id} className="min-w-[200px]">
+                <Card className="overflow-hidden border-none shadow-premium bg-white group h-full rounded-2xl">
+                  <div className="relative h-28 w-full overflow-hidden">
+                    <Image
+                      src={store.bannerUrl || 'https://picsum.photos/seed/placeholder/600/400'}
+                      alt={store.name}
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute top-2 left-2">
+                       <span className="bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded-lg text-[10px] text-white font-bold flex items-center gap-1">
+                        <Star className="h-2.5 w-2.5 text-yellow-400 fill-yellow-400" />
+                        {(store.rating || 4.5).toFixed(1)}
+                      </span>
                     </div>
-                    <div className="flex-1 flex flex-col justify-center">
-                      <h3 className="font-bold">{store.name}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Star className="h-3 w-3 text-primary fill-primary" />
-                        <span className="text-xs font-bold">{(store.rating || 4.5).toFixed(1)}</span>
-                        <span className="text-muted-foreground text-[10px]">(150+)</span>
-                      </div>
-                      <div className="flex items-center gap-3 mt-2 text-[10px] font-medium">
-                         <span className="text-primary">Open now</span>
-                         <span className="text-muted-foreground">• Min. order R{store.minOrder || '50'}</span>
-                      </div>
+                  </div>
+                  <CardContent className="p-3">
+                    <h3 className="font-bold text-sm truncate">{store.name}</h3>
+                    <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground font-medium">
+                      <span>$$</span>
+                      <span>•</span>
+                      <span>{store.deliveryTime || '20-30 min'}</span>
+                      <span>•</span>
+                      <span>1.5 km</span>
                     </div>
-                  </Link>
-                ))
-              ) : (
-                <div className="text-center py-10">
-                   <p className="text-muted-foreground">No results match your search and filters.</p>
-                </div>
-              )}
-           </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))
+          ) : (
+            <div className="w-full text-center py-10 bg-white rounded-3xl">
+              <p className="text-muted-foreground">No stores found.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
