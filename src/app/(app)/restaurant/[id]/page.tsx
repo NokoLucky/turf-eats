@@ -207,16 +207,18 @@ export default function RestaurantMenuPage() {
 
     // Sort categories according to requested order:
     // 1. General
-    // 2. Meals
-    // 3. (Others)
-    // 4. Drinks (any category containing 'drinks')
-    // 5. Extras / Sides
+    // 2. Breakfast
+    // 3. Meals
+    // 4. (Others: Sandwiches, Chicken, etc)
+    // 5. Drinks / Beverages
+    // 6. Extras / Sides
     return Object.keys(grouped).sort((a, b) => {
         const getWeight = (cat: string) => {
             const lowerCat = cat.toLowerCase();
             if (cat === 'General') return 0;
-            if (cat === 'Meals') return 1;
-            if (lowerCat.includes('drink')) return 80;
+            if (cat === 'Breakfast') return 1;
+            if (cat === 'Meals') return 2;
+            if (lowerCat.includes('drink') || lowerCat.includes('beverage')) return 80;
             if (cat === 'Sides') return 85;
             if (cat === 'Extras') return 90;
             return 50; // Everything else in between
