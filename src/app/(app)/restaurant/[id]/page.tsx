@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -93,6 +92,13 @@ function SelectionDialog({
   const [selectedAddOns, setSelectedAddOns] = useState<MenuItemAddOn[]>([]);
   const [quantity, setQuantity] = useState(1);
 
+  // ALL hooks must be defined at the top level, before any early returns.
+  const totalPrice = useMemo(() => {
+    if (!item) return 0;
+    const addOnTotal = selectedAddOns.reduce((sum, a) => sum + a.price, 0);
+    return (item.price + addOnTotal) * quantity;
+  }, [item, selectedAddOns, quantity]);
+
   useEffect(() => {
     if (open && item) {
       const initial: Record<string, string[]> = {};
@@ -107,6 +113,7 @@ function SelectionDialog({
     }
   }, [open, item]);
 
+  // Now it is safe to have an early return.
   if (!item) return null;
 
   const handleCheckboxChange = (groupName: string, choice: string, checked: boolean, max?: number) => {
@@ -136,11 +143,6 @@ function SelectionDialog({
       return true;
     });
   };
-
-  const totalPrice = useMemo(() => {
-    const addOnTotal = selectedAddOns.reduce((sum, a) => sum + a.price, 0);
-    return (item.price + addOnTotal) * quantity;
-  }, [item.price, selectedAddOns, quantity]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
