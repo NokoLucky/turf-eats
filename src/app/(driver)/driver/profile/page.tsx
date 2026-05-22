@@ -75,6 +75,9 @@ export default function DriverProfilePage() {
       title: 'Profile Updated',
       description: 'Your information has been successfully saved.',
     });
+
+    // Redirect to dashboard after saving
+    router.push('/driver/dashboard');
   };
 
   const handleSignOut = async () => {
