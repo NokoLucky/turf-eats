@@ -1,5 +1,7 @@
+
 'use client';
 
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '@/context/cart-context';
@@ -9,15 +11,56 @@ import { Separator } from '@/components/ui/separator';
 import { Trash2, ShoppingBag, ArrowLeft, Plus, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
+import { collection, getDocs, limit, query, where } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import type { MenuItem } from '@/lib/data';
+import { useToast } from '@/hooks/use-toast';
 
 export default function CartPage() {
   const { state, dispatch } = useCart();
   const router = useRouter();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  
+  const [upsellItems, setUpsellItems] = useState<MenuItem[]>([]);
+  const [isLoadingUpsells, setIsLoadingUpsells] = useState(false);
 
   const subtotal = state.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const serviceFee = 5.0; 
   const deliveryFee = 30.0; 
   const total = subtotal + serviceFee + deliveryFee;
+
+  // Fetch real upsell items from the same restaurant
+  useEffect(() => {
+    if (!firestore || state.items.length === 0) return;
+
+    const restaurantId = state.items[0].restaurantId;
+    const itemIdsInCart = state.items.map(item => item.actualId);
+
+    const fetchUpsells = async () => {
+      setIsLoadingUpsells(true);
+      try {
+        const q = query(
+          collection(firestore, 'restaurants', restaurantId, 'menuItems'),
+          limit(6)
+        );
+        const snapshot = await getDocs(q);
+        const items = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as MenuItem))
+          // Filter out items already in the cart
+          .filter(item => !itemIdsInCart.includes(item.id))
+          .slice(0, 4);
+        
+        setUpsellItems(items);
+      } catch (error) {
+        console.error("Error fetching upsells:", error);
+      } finally {
+        setIsLoadingUpsells(false);
+      }
+    };
+
+    fetchUpsells();
+  }, [firestore, state.items]);
 
   const updateQuantity = (id: string, quantity: number) => {
     dispatch({ type: 'UPDATE_QUANTITY', payload: { id, quantity } });
@@ -26,6 +69,14 @@ export default function CartPage() {
   const removeItem = (id: string) => {
     dispatch({ type: 'REMOVE_ITEM', payload: { id } });
   }
+
+  const handleAddUpsell = (item: MenuItem) => {
+    dispatch({
+      type: 'ADD_ITEM',
+      payload: { ...item, actualId: item.id, quantity: 1 } as any
+    });
+    toast({ title: 'Added to cart!', description: `${item.name} added.` });
+  };
 
   const handleCheckout = () => {
     router.push('/checkout');
@@ -63,10 +114,15 @@ export default function CartPage() {
                        </div>
                        <div className="flex-1">
                           <h3 className="font-bold text-sm">{item.name}</h3>
-                          {item.selectedOptions && (
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
-                               {Object.values(item.selectedOptions).flat().join(', ')}
-                            </p>
+                          {(item.selectedOptions || item.selectedAddOns) && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                               {item.selectedOptions && Object.values(item.selectedOptions).flat().map(opt => (
+                                 <Badge key={opt} variant="secondary" className="text-[8px] h-3 px-1 font-normal bg-muted">{opt}</Badge>
+                               ))}
+                               {item.selectedAddOns?.map(addon => (
+                                 <Badge key={addon.id} variant="secondary" className="text-[8px] h-3 px-1 font-normal bg-orange-50 text-orange-600">+ {addon.name}</Badge>
+                               ))}
+                            </div>
                           )}
                           <div className="flex items-center justify-between mt-3">
                              <div className="flex items-center bg-[#F1F3F5] rounded-full px-2 py-0.5">
@@ -82,27 +138,25 @@ export default function CartPage() {
                ))}
             </div>
 
-            <section className="space-y-4">
-               <h2 className="text-sm font-bold">You may also like</h2>
-               <div className="flex gap-4 overflow-x-auto no-scrollbar -mx-4 px-4 pb-2">
-                  {[
-                    { name: 'Coca Cola 500ml', price: 15.00, img: 'https://picsum.photos/seed/coke/100/100' },
-                    { name: 'Malva Pudding', price: 20.00, img: 'https://picsum.photos/seed/pudding/100/100' },
-                    { name: 'Still Water 500ml', price: 10.00, img: 'https://picsum.photos/seed/water/100/100' }
-                  ].map((item, i) => (
-                    <div key={i} className="min-w-[140px] bg-white p-3 rounded-2xl shadow-sm border border-transparent hover:border-primary transition-all relative">
-                        <div className="h-16 w-full relative mb-2">
-                           <Image src={item.img} alt={item.name} fill className="object-contain" />
-                        </div>
-                        <h4 className="text-[10px] font-bold truncate">{item.name}</h4>
-                        <p className="text-primary font-bold text-[10px] mt-1">R{item.price.toFixed(2)}</p>
-                        <Button size="icon" className="absolute bottom-2 right-2 h-6 w-6 rounded-lg bg-primary">
-                           <Plus className="h-4 w-4" />
-                        </Button>
-                    </div>
-                  ))}
-               </div>
-            </section>
+            {upsellItems.length > 0 && (
+              <section className="space-y-4">
+                 <h2 className="text-sm font-bold">You may also like</h2>
+                 <div className="flex gap-4 overflow-x-auto no-scrollbar -mx-4 px-4 pb-2">
+                    {upsellItems.map((item) => (
+                      <div key={item.id} className="min-w-[140px] bg-white p-3 rounded-2xl shadow-sm border border-transparent hover:border-primary transition-all relative">
+                          <div className="h-16 w-full relative mb-2">
+                             <Image src={item.imageUrl} alt={item.name} fill className="object-contain" />
+                          </div>
+                          <h4 className="text-[10px] font-bold truncate">{item.name}</h4>
+                          <p className="text-primary font-bold text-[10px] mt-1">R{item.price.toFixed(2)}</p>
+                          <Button size="icon" className="absolute bottom-2 right-2 h-6 w-6 rounded-lg bg-primary" onClick={() => handleAddUpsell(item)}>
+                             <Plus className="h-4 w-4" />
+                          </Button>
+                      </div>
+                    ))}
+                 </div>
+              </section>
+            )}
 
             <div className="space-y-2">
                <div className="flex justify-between text-xs text-muted-foreground font-medium">
@@ -114,16 +168,16 @@ export default function CartPage() {
                   <span>R{serviceFee.toFixed(2)}</span>
                </div>
                <div className="flex justify-between text-xs text-muted-foreground font-medium">
-                  <span>Delivery Fee (2.1 km)</span>
+                  <span>Delivery Fee</span>
                   <span>R{deliveryFee.toFixed(2)}</span>
                </div>
-               <div className="flex justify-between text-xs font-bold pt-2">
+               <div className="flex justify-between text-xs font-bold pt-2 border-t mt-2">
                   <span>Estimated Delivery</span>
                   <span>25 - 35 mins</span>
                </div>
                <div className="flex justify-between text-xs text-muted-foreground pt-1">
                   <span>Delivering to</span>
-                  <span className="flex items-center gap-1">Turfloop, Polokwane <Link href="/profile"><Badge variant="outline" className="h-4 w-4 p-0"><X className="h-2 w-2" /></Badge></Link></span>
+                  <span className="flex items-center gap-1">Current Profile Address <Link href="/profile"><Badge variant="outline" className="h-4 w-4 p-0"><X className="h-2 w-2" /></Badge></Link></span>
                </div>
             </div>
           </>

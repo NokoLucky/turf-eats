@@ -16,6 +16,12 @@ export type MenuItemOptionGroup = {
   isRequired?: boolean;
 };
 
+export type MenuItemAddOn = {
+  id: string;
+  name: string;
+  price: number;
+};
+
 export type MenuItem = {
   id: string;
   name: string;
@@ -27,6 +33,7 @@ export type MenuItem = {
   isSoldOut?: boolean;
   category: string;
   options?: MenuItemOptionGroup[];
+  addOns?: MenuItemAddOn[];
 };
 
 export type Restaurant = {
@@ -65,7 +72,10 @@ export type OrderStatus = 'Placed' | 'Preparing' | 'Out for Delivery' | 'Deliver
 export type Order = {
   id: string;
   customerId: string;
+  customerName?: string;
+  customerPhone?: string;
   restaurantId: string;
+  storeOwnerId: string;
   driverId: string | null;
   orderDate: Timestamp;
   deliveredAt?: Timestamp;
@@ -76,6 +86,7 @@ export type Order = {
   totalAmount: number;
   deliveryAddress: string;
   notes?: string;
+  paymentMethod: string;
   isRated?: boolean;
   participantUids: string[];
 };
@@ -88,6 +99,7 @@ export type OrderItem = {
     itemPrice: number;
     name: string;
     selectedOptions?: Record<string, string[]>; // Group Name -> Array of choice names
+    selectedAddOns?: MenuItemAddOn[];
 };
 
 export type Rating = {

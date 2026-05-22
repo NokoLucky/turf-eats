@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -11,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { doc, collection, getDoc, getDocs } from 'firebase/firestore';
-import type { Restaurant, MenuItem, MenuItemOptionGroup } from '@/lib/data';
+import type { Restaurant, MenuItem, MenuItemOptionGroup, MenuItemAddOn } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -86,18 +87,22 @@ function SelectionDialog({
   item: MenuItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (selections: Record<string, string[]>, quantity: number) => void;
+  onConfirm: (selections: Record<string, string[]>, addOns: MenuItemAddOn[], quantity: number) => void;
 }) {
   const [selections, setSelections] = useState<Record<string, string[]>>({});
+  const [selectedAddOns, setSelectedAddOns] = useState<MenuItemAddOn[]>([]);
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
-    if (open && item?.options) {
+    if (open && item) {
       const initial: Record<string, string[]> = {};
-      item.options.forEach(opt => {
-        initial[opt.name] = opt.type === 'radio' ? [opt.choices[0]] : [];
-      });
+      if (item.options) {
+        item.options.forEach(opt => {
+          initial[opt.name] = opt.type === 'radio' ? [opt.choices[0]] : [];
+        });
+      }
       setSelections(initial);
+      setSelectedAddOns([]);
       setQuantity(1);
     }
   }, [open, item]);
@@ -116,6 +121,12 @@ function SelectionDialog({
     });
   };
 
+  const handleAddOnToggle = (addon: MenuItemAddOn, checked: boolean) => {
+    setSelectedAddOns(prev => 
+      checked ? [...prev, addon] : prev.filter(a => a.id !== addon.id)
+    );
+  };
+
   const isValid = () => {
     if (!item.options) return true;
     return item.options.every(opt => {
@@ -125,6 +136,11 @@ function SelectionDialog({
       return true;
     });
   };
+
+  const totalPrice = useMemo(() => {
+    const addOnTotal = selectedAddOns.reduce((sum, a) => sum + a.price, 0);
+    return (item.price + addOnTotal) * quantity;
+  }, [item.price, selectedAddOns, quantity]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -198,27 +214,31 @@ function SelectionDialog({
             </div>
           ))}
 
-          <div className="space-y-4">
-             <div className="bg-[#F8F9FA] -mx-6 px-6 py-3">
-                <h4 className="font-bold text-sm">Add-ons</h4>
-             </div>
-             <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-3">
-                      <Checkbox id="cold-drink" />
-                      <Label htmlFor="cold-drink" className="text-sm font-medium">Cold Drink</Label>
-                   </div>
-                   <span className="text-sm text-muted-foreground font-medium">+ R15.00</span>
-                </div>
-                <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-3">
-                      <Checkbox id="extra-salad" />
-                      <Label htmlFor="extra-salad" className="text-sm font-medium">Extra Salad</Label>
-                   </div>
-                   <span className="text-sm text-muted-foreground font-medium">+ R10.00</span>
-                </div>
-             </div>
-          </div>
+          {item.addOns && item.addOns.length > 0 && (
+            <div className="space-y-4">
+               <div className="bg-[#F8F9FA] -mx-6 px-6 py-3">
+                  <h4 className="font-bold text-sm">Add-ons</h4>
+               </div>
+               <div className="space-y-4">
+                  {item.addOns.map((addon) => {
+                    const isChecked = selectedAddOns.some(a => a.id === addon.id);
+                    return (
+                      <div key={addon.id} className="flex items-center justify-between">
+                         <div className="flex items-center gap-3">
+                            <Checkbox 
+                              id={`addon-${addon.id}`} 
+                              checked={isChecked}
+                              onCheckedChange={(checked) => handleAddOnToggle(addon, !!checked)}
+                            />
+                            <Label htmlFor={`addon-${addon.id}`} className="text-sm font-medium cursor-pointer">{addon.name}</Label>
+                         </div>
+                         <span className="text-sm text-muted-foreground font-medium">+ R{addon.price.toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
+               </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="p-6 bg-white border-t shrink-0">
@@ -243,12 +263,12 @@ function SelectionDialog({
               </Button>
             </div>
             <Button 
-              onClick={() => onConfirm(selections, quantity)} 
+              onClick={() => onConfirm(selections, selectedAddOns, quantity)} 
               disabled={!isValid()} 
               className="flex-1 h-12 rounded-2xl font-bold shadow-lg shadow-primary/20 flex justify-between px-6"
             >
                <span>Add to Cart</span>
-               <span>R{(item.price * quantity).toFixed(2)}</span>
+               <span>R{totalPrice.toFixed(2)}</span>
             </Button>
           </div>
         </DialogFooter>
@@ -322,11 +342,25 @@ export default function RestaurantMenuPage() {
 
   const categories = ['All', ...sortedCategoryNames];
 
-  const handleAddToCart = (item: MenuItem, selectedOptions?: Record<string, string[]>, quantity: number = 1) => {
-    const cartId = selectedOptions ? `${item.id}-${Object.values(selectedOptions).flat().join('-')}` : item.id;
+  const handleAddToCart = (item: MenuItem, selectedOptions?: Record<string, string[]>, selectedAddOns?: MenuItemAddOn[], quantity: number = 1) => {
+    const addOnIds = selectedAddOns?.map(a => a.id).join('-') || '';
+    const cartId = `${item.id}-${Object.values(selectedOptions || {}).flat().join('-')}-${addOnIds}`;
+    
+    // Calculate accurate unit price including add-ons
+    const addOnPrice = selectedAddOns?.reduce((sum, a) => sum + a.price, 0) || 0;
+    const finalUnitPrice = item.price + addOnPrice;
+
     dispatch({
       type: 'ADD_ITEM',
-      payload: { ...item, id: cartId, actualId: item.id, selectedOptions, quantity } as any,
+      payload: { 
+        ...item, 
+        id: cartId, 
+        actualId: item.id, 
+        selectedOptions, 
+        selectedAddOns,
+        price: finalUnitPrice,
+        quantity 
+      } as any,
     });
     toast({ title: 'Added!', description: `${item.name} added to cart.` });
     setSelectionOpen(false);
@@ -346,7 +380,7 @@ export default function RestaurantMenuPage() {
         item={customizingItem}
         open={isSelectionOpen}
         onOpenChange={setSelectionOpen}
-        onConfirm={(selections, qty) => handleAddToCart(customizingItem!, selections, qty)}
+        onConfirm={(selections, addOns, qty) => handleAddToCart(customizingItem!, selections, addOns, qty)}
       />
       
       <ImagePreviewDialog 

@@ -3,12 +3,13 @@
 
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useReducer } from 'react';
-import type { MenuItem } from '@/lib/data';
+import type { MenuItem, MenuItemAddOn } from '@/lib/data';
 
 type CartItem = MenuItem & { 
   quantity: number; 
   actualId: string; // The real Firestore ID
   selectedOptions?: Record<string, string[]>; 
+  selectedAddOns?: MenuItemAddOn[];
 };
 
 type CartState = {
@@ -29,7 +30,7 @@ const CartContext = createContext<{
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD_ITEM': {
-      // payload.id is already the unique variation ID (originalId + selection names)
+      // payload.id is already the unique variation ID (originalId + selections + add-ons)
       const existingItem = state.items.find((item) => item.id === action.payload.id);
       if (existingItem) {
         return {

@@ -11,7 +11,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
-import type { MenuItem, Restaurant, MenuItemOptionGroup } from '@/lib/data';
+import type { MenuItem, Restaurant, MenuItemOptionGroup, MenuItemAddOn } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,6 +63,14 @@ const productSchema = z.object({
     maxSelections: z.number().optional(),
     isRequired: z.boolean().default(false),
   })).optional(),
+  addOns: z.array(z.object({
+    id: z.string(),
+    name: z.string().min(1, 'Add-on name is required'),
+    price: z.preprocess(
+      (val) => (typeof val === 'string' ? parseFloat(val) : val),
+      z.number().nonnegative('Price must be 0 or more')
+    ),
+  })).optional(),
 }).refine(data => {
     if (data.promotionalPrice === undefined || data.promotionalPrice === null) return true;
     if (isNaN(data.price)) return true;
@@ -100,12 +108,18 @@ function ProductDialog({
       promotionalPrice: undefined,
       isSoldOut: false,
       options: [],
+      addOns: [],
     },
   });
 
   const { fields: optionFields, append: appendOption, remove: removeOption } = useFieldArray({
     control: form.control,
     name: "options"
+  });
+
+  const { fields: addOnFields, append: appendAddOn, remove: removeAddOn } = useFieldArray({
+    control: form.control,
+    name: "addOns"
   });
   
   useEffect(() => {
@@ -117,7 +131,8 @@ function ProductDialog({
       imageUrl: '', 
       promotionalPrice: undefined, 
       isSoldOut: false, 
-      options: [] 
+      options: [],
+      addOns: [] 
     });
   }, [product, form]);
 
@@ -162,6 +177,14 @@ function ProductDialog({
       type: 'radio',
       choices: [''],
       isRequired: false,
+    });
+  };
+
+  const addAddOn = () => {
+    appendAddOn({
+      id: Math.random().toString(36).substr(2, 9),
+      name: '',
+      price: 0
     });
   };
 
@@ -369,6 +392,64 @@ function ProductDialog({
               ))}
             </div>
 
+            <Separator />
+
+            <div className="space-y-4">
+               <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-bold">Paid Add-ons</h3>
+                  <Button type="button" variant="outline" size="sm" onClick={addAddOn} className="rounded-full">
+                    <Plus className="h-4 w-4 mr-2" /> Add Paid Item
+                  </Button>
+               </div>
+
+               <div className="space-y-4">
+                  {addOnFields.map((field, index) => (
+                    <div key={field.id} className="flex gap-3 items-end group">
+                       <div className="flex-1">
+                          <FormField
+                            control={form.control}
+                            name={`addOns.${index}.name`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className={index > 0 ? "sr-only" : ""}>Item Name</FormLabel>
+                                <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Cold Drink" className="rounded-xl" /></FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                       </div>
+                       <div className="w-32">
+                          <FormField
+                            control={form.control}
+                            name={`addOns.${index}.price`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className={index > 0 ? "sr-only" : ""}>Price (ZAR)</FormLabel>
+                                <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="15.00" className="rounded-xl" /></FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                       </div>
+                       <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-xl h-10 w-10 text-destructive mb-[2px]"
+                        onClick={() => removeAddOn(index)}
+                       >
+                         <X className="h-4 w-4" />
+                       </Button>
+                    </div>
+                  ))}
+                  {addOnFields.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic text-center py-4 bg-muted/20 rounded-2xl">No paid add-ons added yet.</p>
+                  )}
+               </div>
+            </div>
+
+            <Separator />
+
              <FormField
                 control={form.control}
                 name="isSoldOut"
@@ -455,7 +536,7 @@ export default function ProductsManagementPage() {
         ...item,
         price: Number(item.price),
         promotionalPrice: item.promotionalPrice ? Number(item.promotionalPrice) : undefined,
-    });
+    } as ProductFormValues);
     setDialogOpen(true);
   };
   
@@ -543,11 +624,16 @@ export default function ProductsManagementPage() {
               <CardDescription className="mt-1 h-12 overflow-hidden text-ellipsis line-clamp-2">
                 {item.description}
               </CardDescription>
-              {item.options && item.options.length > 0 && (
+              {(item.options || item.addOns) && (
                 <div className="mt-4 flex gap-2 flex-wrap">
-                  {item.options.map(opt => (
+                  {item.options?.map(opt => (
                     <Badge key={opt.id} variant="outline" className="text-[9px] uppercase border-primary/20 text-primary bg-primary/5">
-                      {opt.name} ({opt.choices.length})
+                      {opt.name}
+                    </Badge>
+                  ))}
+                  {item.addOns?.map(addon => (
+                    <Badge key={addon.id} variant="outline" className="text-[9px] uppercase border-orange-200 text-orange-600 bg-orange-50">
+                      + {addon.name}
                     </Badge>
                   ))}
                 </div>
