@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { collectionGroup, collection, doc, deleteDoc, setDoc } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { collectionGroup, collection, doc, setDoc } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser, deleteDocumentNonBlocking } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -172,13 +172,7 @@ export default function AdminDashboard() {
     if (!confirm("Are you sure you want to permanently delete this record? This action cannot be undone.")) return;
 
     const docRef = doc(firestore, path);
-    deleteDoc(docRef).catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'delete',
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-    });
+    deleteDocumentNonBlocking(docRef);
   };
 
   const openInspection = (item: any, type: InspectionType) => {
@@ -268,9 +262,9 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex gap-2 mt-6">
                   {driver.status === 'pending' && (
-                    <Button size="sm" className="flex-1 rounded-xl" onClick={(e) => handleApprove(e, 'drivers', driver.userId)}>Approve</Button>
+                    <Button size="sm" className="flex-1 rounded-xl" onClick={(e) => handleApprove(e, 'drivers', driver.id)}>Approve</Button>
                   )}
-                  <Button size="sm" variant="outline" className="flex-1 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30" onClick={(e) => handleDelete(e, `users/${driver.userId}/drivers/${driver.userId}`)}>
+                  <Button size="sm" variant="outline" className="flex-1 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30" onClick={(e) => handleDelete(e, `users/${driver.id}/drivers/${driver.id}`)}>
                     <Trash2 className="h-4 w-4 mr-2" /> Delete
                   </Button>
                 </div>
@@ -296,9 +290,9 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex gap-2 mt-6">
                   {owner.status === 'pending' && (
-                    <Button size="sm" className="flex-1 rounded-xl" onClick={(e) => handleApprove(e, 'storeOwners', owner.userId)}>Approve</Button>
+                    <Button size="sm" className="flex-1 rounded-xl" onClick={(e) => handleApprove(e, 'storeOwners', owner.id)}>Approve</Button>
                   )}
-                   <Button size="sm" variant="outline" className="flex-1 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30" onClick={(e) => handleDelete(e, `users/${owner.userId}/storeOwners/${owner.userId}`)}>
+                   <Button size="sm" variant="outline" className="flex-1 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30" onClick={(e) => handleDelete(e, `users/${owner.id}/storeOwners/${owner.id}`)}>
                     <Trash2 className="h-4 w-4 mr-2" /> Delete
                   </Button>
                 </div>
@@ -335,7 +329,7 @@ export default function AdminDashboard() {
                    </div>
                 </div>
                 <div className="flex gap-2 mt-6">
-                   <Button size="sm" variant="outline" className="flex-1 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30" onClick={(e) => handleDelete(e, `users/${customer.userId}/customers/${customer.userId}`)}>
+                   <Button size="sm" variant="outline" className="flex-1 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30" onClick={(e) => handleDelete(e, `users/${customer.id}/customers/${customer.id}`)}>
                     <Trash2 className="h-4 w-4 mr-2" /> Delete
                   </Button>
                 </div>
@@ -500,7 +494,7 @@ export default function AdminDashboard() {
                       </>
                     )}
 
-                    <InfoItem icon={<CalendarIcon className="h-4 w-4" />} label="System UID" value={inspectedItem.userId || inspectedItem.id} />
+                    <InfoItem icon={<CalendarIcon className="h-4 w-4" />} label="System UID" value={inspectedItem.id} />
                   </div>
 
                   {inspectionType === 'driver' && (
@@ -594,22 +588,28 @@ export default function AdminDashboard() {
                 </Button>
                 {inspectedItem.status === 'pending' && (
                   <Button className="flex-1 rounded-2xl h-12 font-bold bg-primary text-white" onClick={(e) => {
-                    handleApprove(e, inspectionType === 'driver' ? 'drivers' : 'storeOwners', inspectedItem.userId);
+                    handleApprove(e, inspectionType === 'driver' ? 'drivers' : 'storeOwners', inspectedItem.id);
                     setIsDialogOpen(false);
                   }}>
                     Approve Request
                   </Button>
                 )}
-                {inspectionType === 'customer' && (
+                {(inspectionType === 'customer' || inspectionType === 'driver' || inspectionType === 'owner') && (
                    <Button 
                     variant="destructive" 
                     className="flex-1 rounded-2xl h-12 font-bold" 
                     onClick={(e) => {
-                      handleDelete(e, `users/${inspectedItem.userId}/customers/${inspectedItem.userId}`);
+                      const path = inspectionType === 'customer' 
+                        ? `users/${inspectedItem.id}/customers/${inspectedItem.id}` 
+                        : inspectionType === 'driver' 
+                        ? `users/${inspectedItem.id}/drivers/${inspectedItem.id}`
+                        : `users/${inspectedItem.id}/storeOwners/${inspectedItem.id}`;
+                      
+                      handleDelete(e, path);
                       setIsDialogOpen(false);
                     }}
                   >
-                    Delete Customer
+                    Delete {inspectionType.charAt(0).toUpperCase() + inspectionType.slice(1)}
                   </Button>
                 )}
               </div>
