@@ -245,11 +245,11 @@ export default function AdminDashboard() {
 
       {/* Inspection Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl">
+        <DialogContent className="max-w-2xl h-[85vh] p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl flex flex-col">
           {inspectedItem && inspectionType && (
-            <div className="flex flex-col h-full">
+            <>
               {/* Fixed Header */}
-              <div className="bg-primary p-8 text-white">
+              <div className="bg-primary p-8 text-white flex-shrink-0">
                 <DialogHeader>
                   <div className="flex items-center gap-4 mb-2">
                     <div className="bg-white/20 p-2 rounded-xl backdrop-blur-md">
@@ -269,8 +269,8 @@ export default function AdminDashboard() {
               </div>
 
               {/* Scrollable Content Area */}
-              <ScrollArea className="flex-1 p-8">
-                <div className="space-y-8 pb-4">
+              <ScrollArea className="flex-1 min-h-0 bg-background">
+                <div className="p-8 space-y-8 pb-12">
                   {/* Media Previews */}
                   {inspectionType === 'restaurant' && (
                     <div className="grid grid-cols-2 gap-4">
@@ -341,15 +341,15 @@ export default function AdminDashboard() {
                 </div>
               </ScrollArea>
               
-              <Separator />
+              <Separator className="flex-shrink-0" />
               
               {/* Fixed Footer */}
-              <div className="p-6 bg-muted/30 flex gap-3">
+              <div className="p-6 bg-muted/30 flex gap-3 flex-shrink-0">
                 <Button className="flex-1 rounded-2xl h-12 font-bold" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Close Inspection
                 </Button>
                 {inspectedItem.status === 'pending' && (
-                  <Button className="flex-1 rounded-2xl h-12 font-bold bg-primary" onClick={(e) => {
+                  <Button className="flex-1 rounded-2xl h-12 font-bold bg-primary text-white" onClick={(e) => {
                     handleApprove(e, inspectionType === 'driver' ? 'drivers' : 'storeOwners', inspectedItem.userId);
                     setIsDialogOpen(false);
                   }}>
@@ -357,7 +357,7 @@ export default function AdminDashboard() {
                   </Button>
                 )}
               </div>
-            </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
