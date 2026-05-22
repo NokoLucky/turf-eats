@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -167,7 +168,9 @@ function SelectionDialog({
               <h3 className="text-2xl font-bold">{item.name}</h3>
               <p className="text-muted-foreground text-sm mt-1">{item.description}</p>
             </div>
-            <Badge variant="secondary" className="bg-orange-100 text-primary border-none text-[10px] font-bold">Bestseller</Badge>
+            {item.isBestseller && (
+              <Badge variant="secondary" className="bg-orange-100 text-primary border-none text-[10px] font-bold">Bestseller</Badge>
+            )}
           </div>
           
           <div className="text-xl font-bold text-primary">R{item.price.toFixed(2)}</div>
@@ -482,7 +485,9 @@ export default function RestaurantMenuPage() {
                                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                                             <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5" />
                                           </div>
-                                          <div className="absolute top-1 left-1 bg-primary text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">Bestseller</div>
+                                          {item.isBestseller && (
+                                            <div className="absolute top-1 left-1 bg-primary text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">Bestseller</div>
+                                          )}
                                       </div>
                                       <div className="flex-1">
                                           <h3 className="font-bold text-sm">{item.name}</h3>

@@ -6,7 +6,7 @@ import { collection, doc, query, where, limit } from 'firebase/firestore';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { PlusCircle, Trash2, Edit, MoreHorizontal, Store, Plus, X } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, MoreHorizontal, Store, Plus, X, Star } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
@@ -54,6 +54,7 @@ const productSchema = z.object({
       z.number().nonnegative('Price cannot be negative.').optional()
   ),
   isSoldOut: z.boolean().default(false),
+  isBestseller: z.boolean().default(false),
   options: z.array(z.object({
     id: z.string(),
     name: z.string().min(1, 'Option group name is required'),
@@ -107,6 +108,7 @@ function ProductDialog({
       imageUrl: '',
       promotionalPrice: undefined,
       isSoldOut: false,
+      isBestseller: false,
       options: [],
       addOns: [],
     },
@@ -131,6 +133,7 @@ function ProductDialog({
       imageUrl: '', 
       promotionalPrice: undefined, 
       isSoldOut: false, 
+      isBestseller: false,
       options: [],
       addOns: [] 
     });
@@ -450,26 +453,49 @@ function ProductDialog({
 
             <Separator />
 
-             <FormField
-                control={form.control}
-                name="isSoldOut"
-                render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 shadow-sm mt-4">
-                    <div className="space-y-0.5">
-                        <FormLabel>Sold Out</FormLabel>
-                        <FormDescription>
-                            Mark this item as temporarily unavailable.
-                        </FormDescription>
-                    </div>
-                    <FormControl>
-                        <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                        />
-                    </FormControl>
-                </FormItem>
-                )}
-            />
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="isSoldOut"
+                    render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 shadow-sm">
+                        <div className="space-y-0.5">
+                            <FormLabel>Sold Out</FormLabel>
+                            <FormDescription className="text-[10px]">
+                                Temporarily unavailable.
+                            </FormDescription>
+                        </div>
+                        <FormControl>
+                            <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                            />
+                        </FormControl>
+                    </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="isBestseller"
+                    render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 shadow-sm">
+                        <div className="space-y-0.5">
+                            <FormLabel className="flex items-center gap-2"><Star className="h-3 w-3 fill-primary text-primary" /> Bestseller</FormLabel>
+                            <FormDescription className="text-[10px]">
+                                Highlight this item.
+                            </FormDescription>
+                        </div>
+                        <FormControl>
+                            <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                            />
+                        </FormControl>
+                    </FormItem>
+                    )}
+                />
+            </div>
             
             <DialogFooter>
               <Button type="submit" disabled={form.formState.isSubmitting} className="rounded-xl font-bold px-8">
@@ -613,6 +639,9 @@ export default function ProductsManagementPage() {
                 <Image src={item.imageUrl || 'https://picsum.photos/seed/product/400/300'} alt={item.name} fill className="object-cover transition-transform group-hover:scale-105" />
                  {item.isSoldOut && (
                     <Badge variant="destructive" className="absolute top-4 right-4 shadow-lg uppercase font-bold text-[10px]">SOLD OUT</Badge>
+                )}
+                 {item.isBestseller && !item.isSoldOut && (
+                    <Badge className="absolute top-4 right-4 bg-orange-500 text-white shadow-lg uppercase font-bold text-[10px] border-none"><Star className="h-2 w-2 mr-1 fill-white" /> BESTSELLER</Badge>
                 )}
                 <Badge variant="secondary" className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm text-primary font-bold text-[10px] border-none">
                   {item.category || 'General'}

@@ -31,6 +31,7 @@ export type MenuItem = {
   imageUrl: string;
   restaurantId: string;
   isSoldOut?: boolean;
+  isBestseller?: boolean;
   category: string;
   options?: MenuItemOptionGroup[];
   addOns?: MenuItemAddOn[];
