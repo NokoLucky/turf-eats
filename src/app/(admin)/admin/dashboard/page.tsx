@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState } from 'react';
@@ -10,9 +11,9 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Store, Bike, Trash2, TrendingUp, ShoppingCart, 
-  User, Phone, Mail, MapPin, Calendar, 
+  User, Phone, Mail, MapPin, Calendar as CalendarIcon, 
   CreditCard, Info, Clock, Star, ExternalLink,
-  ChevronRight, ListFilter, DollarSign
+  ChevronRight, ListFilter, DollarSign, History
 } from 'lucide-react';
 import type { Order, Driver, Restaurant } from '@/lib/data';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -26,6 +27,8 @@ import {
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Calendar } from '@/components/ui/calendar';
+import { isSameDay, format } from 'date-fns';
 
 type InspectionType = 'driver' | 'owner' | 'restaurant';
 
@@ -37,6 +40,9 @@ export default function AdminDashboard() {
   const [inspectedItem, setInspectedItem] = useState<any | null>(null);
   const [inspectionType, setInspectionType] = useState<InspectionType | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // Date tracking for driver history logs
+  const [logDate, setLogDate] = useState<Date | undefined>(new Date());
 
   // State for the breakdown dialog (summary stats)
   const [breakdownTitle, setBreakdownTitle] = useState<string | null>(null);
@@ -97,7 +103,7 @@ export default function AdminDashboard() {
         const ordersByStore = allOrders.reduce((acc, order) => {
           const store = allRestaurants.find(r => r.id === order.restaurantId);
           const name = store?.name || 'Unknown Store';
-          acc[name] = (acc[name] || 0) + 1;
+          acc[name] = (acc[name] || 0) + (order.id ? 1 : 0);
           return acc;
         }, {} as Record<string, number>);
         data = Object.entries(ordersByStore).map(([name, count]) => ({ name, value: `${count} orders` }));
@@ -116,7 +122,6 @@ export default function AdminDashboard() {
         break;
 
       case 'Active Drivers':
-        // Calculate earnings per driver: R24 per delivered order
         data = allDrivers
           .filter(d => d.status === 'active')
           .map(d => {
@@ -176,6 +181,7 @@ export default function AdminDashboard() {
     setInspectedItem(item);
     setInspectionType(type);
     setIsDialogOpen(true);
+    setLogDate(new Date()); // Reset log date when opening inspection
   };
 
   const getDriverLifetimeEarnings = (driverId: string) => {
@@ -183,6 +189,17 @@ export default function AdminDashboard() {
     const completedCount = allOrders.filter(o => o.driverId === driverId && o.status === 'Delivered').length;
     return completedCount * 24;
   };
+
+  const driverHistoryLogs = useMemo(() => {
+    if (!allOrders || !inspectedItem || inspectionType !== 'driver' || !logDate) return [];
+    return allOrders
+      .filter(o => o.driverId === inspectedItem.id && o.status === 'Delivered')
+      .filter(o => {
+        const date = o.deliveredAt?.toDate() || o.orderDate.toDate();
+        return isSameDay(date, logDate);
+      })
+      .sort((a, b) => (b.deliveredAt?.toDate().getTime() || 0) - (a.deliveredAt?.toDate().getTime() || 0));
+  }, [allOrders, inspectedItem, inspectionType, logDate]);
 
   return (
     <div className="container py-10 px-4 sm:px-8">
@@ -423,7 +440,6 @@ export default function AdminDashboard() {
                         <InfoItem icon={<CreditCard className="h-4 w-4" />} label="License No." value={inspectedItem.licenseNumber} />
                         <InfoItem icon={<Info className="h-4 w-4" />} label="Registration" value={inspectedItem.vehicleRegistration} />
                         <InfoItem icon={<Star className="h-4 w-4" />} label="Rating" value={inspectedItem.rating?.toFixed(1) || '0.0'} />
-                        {/* Driver Payouts - R24 per delivered order */}
                         <InfoItem 
                           icon={<DollarSign className="h-4 w-4" />} 
                           label="Total Earnings" 
@@ -432,8 +448,67 @@ export default function AdminDashboard() {
                       </>
                     )}
 
-                    <InfoItem icon={<Calendar className="h-4 w-4" />} label="System UID" value={inspectedItem.userId || inspectedItem.id} />
+                    <InfoItem icon={<CalendarIcon className="h-4 w-4" />} label="System UID" value={inspectedItem.userId || inspectedItem.id} />
                   </div>
+
+                  {inspectionType === 'driver' && (
+                    <div className="mt-10 pt-8 border-t space-y-6">
+                        <div className="flex items-center gap-3">
+                           <div className="bg-primary/10 p-2 rounded-xl">
+                              <History className="h-5 w-5 text-primary" />
+                           </div>
+                           <h3 className="font-bold text-lg">Delivery History Log</h3>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                           <div className="bg-muted/50 p-4 rounded-3xl border flex flex-col items-center">
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase mb-2">Audit Filter</p>
+                              <Calendar
+                                mode="single"
+                                selected={logDate}
+                                onSelect={setLogDate}
+                                className="rounded-md"
+                              />
+                           </div>
+
+                           <div className="space-y-4">
+                              <div className="flex justify-between items-center bg-white p-3 rounded-2xl shadow-sm">
+                                 <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    {logDate ? format(logDate, 'MMM d, yyyy') : 'Select Date'}
+                                 </div>
+                                 <Badge className="bg-primary/10 text-primary border-none text-[10px]">
+                                    {driverHistoryLogs.length} Completed
+                                 </Badge>
+                              </div>
+
+                              <ScrollArea className="h-[300px]">
+                                 {driverHistoryLogs.length > 0 ? (
+                                    <div className="space-y-3">
+                                       {driverHistoryLogs.map(order => (
+                                          <div key={order.id} className="p-3 rounded-2xl bg-white border shadow-sm group hover:border-primary/30 transition-colors">
+                                             <div className="flex justify-between items-start mb-1">
+                                                <p className="text-[10px] font-bold">#ORD{order.id.slice(0, 6)}</p>
+                                                <p className="text-[10px] font-bold text-green-600">R24.00</p>
+                                             </div>
+                                             <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                                                <Clock className="h-2.5 w-2.5" />
+                                                <span>Delivered {order.deliveredAt ? format(order.deliveredAt.toDate(), 'p') : 'N/A'}</span>
+                                             </div>
+                                          </div>
+                                       ))}
+                                    </div>
+                                 ) : (
+                                    <div className="flex flex-col items-center justify-center py-10 opacity-30 text-center">
+                                       <History className="h-10 w-10 mb-2" />
+                                       <p className="text-xs font-bold uppercase tracking-widest">No activity</p>
+                                    </div>
+                                 )}
+                              </ScrollArea>
+                           </div>
+                        </div>
+                    </div>
+                  )}
 
                   {inspectionType === 'driver' && inspectedItem.licenseUrl && (
                     <div className="space-y-2">
