@@ -166,12 +166,14 @@ export default function CheckoutPage() {
               </div>
               <div className="flex items-center justify-between p-4 rounded-2xl border border-transparent bg-white">
                  <div className="flex items-center gap-3">
-                    <RadioGroupItem value="card" id="card" />
-                    <Label htmlFor="card" className="text-sm font-bold cursor-pointer">Card / Online</Label>
+                    <RadioGroupItem value="payshap" id="payshap" />
+                    <Label htmlFor="payshap" className="cursor-pointer">
+                        <p className="text-sm font-bold">PayShap</p>
+                        <p className="text-[10px] text-muted-foreground">Shap to: 0707529446</p>
+                    </Label>
                  </div>
-                 <div className="flex gap-1">
-                    <div className="bg-slate-50 border rounded px-1 py-0.5"><span className="text-[8px] font-black text-blue-800">VISA</span></div>
-                    <div className="bg-slate-50 border rounded px-1 py-0.5"><span className="text-[8px] font-black text-red-600">master</span></div>
+                 <div className="bg-blue-50 px-2 py-1 rounded-lg">
+                    <span className="text-[10px] font-black text-blue-600 italic uppercase">PayShap</span>
                  </div>
               </div>
            </RadioGroup>
