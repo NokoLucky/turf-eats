@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { notFound, useParams } from 'next/navigation';
-import { Star, Plus, ArrowLeft, LayoutGrid, Check, X, Clock, MapPin, ShoppingCart } from 'lucide-react';
+import { Star, Plus, ArrowLeft, LayoutGrid, Check, X, Clock, MapPin, ShoppingCart, ZoomIn } from 'lucide-react';
 import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/cart-context';
@@ -20,10 +20,62 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
+
+const CATEGORY_ORDER = [
+  'General',
+  'Breakfast',
+  'Meals',
+  'Sandwiches & Rolls',
+  'Burgers',
+  'Meat',
+  'Fish & chips',
+  'Chicken and Chips',
+  'Sides',
+  'Deserts',
+  'hot beverages',
+  'cold beverages',
+  'Other Drinks',
+  'Extras'
+];
+
+function ImagePreviewDialog({
+  url,
+  title,
+  open,
+  onOpenChange
+}: {
+  url: string | null;
+  title?: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  if (!url) return null;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[95vw] sm:max-w-3xl p-0 overflow-hidden bg-black/90 border-none shadow-2xl rounded-3xl">
+        <DialogHeader className="sr-only">
+          <DialogTitle>{title || 'Image Preview'}</DialogTitle>
+        </DialogHeader>
+        <div className="relative aspect-video w-full">
+           <Image src={url} alt={title || "preview"} fill className="object-contain" />
+        </div>
+        {title && (
+          <div className="absolute bottom-6 left-0 right-0 text-center">
+            <Badge className="bg-white/20 backdrop-blur-md text-white border-none px-4 py-1.5 rounded-full text-sm font-bold">
+              {title}
+            </Badge>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function SelectionDialog({
   item,
@@ -77,6 +129,10 @@ function SelectionDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden rounded-t-[2.5rem] sm:rounded-[2.5rem] border-none shadow-2xl h-[90vh] flex flex-col">
+        <DialogHeader className="sr-only">
+          <DialogTitle>{item.name}</DialogTitle>
+        </DialogHeader>
+        
         <div className="relative h-[250px] w-full shrink-0">
            <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
            <Button 
@@ -213,6 +269,11 @@ export default function RestaurantMenuPage() {
   const [selectedMenuCategory, setSelectedMenuCategory] = useState('All');
   const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
   const [isSelectionOpen, setSelectionOpen] = useState(false);
+  
+  // Image preview state
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState<string | undefined>(undefined);
+  const [isPreviewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (!firestore || !id) return;
@@ -246,7 +307,20 @@ export default function RestaurantMenuPage() {
     }, {} as Record<string, MenuItem[]>);
   }, [menuItems]);
 
-  const categories = ['All', ...Object.keys(menuByCategory)];
+  const sortedCategoryNames = useMemo(() => {
+    const keys = Object.keys(menuByCategory);
+    return keys.sort((a, b) => {
+      const indexA = CATEGORY_ORDER.indexOf(a);
+      const indexB = CATEGORY_ORDER.indexOf(b);
+      
+      const weightA = indexA === -1 ? 99 : indexA;
+      const weightB = indexB === -1 ? 99 : indexB;
+      
+      return weightA - weightB;
+    });
+  }, [menuByCategory]);
+
+  const categories = ['All', ...sortedCategoryNames];
 
   const handleAddToCart = (item: MenuItem, selectedOptions?: Record<string, string[]>, quantity: number = 1) => {
     const cartId = selectedOptions ? `${item.id}-${Object.values(selectedOptions).flat().join('-')}` : item.id;
@@ -256,6 +330,12 @@ export default function RestaurantMenuPage() {
     });
     toast({ title: 'Added!', description: `${item.name} added to cart.` });
     setSelectionOpen(false);
+  };
+
+  const openPreview = (url: string, title?: string) => {
+    setPreviewUrl(url);
+    setPreviewTitle(title);
+    setPreviewOpen(true);
   };
 
   if (!isLoading && !restaurant) notFound();
@@ -268,23 +348,49 @@ export default function RestaurantMenuPage() {
         onOpenChange={setSelectionOpen}
         onConfirm={(selections, qty) => handleAddToCart(customizingItem!, selections, qty)}
       />
+      
+      <ImagePreviewDialog 
+        url={previewUrl}
+        title={previewTitle}
+        open={isPreviewOpen}
+        onOpenChange={setPreviewOpen}
+      />
 
       {isLoading ? <Skeleton className="h-screen w-full" /> : (
         <>
           <div className="relative h-[220px] w-full">
-            <Image src={restaurant?.bannerUrl || ''} alt="banner" fill className="object-cover" />
-            <div className="absolute inset-0 bg-black/40" />
+            <Image 
+              src={restaurant?.bannerUrl || ''} 
+              alt="banner" 
+              fill 
+              className="object-cover cursor-pointer"
+              onClick={() => openPreview(restaurant?.bannerUrl || '', restaurant?.name)}
+            />
+            <div className="absolute inset-0 bg-black/40 pointer-events-none" />
             <div className="absolute top-6 left-4 flex gap-2">
                 <Button asChild size="icon" className="bg-white/20 backdrop-blur-md rounded-full text-white">
                   <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
                 </Button>
+            </div>
+            <div className="absolute bottom-12 right-4">
+               <Button 
+                variant="ghost" 
+                size="icon" 
+                className="bg-white/20 backdrop-blur-md rounded-full text-white"
+                onClick={() => openPreview(restaurant?.bannerUrl || '', restaurant?.name)}
+               >
+                 <ZoomIn className="h-5 w-5" />
+               </Button>
             </div>
           </div>
 
           <div className="bg-white rounded-t-[2.5rem] -mt-10 relative z-10 px-6 pt-8 pb-4 shadow-sm">
              <div className="flex justify-between items-start mb-4">
                 <div className="flex gap-4">
-                   <div className="h-14 w-14 rounded-xl overflow-hidden border shadow-sm shrink-0">
+                   <div 
+                    className="h-14 w-14 rounded-xl overflow-hidden border shadow-sm shrink-0 cursor-pointer"
+                    onClick={() => openPreview(restaurant?.logoUrl || '', restaurant?.name)}
+                   >
                       <Image src={restaurant?.logoUrl || ''} alt="logo" width={56} height={56} className="object-cover" />
                    </div>
                    <div>
@@ -327,38 +433,47 @@ export default function RestaurantMenuPage() {
                    </div>
 
                    <div className="space-y-8">
-                      {Object.entries(menuByCategory).filter(([name]) => selectedMenuCategory === 'All' || name === selectedMenuCategory).map(([catName, items]) => (
-                        <div key={catName}>
-                           <h2 className="text-lg font-bold mb-4">{catName}</h2>
-                           <div className="space-y-4">
-                              {items.map(item => (
-                                <Card key={item.id} className="border-none shadow-sm rounded-2xl overflow-hidden bg-white">
-                                  <div className="flex items-center p-3 gap-4">
-                                     <div className="relative h-20 w-20 rounded-xl overflow-hidden shrink-0">
-                                        <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
-                                        <div className="absolute top-1 left-1 bg-primary text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">Bestseller</div>
-                                     </div>
-                                     <div className="flex-1">
-                                        <h3 className="font-bold text-sm">{item.name}</h3>
-                                        <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{item.description}</p>
-                                        <p className="text-primary font-bold text-sm mt-1">R{item.price.toFixed(2)}</p>
-                                     </div>
-                                     <Button 
-                                      size="icon" 
-                                      className="rounded-full h-8 w-8 bg-primary hover:bg-primary/90"
-                                      onClick={() => {
-                                        setCustomizingItem(item);
-                                        setSelectionOpen(true);
-                                      }}
-                                     >
-                                        <Plus className="h-5 w-5" />
-                                     </Button>
-                                  </div>
-                                </Card>
-                              ))}
-                           </div>
-                        </div>
-                      ))}
+                      {sortedCategoryNames.filter((name) => selectedMenuCategory === 'All' || name === selectedMenuCategory).map((catName) => {
+                        const items = menuByCategory[catName];
+                        return (
+                          <div key={catName}>
+                            <h2 className="text-lg font-bold mb-4">{catName}</h2>
+                            <div className="space-y-4">
+                                {items.map(item => (
+                                  <Card key={item.id} className="border-none shadow-sm rounded-2xl overflow-hidden bg-white">
+                                    <div className="flex items-center p-3 gap-4">
+                                      <div 
+                                        className="relative h-20 w-20 rounded-xl overflow-hidden shrink-0 cursor-pointer group"
+                                        onClick={() => openPreview(item.imageUrl, item.name)}
+                                      >
+                                          <Image src={item.imageUrl} alt={item.name} fill className="object-cover transition-transform group-hover:scale-110" />
+                                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                            <ZoomIn className="text-white opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5" />
+                                          </div>
+                                          <div className="absolute top-1 left-1 bg-primary text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">Bestseller</div>
+                                      </div>
+                                      <div className="flex-1">
+                                          <h3 className="font-bold text-sm">{item.name}</h3>
+                                          <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{item.description}</p>
+                                          <p className="text-primary font-bold text-sm mt-1">R{item.price.toFixed(2)}</p>
+                                      </div>
+                                      <Button 
+                                        size="icon" 
+                                        className="rounded-full h-8 w-8 bg-primary hover:bg-primary/90"
+                                        onClick={() => {
+                                          setCustomizingItem(item);
+                                          setSelectionOpen(true);
+                                        }}
+                                      >
+                                          <Plus className="h-5 w-5" />
+                                      </Button>
+                                    </div>
+                                  </Card>
+                                ))}
+                            </div>
+                          </div>
+                        );
+                      })}
                    </div>
                 </TabsContent>
              </Tabs>

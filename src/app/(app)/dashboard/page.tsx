@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { 
   Star, Search, Bell, MapPin, 
   Clock, Truck, ChevronDown, X,
-  MoreHorizontal
+  MoreHorizontal, ZoomIn
 } from 'lucide-react';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
@@ -15,8 +15,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 const categories = [
   { name: 'Restaurants', emoji: '🍔', bg: 'bg-orange-100', color: 'text-orange-600' },
@@ -28,6 +29,39 @@ const categories = [
   { name: 'Parcels', emoji: '📦', bg: 'bg-amber-100', color: 'text-amber-600' },
   { name: 'More', emoji: '•••', bg: 'bg-slate-100', color: 'text-slate-600' },
 ];
+
+function ImagePreviewDialog({
+  url,
+  title,
+  open,
+  onOpenChange
+}: {
+  url: string | null;
+  title?: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  if (!url) return null;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[95vw] sm:max-w-3xl p-0 overflow-hidden bg-black/90 border-none shadow-2xl rounded-3xl">
+        <DialogHeader className="sr-only">
+          <DialogTitle>{title || 'Image Preview'}</DialogTitle>
+        </DialogHeader>
+        <div className="relative aspect-video w-full">
+           <Image src={url} alt={title || "preview"} fill className="object-contain" />
+        </div>
+        {title && (
+          <div className="absolute bottom-6 left-0 right-0 text-center">
+            <Badge className="bg-white/20 backdrop-blur-md text-white border-none px-4 py-1.5 rounded-full text-sm font-bold">
+              {title}
+            </Badge>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function StoreCardSkeleton() {
   return (
@@ -57,6 +91,11 @@ export default function CustomerDashboardPage() {
   const [greeting, setGreeting] = React.useState('Good morning');
   const [searchTerm, setSearchTerm] = React.useState('');
   const [selectedCategory, setSelectedCategory] = React.useState<string | null>(null);
+  
+  // Image preview state
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = React.useState<string | undefined>(undefined);
+  const [isPreviewOpen, setPreviewOpen] = React.useState(false);
 
   React.useEffect(() => {
     const hour = new Date().getHours();
@@ -90,8 +129,21 @@ export default function CustomerDashboardPage() {
     });
   }, [stores, searchTerm, selectedCategory]);
 
+  const openPreview = (url: string, title?: string) => {
+    setPreviewUrl(url);
+    setPreviewTitle(title);
+    setPreviewOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-10">
+      <ImagePreviewDialog 
+        url={previewUrl}
+        title={previewTitle}
+        open={isPreviewOpen}
+        onOpenChange={setPreviewOpen}
+      />
+
       <div className="bg-white px-4 pt-8 pb-6 sm:px-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -162,15 +214,18 @@ export default function CustomerDashboardPage() {
             ))
           ) : filteredStores.length > 0 ? (
             filteredStores.map((store) => (
-              <Link href={`/restaurant/${store.id}`} key={store.id} className="min-w-[200px]">
+              <div key={store.id} className="min-w-[200px] flex flex-col gap-2">
                 <Card className="overflow-hidden border-none shadow-premium bg-white group h-full rounded-2xl">
-                  <div className="relative h-28 w-full overflow-hidden">
+                  <div className="relative h-28 w-full overflow-hidden cursor-pointer" onClick={() => openPreview(store.bannerUrl || 'https://picsum.photos/seed/placeholder/600/400', store.name)}>
                     <Image
                       src={store.bannerUrl || 'https://picsum.photos/seed/placeholder/600/400'}
                       alt={store.name}
                       fill
-                      className="object-cover"
+                      className="object-cover transition-transform group-hover:scale-105"
                     />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <ZoomIn className="text-white h-6 w-6" />
+                    </div>
                     <div className="absolute top-2 left-2">
                        <span className="bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded-lg text-[10px] text-white font-bold flex items-center gap-1">
                         <Star className="h-2.5 w-2.5 text-yellow-400 fill-yellow-400" />
@@ -178,18 +233,20 @@ export default function CustomerDashboardPage() {
                       </span>
                     </div>
                   </div>
-                  <CardContent className="p-3">
-                    <h3 className="font-bold text-sm truncate">{store.name}</h3>
-                    <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground font-medium">
-                      <span>$$</span>
-                      <span>•</span>
-                      <span>{store.deliveryTime || '20-30 min'}</span>
-                      <span>•</span>
-                      <span>1.5 km</span>
-                    </div>
-                  </CardContent>
+                  <Link href={`/restaurant/${store.id}`}>
+                    <CardContent className="p-3 hover:bg-muted/30 transition-colors">
+                      <h3 className="font-bold text-sm truncate">{store.name}</h3>
+                      <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground font-medium">
+                        <span>$$</span>
+                        <span>•</span>
+                        <span>{store.deliveryTime || '20-30 min'}</span>
+                        <span>•</span>
+                        <span>1.5 km</span>
+                      </div>
+                    </CardContent>
+                  </Link>
                 </Card>
-              </Link>
+              </div>
             ))
           ) : (
             <div className="w-full text-center py-10 bg-white rounded-3xl">
