@@ -92,7 +92,6 @@ function SelectionDialog({
   const [selectedAddOns, setSelectedAddOns] = useState<MenuItemAddOn[]>([]);
   const [quantity, setQuantity] = useState(1);
 
-  // ALL hooks must be defined at the top level, before any early returns.
   const totalPrice = useMemo(() => {
     if (!item) return 0;
     const addOnTotal = selectedAddOns.reduce((sum, a) => sum + a.price, 0);
@@ -113,7 +112,6 @@ function SelectionDialog({
     }
   }, [open, item]);
 
-  // Now it is safe to have an early return.
   if (!item) return null;
 
   const handleCheckboxChange = (groupName: string, choice: string, checked: boolean, max?: number) => {
@@ -449,8 +447,6 @@ export default function RestaurantMenuPage() {
              <Tabs defaultValue="menu" className="w-full">
                 <TabsList className="w-full bg-transparent border-b rounded-none h-auto p-0 justify-start gap-8">
                    <TabsTrigger value="menu" className="data-[state=active]:border-primary data-[state=active]:text-primary border-b-2 border-transparent rounded-none px-0 pb-3 font-bold text-sm">Menu</TabsTrigger>
-                   <TabsTrigger value="reviews" className="data-[state=active]:border-primary data-[state=active]:text-primary border-b-2 border-transparent rounded-none px-0 pb-3 font-bold text-sm text-muted-foreground">Reviews</TabsTrigger>
-                   <TabsTrigger value="info" className="data-[state=active]:border-primary data-[state=active]:text-primary border-b-2 border-transparent rounded-none px-0 pb-3 font-bold text-sm text-muted-foreground">Info</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="menu" className="pt-6">

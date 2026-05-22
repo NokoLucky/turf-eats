@@ -4,7 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { 
-  Star, Search, Bell, MapPin, 
+  Star, Search, MapPin, 
   Clock, Truck, ChevronDown, X,
   MoreHorizontal, ZoomIn
 } from 'lucide-react';
