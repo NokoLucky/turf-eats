@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState } from 'react';
@@ -13,9 +12,9 @@ import {
   Store, Bike, Trash2, TrendingUp, ShoppingCart, 
   User, Phone, Mail, MapPin, Calendar as CalendarIcon, 
   CreditCard, Info, Clock, Star, ExternalLink,
-  ChevronRight, ListFilter, DollarSign, History
+  ChevronRight, ListFilter, DollarSign, History, Users
 } from 'lucide-react';
-import type { Order, Driver, Restaurant } from '@/lib/data';
+import type { Order, Driver, Restaurant, Customer } from '@/lib/data';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 import {
@@ -30,7 +29,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar } from '@/components/ui/calendar';
 import { isSameDay, format } from 'date-fns';
 
-type InspectionType = 'driver' | 'owner' | 'restaurant';
+type InspectionType = 'driver' | 'owner' | 'restaurant' | 'customer';
 
 export default function AdminDashboard() {
   const firestore = useFirestore();
@@ -59,6 +58,11 @@ export default function AdminDashboard() {
     return collectionGroup(firestore, 'storeOwners');
   }, [firestore, user?.uid]);
 
+  const customersQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collectionGroup(firestore, 'customers');
+  }, [firestore, user?.uid]);
+
   const restaurantsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return collection(firestore, 'restaurants');
@@ -71,11 +75,12 @@ export default function AdminDashboard() {
 
   const { data: allDrivers, isLoading: loadingDrivers } = useCollection<Driver>(driversQuery);
   const { data: allOwners, isLoading: loadingOwners } = useCollection(ownersQuery);
+  const { data: allCustomers, isLoading: loadingCustomers } = useCollection<Customer>(customersQuery);
   const { data: allRestaurants, isLoading: loadingRestaurants } = useCollection<Restaurant>(restaurantsQuery);
   const { data: allOrders, isLoading: loadingOrders } = useCollection<Order>(ordersQuery);
 
   const stats = useMemo(() => {
-    if (!allOrders || !allDrivers || !allRestaurants) return null;
+    if (!allOrders || !allDrivers || !allRestaurants || !allCustomers) return null;
 
     const totalOrders = allOrders.length;
     const totalRevenue = allOrders
@@ -83,18 +88,18 @@ export default function AdminDashboard() {
       .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
     
     const activeDrivers = allDrivers.filter(d => d.status === 'active').length;
-    const activeStores = allRestaurants.filter(r => r.status === 'active').length;
+    const totalCustomers = allCustomers.length;
 
     return [
       { label: 'Total Orders', value: totalOrders.toString(), icon: <ShoppingCart /> },
       { label: 'Total Revenue', value: `R${totalRevenue.toFixed(2)}`, icon: <TrendingUp /> },
       { label: 'Active Drivers', value: activeDrivers.toString(), icon: <Bike /> },
-      { label: 'Active Stores', value: activeStores.toString(), icon: <Store /> },
+      { label: 'Total Customers', value: totalCustomers.toString(), icon: <Users /> },
     ];
-  }, [allOrders, allDrivers, allRestaurants]);
+  }, [allOrders, allDrivers, allRestaurants, allCustomers]);
 
   const handleStatClick = (label: string) => {
-    if (!allOrders || !allRestaurants || !allDrivers) return;
+    if (!allOrders || !allRestaurants || !allDrivers || !allCustomers) return;
 
     let data: { name: string; value: string | number }[] = [];
 
@@ -131,10 +136,9 @@ export default function AdminDashboard() {
           });
         break;
 
-      case 'Active Stores':
-        data = allRestaurants
-          .filter(r => r.status === 'active')
-          .map(r => ({ name: r.name, value: r.category || 'Active' }));
+      case 'Total Customers':
+        data = allCustomers.slice(0, 10).map(c => ({ name: c.name, value: c.email || 'No email' }));
+        if (allCustomers.length > 10) data.push({ name: 'And more...', value: `${allCustomers.length - 10} others` });
         break;
     }
 
@@ -235,9 +239,10 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="drivers" className="space-y-8">
-        <TabsList className="bg-white p-1 rounded-2xl shadow-premium border-none h-14 w-full max-w-md">
+        <TabsList className="bg-white p-1 rounded-2xl shadow-premium border-none h-14 w-full max-w-lg">
           <TabsTrigger value="drivers" className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">Drivers</TabsTrigger>
           <TabsTrigger value="owners" className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">Owners</TabsTrigger>
+          <TabsTrigger value="customers" className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">Customers</TabsTrigger>
           <TabsTrigger value="restaurants" className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">Stores</TabsTrigger>
         </TabsList>
 
@@ -299,6 +304,49 @@ export default function AdminDashboard() {
                 </div>
               </Card>
             ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="customers">
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {loadingCustomers ? <Skeleton className="h-40 w-full rounded-3xl" /> : allCustomers?.map(customer => (
+              <Card 
+                key={customer.id} 
+                className="border-none shadow-premium rounded-[2rem] p-6 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all group"
+                onClick={() => openInspection(customer, 'customer')}
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      <User className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-bold group-hover:text-primary transition-colors truncate">{customer.name}</h3>
+                      <p className="text-[10px] text-muted-foreground truncate">{customer.email}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2 mt-4">
+                   <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <Phone className="h-3 w-3" /> {customer.phoneNumber || 'N/A'}
+                   </div>
+                   <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <MapPin className="h-3 w-3" /> <span className="truncate">{customer.address || 'No address set'}</span>
+                   </div>
+                </div>
+                <div className="flex gap-2 mt-6">
+                   <Button size="sm" variant="outline" className="flex-1 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30" onClick={(e) => handleDelete(e, `users/${customer.userId}/customers/${customer.userId}`)}>
+                    <Trash2 className="h-4 w-4 mr-2" /> Delete
+                  </Button>
+                </div>
+              </Card>
+            ))}
+            {!loadingCustomers && allCustomers?.length === 0 && (
+               <div className="col-span-full py-20 text-center text-muted-foreground">
+                  <Users className="mx-auto h-12 w-12 opacity-20 mb-4" />
+                  <p>No customers registered yet.</p>
+               </div>
+            )}
           </div>
         </TabsContent>
         
@@ -384,6 +432,7 @@ export default function AdminDashboard() {
                       {inspectionType === 'driver' && <Bike className="h-6 w-6" />}
                       {inspectionType === 'owner' && <User className="h-6 w-6" />}
                       {inspectionType === 'restaurant' && <Store className="h-6 w-6" />}
+                      {inspectionType === 'customer' && <Users className="h-6 w-6" />}
                     </div>
                     <Badge variant="secondary" className="bg-white/20 text-white border-none uppercase text-[10px] tracking-widest font-bold">
                       {inspectionType} Inspection
@@ -391,7 +440,7 @@ export default function AdminDashboard() {
                   </div>
                   <DialogTitle className="text-3xl font-bold">{inspectedItem.name || 'N/A'}</DialogTitle>
                   <DialogDescription className="text-white/80">
-                    ID: {inspectedItem.id} • Status: {inspectedItem.status}
+                    ID: {inspectedItem.id} {inspectedItem.status ? `• Status: ${inspectedItem.status}` : ''}
                   </DialogDescription>
                 </DialogHeader>
               </div>
@@ -423,10 +472,13 @@ export default function AdminDashboard() {
                     <InfoItem icon={<Mail className="h-4 w-4" />} label="Email Address" value={inspectedItem.email || 'N/A'} />
                     <InfoItem icon={<Phone className="h-4 w-4" />} label="Phone Number" value={inspectedItem.phoneNumber || 'N/A'} />
                     
+                    {(inspectionType === 'restaurant' || inspectionType === 'customer') && (
+                      <InfoItem icon={<MapPin className="h-4 w-4" />} label="Street Address" value={inspectedItem.address || 'Not provided'} />
+                    )}
+
                     {inspectionType === 'restaurant' && (
                       <>
                         <InfoItem icon={<Store className="h-4 w-4" />} label="Store Category" value={inspectedItem.category} />
-                        <InfoItem icon={<MapPin className="h-4 w-4" />} label="Street Address" value={inspectedItem.address} />
                         <InfoItem icon={<Clock className="h-4 w-4" />} label="Operating Hours" value={inspectedItem.openingHours} />
                         <InfoItem icon={<Star className="h-4 w-4" />} label="Current Rating" value={inspectedItem.rating?.toFixed(1) || '0.0'} />
                         <InfoItem icon={<CreditCard className="h-4 w-4" />} label="Min. Order" value={`R${inspectedItem.minOrder || '0.00'}`} />
@@ -546,6 +598,18 @@ export default function AdminDashboard() {
                     setIsDialogOpen(false);
                   }}>
                     Approve Request
+                  </Button>
+                )}
+                {inspectionType === 'customer' && (
+                   <Button 
+                    variant="destructive" 
+                    className="flex-1 rounded-2xl h-12 font-bold" 
+                    onClick={(e) => {
+                      handleDelete(e, `users/${inspectedItem.userId}/customers/${inspectedItem.userId}`);
+                      setIsDialogOpen(false);
+                    }}
+                  >
+                    Delete Customer
                   </Button>
                 )}
               </div>
