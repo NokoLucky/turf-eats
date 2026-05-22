@@ -11,7 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Store, Bike, Trash2, TrendingUp, ShoppingCart, 
   User, Phone, Mail, MapPin, Calendar, 
-  CreditCard, Info, Clock, Star, ExternalLink 
+  CreditCard, Info, Clock, Star, ExternalLink,
+  ChevronRight, ListFilter
 } from 'lucide-react';
 import type { Order, Driver, Restaurant } from '@/lib/data';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -32,10 +33,15 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { user } = useUser();
 
-  // State for the inspection dialog
+  // State for the inspection dialog (individual items)
   const [inspectedItem, setInspectedItem] = useState<any | null>(null);
   const [inspectionType, setInspectionType] = useState<InspectionType | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // State for the breakdown dialog (summary stats)
+  const [breakdownTitle, setBreakdownTitle] = useState<string | null>(null);
+  const [breakdownItems, setBreakdownData] = useState<{ name: string; value: string | number }[]>([]);
+  const [isBreakdownOpen, setIsBreakdownOpen] = useState(false);
 
   const driversQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -80,6 +86,52 @@ export default function AdminDashboard() {
       { label: 'Active Stores', value: activeStores.toString(), icon: <Store /> },
     ];
   }, [allOrders, allDrivers, allRestaurants]);
+
+  const handleStatClick = (label: string) => {
+    if (!allOrders || !allRestaurants || !allDrivers) return;
+
+    let data: { name: string; value: string | number }[] = [];
+
+    switch (label) {
+      case 'Total Orders':
+        const ordersByStore = allOrders.reduce((acc, order) => {
+          const store = allRestaurants.find(r => r.id === order.restaurantId);
+          const name = store?.name || 'Unknown Store';
+          acc[name] = (acc[name] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        data = Object.entries(ordersByStore).map(([name, count]) => ({ name, value: `${count} orders` }));
+        break;
+
+      case 'Total Revenue':
+        const revenueByStore = allOrders
+          .filter(o => o.status === 'Delivered')
+          .reduce((acc, order) => {
+            const store = allRestaurants.find(r => r.id === order.restaurantId);
+            const name = store?.name || 'Unknown Store';
+            acc[name] = (acc[name] || 0) + (order.totalAmount || 0);
+            return acc;
+          }, {} as Record<string, number>);
+        data = Object.entries(revenueByStore).map(([name, amount]) => ({ name, value: `R${amount.toFixed(2)}` }));
+        break;
+
+      case 'Active Drivers':
+        data = allDrivers
+          .filter(d => d.status === 'active')
+          .map(d => ({ name: d.name, value: d.vehicleType || 'Active' }));
+        break;
+
+      case 'Active Stores':
+        data = allRestaurants
+          .filter(r => r.status === 'active')
+          .map(r => ({ name: r.name, value: r.category || 'Active' }));
+        break;
+    }
+
+    setBreakdownTitle(label);
+    setBreakdownData(data);
+    setIsBreakdownOpen(true);
+  };
 
   const handleApprove = (e: React.MouseEvent, collectionName: 'drivers' | 'storeOwners', userId: string) => {
     e.stopPropagation();
@@ -132,7 +184,11 @@ export default function AdminDashboard() {
         {!stats ? (
             Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-[2rem]" />)
         ) : stats.map((stat) => (
-          <Card key={stat.label} className="border-none shadow-premium rounded-[2rem]">
+          <Card 
+            key={stat.label} 
+            className="border-none shadow-premium rounded-[2rem] cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all active:scale-95"
+            onClick={() => handleStatClick(stat.label)}
+          >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs font-bold text-muted-foreground uppercase">{stat.label}</CardTitle>
               <div className="bg-primary/10 p-2 rounded-xl text-primary">
@@ -140,8 +196,11 @@ export default function AdminDashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">Live Platform Data</p>
+              <div className="text-2xl font-bold flex items-end justify-between">
+                <span>{stat.value}</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground opacity-50 mb-1" />
+              </div>
+              <p className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">Click for details</p>
             </CardContent>
           </Card>
         ))}
@@ -243,7 +302,48 @@ export default function AdminDashboard() {
         </TabsContent>
       </Tabs>
 
-      {/* Inspection Dialog */}
+      {/* Summary Breakdown Dialog */}
+      <Dialog open={isBreakdownOpen} onOpenChange={setIsBreakdownOpen}>
+        <DialogContent className="max-w-md rounded-[2.5rem] border-none shadow-2xl overflow-hidden p-0">
+          <div className="bg-primary p-6 text-white shrink-0">
+             <DialogHeader>
+                <div className="bg-white/20 p-2 w-fit rounded-xl backdrop-blur-md mb-4">
+                   <ListFilter className="h-5 w-5" />
+                </div>
+                <DialogTitle className="text-2xl font-bold">{breakdownTitle} Breakdown</DialogTitle>
+                <DialogDescription className="text-white/70">Detailed platform performance overview.</DialogDescription>
+             </DialogHeader>
+          </div>
+          
+          <ScrollArea className="max-h-[60vh] bg-background">
+             <div className="p-6">
+                {breakdownItems.length > 0 ? (
+                  <div className="space-y-1">
+                    {breakdownItems.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 rounded-2xl hover:bg-muted transition-colors group">
+                        <span className="font-medium text-sm">{item.name}</span>
+                        <span className="font-bold text-primary bg-primary/5 px-3 py-1 rounded-full text-xs">
+                          {item.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10 opacity-50">
+                    <Info className="mx-auto h-8 w-8 mb-2" />
+                    <p className="text-sm font-medium">No detailed data available yet.</p>
+                  </div>
+                )}
+             </div>
+          </ScrollArea>
+          
+          <div className="p-4 bg-muted/30 border-t flex justify-end">
+             <Button variant="outline" className="rounded-xl font-bold" onClick={() => setIsBreakdownOpen(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Inspection Dialog (Individual items) */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl h-[85vh] p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl flex flex-col">
           {inspectedItem && inspectionType && (
