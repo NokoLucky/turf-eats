@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import WhatsAppFAB from '@/components/whatsapp-fab';
 
 const categories = [
   { name: 'Restaurants', emoji: '🍔', bg: 'bg-orange-100', color: 'text-orange-600' },
@@ -136,7 +137,7 @@ export default function CustomerDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-10">
+    <div className="min-h-screen bg-[#F8F9FA] pb-10 relative">
       <ImagePreviewDialog 
         url={previewUrl}
         title={previewTitle}
@@ -255,6 +256,7 @@ export default function CustomerDashboardPage() {
           )}
         </div>
       </div>
+      <WhatsAppFAB />
     </div>
   );
 }

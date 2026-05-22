@@ -2,7 +2,6 @@
 import Header from '@/components/header';
 import { CartProvider } from '@/context/cart-context';
 import BottomNav from '@/components/bottom-nav';
-import WhatsAppFAB from '@/components/whatsapp-fab';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -11,7 +10,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <Header />
         <main className="flex-1 pb-20 md:pb-0">{children}</main>
         <BottomNav />
-        <WhatsAppFAB />
         <footer className="hidden border-t py-6 md:block md:py-8 bg-white">
           <div className="container text-center text-sm text-muted-foreground">
             <p>&copy; {new Date().getFullYear()} Pin2You. All rights reserved.</p>
