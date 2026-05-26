@@ -386,8 +386,17 @@ export default function DriverDashboard() {
 
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
         <DialogContent className="max-w-md p-0 overflow-hidden rounded-[2.5rem] bg-[#1a1a1a] border-white/5 text-white">
-          <div className="bg-primary p-6">
-            <DialogHeader>
+          <div className="bg-primary p-6 relative">
+             <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute top-4 left-4 text-white hover:bg-white/20 rounded-full"
+                onClick={() => setIsHistoryOpen(false)}
+             >
+                <ChevronLeft className="h-6 w-6" />
+             </Button>
+
+            <DialogHeader className="pt-8">
               <div className="flex items-center gap-3 mb-2">
                  <div className="bg-white/20 p-2 rounded-xl">
                    <History className="h-5 w-5 text-white" />
@@ -458,7 +467,7 @@ export default function DriverDashboard() {
 
           <div className="p-6 bg-[#222]/50 border-t border-white/5">
              <Button variant="outline" className="w-full rounded-2xl h-12 font-bold border-white/10 hover:bg-white/5 text-white" onClick={() => setIsHistoryOpen(false)}>
-                Close History
+                <ChevronLeft className="h-4 w-4 mr-2" /> Back to Dashboard
              </Button>
           </div>
         </DialogContent>
@@ -466,3 +475,4 @@ export default function DriverDashboard() {
     </div>
   );
 }
+
