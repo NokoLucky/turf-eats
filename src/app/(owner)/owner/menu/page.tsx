@@ -369,7 +369,7 @@ function ProductDialog({
                       name={`options.${index}.name`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Group Name (e.g., "Choose Salads")</FormLabel>
+                          <FormLabel>Question (e.g., "Choose your side")</FormLabel>
                           <FormControl><Input {...field} value={field.value || ''} placeholder="Group Name" className="rounded-xl" /></FormControl>
                           <FormMessage />
                         </FormItem>
@@ -413,6 +413,21 @@ function ProductDialog({
                     )}
                   />
 
+                  <div className="flex items-center gap-2 mt-4">
+                    <FormField
+                      control={form.control}
+                      name={`options.${index}.isRequired`}
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                          <FormLabel className="text-[10px] font-bold uppercase">Required Selection</FormLabel>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
                   {form.watch(`options.${index}.type`) === 'checkbox' && (
                     <div className="grid grid-cols-2 gap-4 mt-4">
                       <FormField
@@ -445,9 +460,9 @@ function ProductDialog({
 
             <div className="space-y-4">
                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold">Paid Add-ons</h3>
+                  <h3 className="text-lg font-bold">Would you like to add extras?</h3>
                   <Button type="button" variant="outline" size="sm" onClick={addAddOn} className="rounded-full">
-                    <Plus className="h-4 w-4 mr-2" /> Add Paid Item
+                    <Plus className="h-4 w-4 mr-2" /> Add Extra Item
                   </Button>
                </div>
 
@@ -460,8 +475,8 @@ function ProductDialog({
                             name={`addOns.${index}.name`}
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className={index > 0 ? "sr-only" : ""}>Item Name</FormLabel>
-                                <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Cold Drink" className="rounded-xl" /></FormControl>
+                                <FormLabel className={index > 0 ? "sr-only" : ""}>Extra Name</FormLabel>
+                                <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Extra Cheese" className="rounded-xl" /></FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -492,7 +507,7 @@ function ProductDialog({
                     </div>
                   ))}
                   {addOnFields.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic text-center py-4 bg-muted/20 rounded-2xl">No paid add-ons added yet.</p>
+                    <p className="text-xs text-muted-foreground italic text-center py-4 bg-muted/20 rounded-2xl">No extras added yet.</p>
                   )}
                </div>
             </div>

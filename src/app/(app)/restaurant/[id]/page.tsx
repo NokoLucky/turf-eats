@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -104,7 +103,7 @@ function SelectionDialog({
       const initial: Record<string, string[]> = {};
       if (item.options) {
         item.options.forEach(opt => {
-          initial[opt.name] = opt.type === 'radio' ? [opt.choices[0]] : [];
+          initial[opt.name] = opt.type === 'radio' ? (opt.isRequired ? [opt.choices[0]] : []) : [];
         });
       }
       setSelections(initial);
@@ -178,7 +177,7 @@ function SelectionDialog({
           {item.options?.map((group, index) => (
             <div key={group.id} className="space-y-4">
               <div className="flex items-center justify-between bg-[#F8F9FA] -mx-6 px-6 py-3">
-                <h4 className="font-bold text-sm">{index + 1}. {group.name} <span className="text-muted-foreground font-normal ml-1">(Select {group.maxSelections || 1})</span></h4>
+                <h4 className="font-bold text-sm">{group.name} {group.maxSelections && <span className="text-muted-foreground font-normal ml-1">(Select up to {group.maxSelections})</span>}</h4>
                 {group.isRequired && <Badge variant="secondary" className="text-[9px] bg-primary/10 text-primary border-none">REQUIRED</Badge>}
               </div>
 
@@ -188,13 +187,13 @@ function SelectionDialog({
                   return (
                     <div 
                       key={choice} 
-                      className="flex items-center justify-between py-1 cursor-pointer"
+                      className="flex items-center justify-between py-1 cursor-pointer group"
                       onClick={() => {
                         if (group.type === 'radio') setSelections(prev => ({ ...prev, [group.name]: [choice] }));
                         else handleCheckboxChange(group.name, choice, !isChecked, group.maxSelections);
                       }}
                     >
-                      <Label className="font-medium text-sm cursor-pointer">{choice}</Label>
+                      <Label className="font-medium text-sm cursor-pointer group-hover:text-primary transition-colors">{choice}</Label>
                       {group.type === 'radio' ? (
                         <div className={cn(
                           "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
@@ -220,20 +219,25 @@ function SelectionDialog({
           {item.addOns && item.addOns.length > 0 && (
             <div className="space-y-4">
                <div className="bg-[#F8F9FA] -mx-6 px-6 py-3">
-                  <h4 className="font-bold text-sm">Add-ons</h4>
+                  <h4 className="font-bold text-sm">Would you like to add extras?</h4>
                </div>
                <div className="space-y-4">
                   {item.addOns.map((addon) => {
                     const isChecked = selectedAddOns.some(a => a.id === addon.id);
                     return (
-                      <div key={addon.id} className="flex items-center justify-between">
+                      <div 
+                        key={addon.id} 
+                        className="flex items-center justify-between py-1 cursor-pointer group"
+                        onClick={() => handleAddOnToggle(addon, !isChecked)}
+                      >
                          <div className="flex items-center gap-3">
                             <Checkbox 
                               id={`addon-${addon.id}`} 
                               checked={isChecked}
                               onCheckedChange={(checked) => handleAddOnToggle(addon, !!checked)}
+                              onClick={(e) => e.stopPropagation()}
                             />
-                            <Label htmlFor={`addon-${addon.id}`} className="text-sm font-medium cursor-pointer">{addon.name}</Label>
+                            <Label htmlFor={`addon-${addon.id}`} className="text-sm font-medium cursor-pointer group-hover:text-primary transition-colors">{addon.name}</Label>
                          </div>
                          <span className="text-sm text-muted-foreground font-medium">+ R{addon.price.toFixed(2)}</span>
                       </div>

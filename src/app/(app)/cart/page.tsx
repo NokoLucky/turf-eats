@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -116,8 +115,12 @@ export default function CartPage() {
                           <h3 className="font-bold text-sm">{item.name}</h3>
                           {(item.selectedOptions || item.selectedAddOns) && (
                             <div className="flex flex-wrap gap-1 mt-1">
-                               {item.selectedOptions && Object.values(item.selectedOptions).flat().map(opt => (
-                                 <Badge key={opt} variant="secondary" className="text-[8px] h-3 px-1 font-normal bg-muted">{opt}</Badge>
+                               {item.selectedOptions && Object.entries(item.selectedOptions).map(([group, choices]) => (
+                                 choices.map(choice => (
+                                   <Badge key={`${group}-${choice}`} variant="secondary" className="text-[8px] h-3 px-1 font-normal bg-muted">
+                                     {group}: {choice}
+                                   </Badge>
+                                 ))
                                ))}
                                {item.selectedAddOns?.map(addon => (
                                  <Badge key={addon.id} variant="secondary" className="text-[8px] h-3 px-1 font-normal bg-orange-50 text-orange-600">+ {addon.name}</Badge>
