@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -44,6 +43,7 @@ const productSchema = z.object({
   name: z.string().min(2, 'Name is too short'),
   description: z.string().min(10, 'Description is too short'),
   category: z.string().min(1, 'Please select a category'),
+  customCategory: z.string().optional(),
   price: z.preprocess(
     (val) => (typeof val === 'string' ? parseFloat(val) : val),
     z.number().positive('Price must be positive')
@@ -79,6 +79,14 @@ const productSchema = z.object({
 }, {
     message: "Promotional price must be less than the original price.",
     path: ["promotionalPrice"],
+}).refine((data) => {
+  if (data.category === 'Other' && (!data.customCategory || data.customCategory.trim() === '')) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Please specify your custom category.",
+  path: ["customCategory"],
 });
 
 
@@ -104,6 +112,7 @@ function ProductDialog({
       name: '',
       description: '',
       category: '',
+      customCategory: '',
       price: 0,
       imageUrl: '',
       promotionalPrice: undefined,
@@ -125,22 +134,34 @@ function ProductDialog({
   });
   
   useEffect(() => {
-    form.reset(product || { 
-      name: '', 
-      description: '', 
-      category: '', 
-      price: 0, 
-      imageUrl: '', 
-      promotionalPrice: undefined, 
-      isSoldOut: false, 
-      isBestseller: false,
-      options: [],
-      addOns: [] 
-    });
-  }, [product, form]);
+    if (product) {
+      // Determine if it's a predefined category
+      const options = getCategoryList(storeCategory);
+      const isPredefined = options.includes(product.category);
+      form.reset({
+        ...product,
+        category: isPredefined ? product.category : 'Other',
+        customCategory: isPredefined ? '' : product.category,
+      });
+    } else {
+      form.reset({ 
+        name: '', 
+        description: '', 
+        category: '', 
+        customCategory: '',
+        price: 0, 
+        imageUrl: '', 
+        promotionalPrice: undefined, 
+        isSoldOut: false, 
+        isBestseller: false,
+        options: [],
+        addOns: [] 
+      });
+    }
+  }, [product, form, storeCategory]);
 
-  const categoryOptions = useMemo(() => {
-    switch (storeCategory) {
+  function getCategoryList(cat?: string) {
+    switch (cat) {
       case 'Restaurants':
         return [
           'Breakfast',
@@ -166,6 +187,12 @@ function ProductDialog({
       default:
         return ['General', 'Other'];
     }
+  }
+
+  const categoryOptions = useMemo(() => {
+    const list = getCategoryList(storeCategory);
+    if (!list.includes('Other')) list.push('Other');
+    return list;
   }, [storeCategory]);
 
   const handleFormSubmit = (data: ProductFormValues) => {
@@ -190,6 +217,8 @@ function ProductDialog({
       price: 0
     });
   };
+
+  const selectedCategory = form.watch('category');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -254,6 +283,23 @@ function ProductDialog({
                 )}
               />
             </div>
+
+            {selectedCategory === 'Other' && (
+              <FormField
+                control={form.control}
+                name="customCategory"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Custom Category Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="e.g. Specials, Toys, etc." className="rounded-xl" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <FormField
               control={form.control}
               name="description"
@@ -539,10 +585,11 @@ export default function ProductsManagementPage() {
       return;
     }
     
-    const { id, ...restData } = data;
+    const { id, category, customCategory, ...restData } = data;
 
     const firestoreData = {
         ...restData,
+        category: category === 'Other' ? (customCategory || 'Other') : category,
         promotionalPrice: data.promotionalPrice && data.promotionalPrice > 0 ? data.promotionalPrice : null,
     };
 
