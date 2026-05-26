@@ -152,7 +152,7 @@ export default function DriverDashboard() {
     );
   }, [firestore]);
 
-  const allDriverOrdersQuery = useMemoFirebase(() => {
+  const antisocialOrdersQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(
       collection(firestore, 'orders'),
@@ -162,7 +162,7 @@ export default function DriverDashboard() {
 
   const { data: activeDeliveries, isLoading: loadingActive } = useCollection<Order>(myDeliveriesQuery);
   const { data: availableDeliveries, isLoading: loadingAvailable } = useCollection<Order>(availableDeliveriesQuery);
-  const { data: allOrders } = useCollection<Order>(allDriverOrdersQuery);
+  const { data: allOrders } = useCollection<Order>(antisocialOrdersQuery);
   
   useDriverLocationTracking(isOnline);
 
@@ -217,6 +217,9 @@ export default function DriverDashboard() {
     const orderRef = doc(firestore, 'orders', orderId);
     
     const updateData: any = { status };
+    if (status === 'Out for Delivery') {
+      updateData.pickedUpAt = serverTimestamp();
+    }
     if (status === 'Delivered') {
       updateData.deliveredAt = serverTimestamp();
     }
@@ -237,6 +240,7 @@ export default function DriverDashboard() {
     const updateData = {
       driverId: user.uid,
       participantUids: arrayUnion(user.uid),
+      acceptedAt: serverTimestamp(),
     };
 
     updateDoc(orderRef, updateData).then(() => {
@@ -475,4 +479,3 @@ export default function DriverDashboard() {
     </div>
   );
 }
-

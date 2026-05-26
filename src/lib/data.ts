@@ -79,7 +79,11 @@ export type Order = {
   storeOwnerId: string;
   driverId: string | null;
   orderDate: Timestamp;
+  preparingAt?: Timestamp;
+  pickedUpAt?: Timestamp;
   deliveredAt?: Timestamp;
+  acceptedAt?: Timestamp;
+  cancelledAt?: Timestamp;
   status: OrderStatus;
   itemsTotal: number;
   deliveryFee: number;

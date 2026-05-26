@@ -11,16 +11,16 @@ import { useFirestore } from '@/firebase';
 import { doc, collection, getDoc, getDocs, onSnapshot } from 'firebase/firestore';
 import type { Order, OrderItem, OrderStatus, Restaurant } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { RatingDialog } from '@/components/rating-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-const statusSteps: { status: OrderStatus; icon: React.ReactNode; label: string }[] = [
-    { status: 'Placed', icon: <Circle />, label: 'Order Placed' },
-    { status: 'Preparing', icon: <Pizza />, label: 'Preparing' },
-    { status: 'Out for Delivery', icon: <Bike />, label: 'Out for Delivery' },
-    { status: 'Delivered', icon: <CheckCircle />, label: 'Delivered' },
+const statusSteps: { status: OrderStatus; icon: React.ReactNode; label: string; timestampField: keyof Order }[] = [
+    { status: 'Placed', icon: <Circle />, label: 'Order Placed', timestampField: 'orderDate' },
+    { status: 'Preparing', icon: <Pizza />, label: 'Preparing', timestampField: 'preparingAt' },
+    { status: 'Out for Delivery', icon: <Bike />, label: 'Out for Delivery', timestampField: 'pickedUpAt' },
+    { status: 'Delivered', icon: <CheckCircle />, label: 'Delivered', timestampField: 'deliveredAt' },
 ];
 
 function OrderDetailsSkeleton() {
@@ -202,6 +202,7 @@ export default function OrderDetailsPage() {
                 {statusSteps.map((step, index) => {
                     const isActive = index <= currentStatusIndex;
                     const isLastCompleted = index === currentStatusIndex;
+                    const timestamp = order[step.timestampField];
 
                     return (
                         <div key={step.status} className="flex items-center gap-4 relative z-10">
@@ -212,9 +213,16 @@ export default function OrderDetailsPage() {
                                 <span className={`font-bold text-sm transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground opacity-50'}`}>
                                     {step.label}
                                 </span>
-                                {isLastCompleted && (
-                                    <span className="text-[10px] text-primary font-bold uppercase tracking-widest animate-pulse">Current Status</span>
-                                )}
+                                <div className="flex items-center gap-2">
+                                  {timestamp && (
+                                    <span className="text-[10px] text-muted-foreground">
+                                       {formatDistanceToNow(timestamp.toDate(), { addSuffix: true })}
+                                    </span>
+                                  )}
+                                  {isLastCompleted && (
+                                      <span className="text-[10px] text-primary font-bold uppercase tracking-widest animate-pulse">Current Status</span>
+                                  )}
+                                </div>
                             </div>
                         </div>
                     )

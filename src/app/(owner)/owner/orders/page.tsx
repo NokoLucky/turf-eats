@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import type { Order, OrderItem } from '@/lib/data';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -87,7 +87,15 @@ export default function OwnerOrdersPage() {
   const handleUpdateStatus = async (orderId: string, newStatus: Order['status']) => {
     if (!firestore) return;
     const orderRef = doc(firestore, 'orders', orderId);
-    await updateDoc(orderRef, { status: newStatus });
+    
+    const updateData: any = { status: newStatus };
+    
+    if (newStatus === 'Preparing') updateData.preparingAt = serverTimestamp();
+    if (newStatus === 'Out for Delivery') updateData.pickedUpAt = serverTimestamp();
+    if (newStatus === 'Delivered') updateData.deliveredAt = serverTimestamp();
+    if (newStatus === 'Cancelled') updateData.cancelledAt = serverTimestamp();
+
+    await updateDoc(orderRef, updateData);
   };
 
   return (
