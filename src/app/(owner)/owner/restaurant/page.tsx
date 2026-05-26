@@ -24,23 +24,34 @@ const storeSchema = z.object({
   name: z.string().min(2, 'Name is too short'),
   address: z.string().min(10, 'Address is too short'),
   category: z.string({ required_error: 'Please select a category.' }),
+  customCategory: z.string().optional(),
   openingTime: z.string({ required_error: 'Please select an opening time.' }),
   closingTime: z.string({ required_error: 'Please select a closing time.' }),
   logoUrl: z.string().url('A logo upload is required.').min(1, 'A logo upload is required.'),
   bannerUrl: z.string().url('A banner upload is required.').min(1, 'A banner upload is required.'),
   promotionBannerText: z.string().optional(),
+}).refine((data) => {
+  if (data.category === 'Other' && (!data.customCategory || data.customCategory.trim() === '')) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Please specify your custom category.",
+  path: ["customCategory"],
 });
 
 type StoreFormValues = z.infer<typeof storeSchema>;
-
 
 const categories = [
     'Restaurants',
     'Groceries',
     'Liquor',
     'Pharmacy',
+    'Water',
+    'Laundry',
+    'Parcels',
+    'Other',
 ];
-
 
 export default function StoreDetailsPage() {
   const { user } = useUser();
@@ -70,6 +81,7 @@ export default function StoreDetailsPage() {
       name: '',
       address: '',
       category: '',
+      customCategory: '',
       openingTime: '9:00 AM',
       closingTime: '10:00 PM',
       logoUrl: '',
@@ -78,10 +90,15 @@ export default function StoreDetailsPage() {
     },
   });
 
+  const selectedCategory = form.watch('category');
+
   useEffect(() => {
     if (existingStore) {
+        const isKnownCategory = categories.includes(existingStore.category);
         const dataWithHours = {
             ...existingStore,
+            category: isKnownCategory ? existingStore.category : 'Other',
+            customCategory: isKnownCategory ? '' : existingStore.category,
             openingTime: existingStore.openingHours?.split(' - ')[0] || '9:00 AM',
             closingTime: existingStore.openingHours?.split(' - ')[1] || '10:00 PM',
             promotionBannerText: existingStore.promotionBannerText || '',
@@ -93,10 +110,11 @@ export default function StoreDetailsPage() {
   const onSubmit = (data: StoreFormValues) => {
     if (!user || !firestore) return;
     
-    const { openingTime, closingTime, ...restData } = data;
+    const { openingTime, closingTime, customCategory, ...restData } = data;
 
     const submissionData = {
         ...restData,
+        category: data.category === 'Other' ? (customCategory || 'Other') : data.category,
         storeOwnerId: user.uid,
         openingHours: `${openingTime} - ${closingTime}`,
         rating: existingStore?.rating || 0,
@@ -169,28 +187,46 @@ export default function StoreDetailsPage() {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                      control={form.control}
-                      name="category"
-                      render={({ field }) => (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="category"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Category</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                <FormControl>
+                                <SelectTrigger className="rounded-xl">
+                                    <SelectValue placeholder="Select a category" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                {categories.map(category => (
+                                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    {selectedCategory === 'Other' && (
+                       <FormField
+                        control={form.control}
+                        name="customCategory"
+                        render={({ field }) => (
                           <FormItem>
-                          <FormLabel>Category</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                              <FormControl>
-                              <SelectTrigger className="rounded-xl">
-                                  <SelectValue placeholder="Select a category" />
-                              </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                              {categories.map(category => (
-                                  <SelectItem key={category} value={category}>{category}</SelectItem>
-                              ))}
-                              </SelectContent>
-                          </Select>
-                          <FormMessage />
+                            <FormLabel>Custom Category Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="e.g. Pet Shop" className="rounded-xl" />
+                            </FormControl>
+                            <FormMessage />
                           </FormItem>
-                      )}
-                  />
+                        )}
+                      />
+                    )}
+                  </div>
                   <FormField
                     control={form.control}
                     name="address"
