@@ -84,6 +84,7 @@ export type Order = {
   itemsTotal: number;
   deliveryFee: number;
   serviceFee: number;
+  tip?: number;
   totalAmount: number;
   deliveryAddress: string;
   notes?: string;

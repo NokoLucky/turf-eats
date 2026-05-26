@@ -8,7 +8,8 @@ import {
   CheckCircle, Package, MapPin, 
   TrendingUp, Star, DollarSign, Clock,
   Navigation, ShoppingBag, ArrowRight,
-  Calendar as CalendarIcon, History, ChevronLeft, ChevronRight
+  Calendar as CalendarIcon, History, ChevronLeft, ChevronRight,
+  Heart
 } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc, query, where, updateDoc, arrayUnion, getDoc, serverTimestamp } from 'firebase/firestore';
@@ -117,7 +118,6 @@ export default function DriverDashboard() {
   const [isOnline, setIsOnline] = useState(true);
   const [greeting, setGreeting] = useState('Good morning');
   
-  // History tracking state
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
@@ -128,14 +128,12 @@ export default function DriverDashboard() {
     else setGreeting('Good evening');
   }, []);
 
-  // Fetch driver profile
   const driverRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return doc(firestore, `users/${user.uid}/drivers/${user.uid}`);
   }, [user?.uid, firestore]);
   const { data: driverProfile } = useDoc<Driver>(driverRef);
 
-  // My Active Tasks
   const myDeliveriesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(
@@ -145,7 +143,6 @@ export default function DriverDashboard() {
     );
   }, [user?.uid, firestore]);
 
-  // Available Deliveries (unassigned)
   const availableDeliveriesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
@@ -155,7 +152,6 @@ export default function DriverDashboard() {
     );
   }, [firestore]);
 
-  // General query for all orders assigned to this driver to calculate earnings
   const allDriverOrdersQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(
@@ -185,15 +181,17 @@ export default function DriverDashboard() {
         const timestamp = order.deliveredAt || order.orderDate;
         let date: Date = timestamp ? timestamp.toDate() : now;
         
+        const totalEarningsForOrder = payoutPerOrder + (order.tip || 0);
+
         if (isSameDay(date, now) || isAfter(date, todayStart)) {
-          acc.today += payoutPerOrder;
+          acc.today += totalEarningsForOrder;
         }
         
         if (isSameDay(date, weekStart) || isAfter(date, weekStart)) {
-          acc.week += payoutPerOrder;
+          acc.week += totalEarningsForOrder;
         }
         
-        acc.lifetime += payoutPerOrder;
+        acc.lifetime += totalEarningsForOrder;
         acc.count += 1;
         return acc;
       }, { today: 0, week: 0, lifetime: 0, count: 0 });
@@ -386,7 +384,6 @@ export default function DriverDashboard() {
         </section>
       </div>
 
-      {/* Earnings History Dialog */}
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
         <DialogContent className="max-w-md p-0 overflow-hidden rounded-[2.5rem] bg-[#1a1a1a] border-white/5 text-white">
           <div className="bg-primary p-6">
@@ -441,8 +438,10 @@ export default function DriverDashboard() {
                                   </p>
                                </div>
                                <div className="text-right">
-                                  <p className="text-sm font-bold text-green-500">+ R24.00</p>
-                                  <p className="text-[10px] text-muted-foreground uppercase font-medium">Payout</p>
+                                  <p className="text-sm font-bold text-green-500">+ R{(24 + (order.tip || 0)).toFixed(2)}</p>
+                                  <p className="text-[9px] text-muted-foreground uppercase font-medium">
+                                    {order.tip ? `Inc. R${order.tip.toFixed(2)} Tip` : 'Base Payout'}
+                                  </p>
                                </div>
                             </div>
                          ))}

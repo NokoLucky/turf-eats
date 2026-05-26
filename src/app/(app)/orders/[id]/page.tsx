@@ -1,10 +1,11 @@
+
 'use client'
 
 import React from 'react';
 import { notFound, useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, Bike, Pizza, Circle, ShoppingBag, Star, Clock } from 'lucide-react';
+import { CheckCircle, Bike, Pizza, Circle, ShoppingBag, Star, Clock, Heart } from 'lucide-react';
 import OrderTrackingMap from '@/components/order-tracking-map';
 import { useFirestore } from '@/firebase';
 import { doc, collection, getDoc, getDocs, onSnapshot } from 'firebase/firestore';
@@ -152,7 +153,6 @@ export default function OrderDetailsPage() {
         </div>
       </div>
 
-      {/* Prominent Rating Prompt for Delivered Orders */}
       {order.status === 'Delivered' && (
         <Card className="mb-10 border-none shadow-premium bg-gradient-to-br from-orange-50 to-primary/5 rounded-[2.5rem] overflow-hidden">
           <CardContent className="p-8 flex flex-col md:flex-row items-center justify-between gap-8">
@@ -258,8 +258,14 @@ export default function OrderDetailsPage() {
                             </div>
                             <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>Delivery Fee</span>
-                                <span className="text-green-600 font-medium">R{(order.deliveryFee || 30.0).toFixed(2)}</span>
+                                <span>R{(order.deliveryFee || 30.0).toFixed(2)}</span>
                             </div>
+                            {order.tip && order.tip > 0 && (
+                              <div className="flex justify-between text-xs text-primary font-bold">
+                                <span className="flex items-center gap-1"><Heart className="h-3 w-3 fill-primary" /> Driver Tip</span>
+                                <span>R{order.tip.toFixed(2)}</span>
+                              </div>
+                            )}
                         </div>
                         <div className="flex justify-between font-bold text-xl">
                             <span>Total</span>

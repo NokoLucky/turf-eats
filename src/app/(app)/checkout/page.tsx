@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,12 +8,21 @@ import { Card } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ArrowLeft, MapPin, Truck, ShieldCheck, MessageSquare } from 'lucide-react';
+import { ArrowLeft, MapPin, Truck, ShieldCheck, MessageSquare, Heart } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp, writeBatch, doc, getDoc } from 'firebase/firestore';
 import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+
+const tipOptions = [
+  { label: 'R0', value: 0 },
+  { label: 'R5', value: 5 },
+  { label: 'R10', value: 10 },
+  { label: 'R20', value: 20 },
+  { label: 'R50', value: 50 },
+  { label: 'R100', value: 100 },
+];
 
 export default function CheckoutPage() {
   const { state, dispatch } = useCart();
@@ -32,6 +42,7 @@ export default function CheckoutPage() {
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [deliveryOption, setDeliveryOption] = useState('standard');
+  const [selectedTip, setSelectedTip] = useState(0);
 
   useEffect(() => {
     if (customerData) {
@@ -50,7 +61,7 @@ export default function CheckoutPage() {
   const subtotal = state.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const serviceFee = 5.0; 
   const deliveryFee = deliveryOption === 'standard' ? 30.0 : 50.0;
-  const total = subtotal + serviceFee + deliveryFee;
+  const total = subtotal + serviceFee + deliveryFee + selectedTip;
 
   const handleConfirmOrder = async () => {
     if (!user || !firestore) return;
@@ -71,6 +82,7 @@ export default function CheckoutPage() {
         itemsTotal: subtotal,
         deliveryFee,
         serviceFee,
+        tip: selectedTip,
         totalAmount: total,
         deliveryAddress: deliveryAddress || 'Turfloop, Polokwane',
         notes,
@@ -93,7 +105,6 @@ export default function CheckoutPage() {
       await batch.commit();
       dispatch({ type: 'CLEAR_CART' });
       
-      // Navigate directly to order details/tracking instead of a transitional page
       router.push(`/orders/${orderRef.id}`);
 
     } catch (error) {
@@ -102,7 +113,7 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-24">
+    <div className="min-h-screen bg-[#F8F9FA] pb-32">
       <header className="bg-white border-b px-4 py-6 flex items-center gap-4">
         <Button onClick={() => router.back()} variant="ghost" size="icon" className="rounded-full">
            <ArrowLeft className="h-5 w-5" />
@@ -124,6 +135,32 @@ export default function CheckoutPage() {
               <Button variant="ghost" className="text-primary text-xs font-bold h-auto p-0" onClick={() => router.push('/profile')}>Change</Button>
            </div>
         </Card>
+
+        <section className="space-y-3">
+           <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold flex items-center gap-2">
+                <Heart className="h-4 w-4 text-primary fill-primary" /> Tip your rider
+              </h2>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">Optional</span>
+           </div>
+           <p className="text-[11px] text-muted-foreground">100% of the tip goes to your rider to help support their work.</p>
+           <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
+              {tipOptions.map((opt) => (
+                <Button
+                  key={opt.label}
+                  type="button"
+                  variant={selectedTip === opt.value ? 'default' : 'outline'}
+                  className={cn(
+                    "rounded-xl min-w-[60px] h-10 font-bold text-xs",
+                    selectedTip === opt.value ? "bg-primary" : "bg-white"
+                  )}
+                  onClick={() => setSelectedTip(opt.value)}
+                >
+                  {opt.label}
+                </Button>
+              ))}
+           </div>
+        </section>
 
         <section className="space-y-3">
            <h2 className="text-sm font-bold">Delivery option</h2>

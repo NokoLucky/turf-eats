@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState } from 'react';
@@ -12,7 +13,7 @@ import {
   Store, Bike, Trash2, TrendingUp, ShoppingCart, 
   User, Phone, Mail, MapPin, Calendar as CalendarIcon, 
   CreditCard, Info, Clock, Star, ExternalLink,
-  ChevronRight, ListFilter, DollarSign, History, Users
+  ChevronRight, ListFilter, DollarSign, History, Users, Heart
 } from 'lucide-react';
 import type { Order, Driver, Restaurant, Customer } from '@/lib/data';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -35,15 +36,12 @@ export default function AdminDashboard() {
   const firestore = useFirestore();
   const { user } = useUser();
 
-  // State for the inspection dialog (individual items)
   const [inspectedItem, setInspectedItem] = useState<any | null>(null);
   const [inspectionType, setInspectionType] = useState<InspectionType | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
-  // Date tracking for driver history logs
   const [logDate, setLogDate] = useState<Date | undefined>(new Date());
 
-  // State for the breakdown dialog (summary stats)
   const [breakdownTitle, setBreakdownTitle] = useState<string | null>(null);
   const [breakdownItems, setBreakdownData] = useState<{ name: string; value: string | number }[]>([]);
   const [isBreakdownOpen, setIsBreakdownOpen] = useState(false);
@@ -78,6 +76,13 @@ export default function AdminDashboard() {
   const { data: allCustomers, isLoading: loadingCustomers } = useCollection<Customer>(customersQuery);
   const { data: allRestaurants, isLoading: loadingRestaurants } = useCollection<Restaurant>(restaurantsQuery);
   const { data: allOrders, isLoading: loadingOrders } = useCollection<Order>(ordersQuery);
+
+  const getDriverLifetimeEarnings = (driverId: string) => {
+    if (!allOrders) return 0;
+    return allOrders
+      .filter(o => o.driverId === driverId && o.status === 'Delivered')
+      .reduce((sum, o) => sum + 24 + (o.tip || 0), 0);
+  };
 
   const stats = useMemo(() => {
     if (!allOrders || !allDrivers || !allRestaurants || !allCustomers) return null;
@@ -130,8 +135,7 @@ export default function AdminDashboard() {
         data = allDrivers
           .filter(d => d.status === 'active')
           .map(d => {
-            const completedCount = allOrders.filter(o => o.driverId === d.id && o.status === 'Delivered').length;
-            const earnings = completedCount * 24;
+            const earnings = getDriverLifetimeEarnings(d.id);
             return { name: d.name, value: `R${earnings.toFixed(2)} earned` };
           });
         break;
@@ -179,13 +183,7 @@ export default function AdminDashboard() {
     setInspectedItem(item);
     setInspectionType(type);
     setIsDialogOpen(true);
-    setLogDate(new Date()); // Reset log date when opening inspection
-  };
-
-  const getDriverLifetimeEarnings = (driverId: string) => {
-    if (!allOrders) return 0;
-    const completedCount = allOrders.filter(o => o.driverId === driverId && o.status === 'Delivered').length;
-    return completedCount * 24;
+    setLogDate(new Date()); 
   };
 
   const driverHistoryLogs = useMemo(() => {
@@ -335,12 +333,6 @@ export default function AdminDashboard() {
                 </div>
               </Card>
             ))}
-            {!loadingCustomers && allCustomers?.length === 0 && (
-               <div className="col-span-full py-20 text-center text-muted-foreground">
-                  <Users className="mx-auto h-12 w-12 opacity-20 mb-4" />
-                  <p>No customers registered yet.</p>
-               </div>
-            )}
           </div>
         </TabsContent>
         
@@ -372,7 +364,6 @@ export default function AdminDashboard() {
         </TabsContent>
       </Tabs>
 
-      {/* Summary Breakdown Dialog */}
       <Dialog open={isBreakdownOpen} onOpenChange={setIsBreakdownOpen}>
         <DialogContent className="max-w-md rounded-[2.5rem] border-none shadow-2xl overflow-hidden p-0">
           <div className="bg-primary p-6 text-white shrink-0">
@@ -413,12 +404,10 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Inspection Dialog (Individual items) */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl h-[85vh] p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl flex flex-col">
           {inspectedItem && inspectionType && (
             <>
-              {/* Fixed Header */}
               <div className="bg-primary p-8 text-white flex-shrink-0">
                 <DialogHeader>
                   <div className="flex items-center gap-4 mb-2">
@@ -439,10 +428,8 @@ export default function AdminDashboard() {
                 </DialogHeader>
               </div>
 
-              {/* Scrollable Content Area */}
               <ScrollArea className="flex-1 min-h-0 bg-background">
                 <div className="p-8 space-y-8 pb-12">
-                  {/* Media Previews */}
                   {inspectionType === 'restaurant' && (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -460,7 +447,6 @@ export default function AdminDashboard() {
                     </div>
                   )}
 
-                  {/* General Info Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <InfoItem icon={<User className="h-4 w-4" />} label="Display Name" value={inspectedItem.name} />
                     <InfoItem icon={<Mail className="h-4 w-4" />} label="Email Address" value={inspectedItem.email || 'N/A'} />
@@ -535,11 +521,11 @@ export default function AdminDashboard() {
                                           <div key={order.id} className="p-3 rounded-2xl bg-white border shadow-sm group hover:border-primary/30 transition-colors">
                                              <div className="flex justify-between items-start mb-1">
                                                 <p className="text-[10px] font-bold">#ORD{order.id.slice(0, 6)}</p>
-                                                <p className="text-[10px] font-bold text-green-600">R24.00</p>
+                                                <p className="text-[10px] font-bold text-green-600">R{(24 + (order.tip || 0)).toFixed(2)}</p>
                                              </div>
-                                             <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
-                                                <Clock className="h-2.5 w-2.5" />
-                                                <span>Delivered {order.deliveredAt ? format(order.deliveredAt.toDate(), 'p') : 'N/A'}</span>
+                                             <div className="flex items-center justify-between text-[9px] text-muted-foreground">
+                                                <span className="flex items-center gap-1"><Clock className="h-2.5 w-2.5" /> {order.deliveredAt ? format(order.deliveredAt.toDate(), 'p') : 'N/A'}</span>
+                                                {order.tip && <span className="flex items-center gap-0.5 text-primary font-bold"><Heart className="h-2 w-2 fill-primary" /> R{order.tip.toFixed(2)} Tip</span>}
                                              </div>
                                           </div>
                                        ))}
@@ -555,33 +541,11 @@ export default function AdminDashboard() {
                         </div>
                     </div>
                   )}
-
-                  {inspectionType === 'driver' && inspectedItem.licenseUrl && (
-                    <div className="space-y-2">
-                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Driver's License Document</p>
-                       <div className="relative aspect-video w-full rounded-2xl overflow-hidden border bg-muted group cursor-pointer" onClick={() => window.open(inspectedItem.licenseUrl, '_blank')}>
-                          <img src={inspectedItem.licenseUrl} className="w-full h-full object-contain" alt="license" />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                             <Button variant="secondary" size="sm" className="rounded-full">
-                               <ExternalLink className="h-4 w-4 mr-2" /> View Original
-                             </Button>
-                          </div>
-                       </div>
-                    </div>
-                  )}
-
-                  {inspectionType === 'restaurant' && inspectedItem.promotionBannerText && (
-                    <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100">
-                      <p className="text-[10px] font-bold text-orange-600 uppercase mb-1">Active Promotion Banner</p>
-                      <p className="text-sm font-medium italic text-orange-900">"{inspectedItem.promotionBannerText}"</p>
-                    </div>
-                  )}
                 </div>
               </ScrollArea>
               
               <Separator className="flex-shrink-0" />
               
-              {/* Fixed Footer */}
               <div className="p-6 bg-muted/30 flex gap-3 flex-shrink-0">
                 <Button className="flex-1 rounded-2xl h-12 font-bold" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Close Inspection
