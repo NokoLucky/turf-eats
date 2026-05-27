@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect } from 'react';
@@ -18,11 +19,13 @@ import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking,
 import { getFriendlyErrorMessage } from '@/firebase/errors';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
-import { LogOut, ShieldCheck, FileText, ChevronRight } from 'lucide-react';
+import { LogOut, ShieldCheck, FileText, ChevronRight, User } from 'lucide-react';
+import ImageUploader from '@/components/image-uploader';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   phoneNumber: z.string().optional(),
+  photoUrl: z.string().optional(),
   vehicleType: z.string().min(2, { message: 'Vehicle type must be at least 2 characters.' }),
   licenseNumber: z.string().min(2, { message: 'License number must be at least 2 characters.' }),
   vehicleRegistration: z.string().optional(),
@@ -49,6 +52,7 @@ export default function DriverProfilePage() {
     defaultValues: {
       name: '',
       phoneNumber: '',
+      photoUrl: '',
       vehicleType: '',
       licenseNumber: '',
       vehicleRegistration: '',
@@ -57,12 +61,16 @@ export default function DriverProfilePage() {
 
   useEffect(() => {
     if (driverData) {
-      form.reset(driverData);
+      form.reset({
+        ...driverData,
+        photoUrl: driverData.photoUrl || '',
+      });
     } else if (user) {
         form.reset({
             ...form.getValues(),
             name: user.displayName || '',
-            phoneNumber: user.phoneNumber || ''
+            phoneNumber: user.phoneNumber || '',
+            photoUrl: user.photoURL || '',
         })
     }
   }, [driverData, user, form]);
@@ -127,7 +135,28 @@ export default function DriverProfilePage() {
                 </div>
               ) : (
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="photoUrl"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col items-center justify-center space-y-4 py-4">
+                          <FormLabel>Profile Photo</FormLabel>
+                          <FormControl>
+                            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-xl bg-muted group relative cursor-pointer">
+                              <ImageUploader 
+                                folderName="driver-profiles"
+                                initialImageUrl={field.value}
+                                onUploadComplete={(url) => field.onChange(url)}
+                              />
+                            </div>
+                          </FormControl>
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold">Click to upload photo</p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <FormField
                       control={form.control}
                       name="name"

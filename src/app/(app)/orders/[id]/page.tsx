@@ -5,16 +5,17 @@ import React from 'react';
 import { notFound, useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, Bike, Pizza, Circle, ShoppingBag, Star, Clock, Heart } from 'lucide-react';
+import { CheckCircle, Bike, Pizza, Circle, ShoppingBag, Star, Clock, Heart, Phone, User as UserIcon } from 'lucide-react';
 import OrderTrackingMap from '@/components/order-tracking-map';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, collection, getDoc, getDocs, onSnapshot } from 'firebase/firestore';
-import type { Order, OrderItem, OrderStatus, Restaurant } from '@/lib/data';
+import type { Order, OrderItem, OrderStatus, Restaurant, Driver } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, formatDistanceToNow } from 'date-fns';
 import { RatingDialog } from '@/components/rating-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import Image from 'next/image';
 
 const statusSteps: { status: OrderStatus; icon: React.ReactNode; label: string; timestampField: keyof Order }[] = [
     { status: 'Placed', icon: <Circle />, label: 'Order Placed', timestampField: 'orderDate' },
@@ -112,6 +113,13 @@ export default function OrderDetailsPage() {
     return () => unsubscribe();
   }, [firestore, orderId]);
 
+  const driverRef = useMemoFirebase(() => {
+    if (!firestore || !order?.driverId) return null;
+    return doc(firestore, `users/${order.driverId}/drivers/${order.driverId}`);
+  }, [firestore, order?.driverId]);
+
+  const { data: driverInfo } = useDoc<Driver>(driverRef);
+
 
   const handleRatingSubmitted = () => {
     if (!order) return;
@@ -192,6 +200,43 @@ export default function OrderDetailsPage() {
         </div>
 
         <div className="space-y-8">
+          {driverInfo && order.status !== 'Placed' && order.status !== 'Cancelled' && (
+             <Card className="rounded-[2.5rem] border-none shadow-premium overflow-hidden bg-white">
+                <CardHeader className="px-8 pt-8 pb-4">
+                  <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">Your Delivery Partner</p>
+                  <CardTitle className="text-lg">Meet {driverInfo.name.split(' ')[0]}</CardTitle>
+                </CardHeader>
+                <CardContent className="px-8 pb-8">
+                   <div className="flex items-center gap-4">
+                      <div className="relative h-16 w-16 rounded-full overflow-hidden bg-muted shadow-inner border-2 border-primary/20">
+                         {driverInfo.photoUrl ? (
+                            <Image src={driverInfo.photoUrl} alt={driverInfo.name} fill className="object-cover" />
+                         ) : (
+                            <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+                               <UserIcon className="h-8 w-8" />
+                            </div>
+                         )}
+                      </div>
+                      <div className="flex-1">
+                         <p className="font-bold text-sm">{driverInfo.name}</p>
+                         <div className="flex items-center gap-1 mt-0.5">
+                            <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                            <span className="text-xs font-bold">{(driverInfo.rating || 5.0).toFixed(1)}</span>
+                            <span className="text-muted-foreground text-[10px] ml-1">• {driverInfo.vehicleType}</span>
+                         </div>
+                         <div className="flex items-center gap-2 mt-2">
+                            <Button asChild size="sm" variant="outline" className="h-8 rounded-lg text-[10px] font-bold">
+                               <a href={`tel:${driverInfo.phoneNumber}`}>
+                                  <Phone className="h-3 w-3 mr-1" /> Call Driver
+                               </a>
+                            </Button>
+                         </div>
+                      </div>
+                   </div>
+                </CardContent>
+             </Card>
+          )}
+
           <Card className="rounded-[2.5rem] border-none shadow-premium overflow-hidden">
             <CardHeader className="px-8 py-6">
               <CardTitle className="text-lg">Order Status</CardTitle>

@@ -60,6 +60,7 @@ export type Driver = {
   userId: string;
   name: string;
   phoneNumber: string;
+  photoUrl?: string;
   vehicleType: string;
   licenseNumber: string;
   vehicleRegistration: string;
