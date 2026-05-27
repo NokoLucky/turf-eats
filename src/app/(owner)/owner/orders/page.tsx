@@ -44,18 +44,18 @@ function OrderItems({ orderId }: { orderId: string }) {
     }
 
     return (
-        <ul className="space-y-3">
+        <ul className="space-y-4">
             {items.map((item) => (
-                <li key={item.id} className="flex flex-col gap-0.5">
+                <li key={item.id} className="flex flex-col gap-1 bg-white p-3 rounded-xl border shadow-sm">
                     <div className="flex items-center gap-2">
-                        <span className="font-bold text-primary">{item.quantity}x</span>
-                        <span className="font-semibold text-sm">{item.name}</span>
+                        <span className="font-black text-primary bg-primary/5 px-2 py-0.5 rounded text-xs">{item.quantity}x</span>
+                        <span className="font-bold text-sm text-slate-800">{item.name}</span>
                     </div>
-                    {item.selectedOptions && (
-                      <div className="flex flex-wrap gap-1 pl-6">
+                    {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
                         {Object.entries(item.selectedOptions).map(([group, choices]) => (
                            choices.map(choice => (
-                             <Badge key={`${group}-${choice}`} variant="secondary" className="text-[10px] h-4 font-normal bg-muted">
+                             <Badge key={`${group}-${choice}`} variant="secondary" className="text-[9px] h-4 font-bold bg-slate-100 text-slate-600">
                                {group}: {choice}
                              </Badge>
                            ))
@@ -104,17 +104,17 @@ export default function OwnerOrdersPage() {
             <h1 className="font-headline text-4xl font-bold">Incoming Orders</h1>
             <p className="text-muted-foreground mt-2">Manage and track all orders for your store.</p>
         </div>
-        <Card className="border-none shadow-premium rounded-[2rem] overflow-hidden">
-            <CardHeader className="bg-white">
-              <CardTitle>All Orders</CardTitle>
+        <Card className="border-none shadow-premium rounded-[2.5rem] overflow-hidden">
+            <CardHeader className="bg-white border-b px-8 py-6">
+              <CardTitle className="text-lg">Store Order History</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
             <Table>
-                <TableHeader>
+                <TableHeader className="bg-slate-50">
                   <TableRow>
-                      <TableHead className="w-[40%] pl-8">Order Details</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Total</TableHead>
+                      <TableHead className="w-[45%] pl-8">Preparation List</TableHead>
+                      <TableHead>Date & Time</TableHead>
+                      <TableHead>Customer</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right pr-8">Actions</TableHead>
                   </TableRow>
@@ -122,47 +122,56 @@ export default function OwnerOrdersPage() {
                 <TableBody>
                 {areOrdersLoading && Array.from({length: 3}).map((_, i) => (
                     <TableRow key={i}>
-                        <TableCell className="pl-8"><Skeleton className="h-10 w-full" /></TableCell>
+                        <TableCell className="pl-8 py-8"><Skeleton className="h-20 w-full rounded-2xl" /></TableCell>
                         <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                         <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-                        <TableCell className="text-right pr-8"><Skeleton className="h-9 w-9 ml-auto" /></TableCell>
+                        <TableCell className="text-right pr-8"><Skeleton className="h-9 w-9 ml-auto rounded-full" /></TableCell>
                     </TableRow>
                 ))}
                 {!areOrdersLoading && sortedOrders?.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium align-top pl-8 py-6">
+                    <TableRow key={order.id} className="hover:bg-slate-50/50 transition-colors">
+                      <TableCell className="align-top pl-8 py-6">
                           <OrderItems orderId={order.id} />
                           {order.notes && (
-                              <div className="mt-3 p-2 bg-muted/50 rounded-lg border border-dashed">
-                                  <p className="text-[10px] text-muted-foreground uppercase font-bold">Customer Note</p>
-                                  <p className="text-xs italic">"{order.notes}"</p>
+                              <div className="mt-4 p-3 bg-orange-50/50 rounded-2xl border border-orange-100">
+                                  <p className="text-[10px] text-orange-600 uppercase font-black tracking-widest mb-1">Customer Request</p>
+                                  <p className="text-xs italic text-slate-700">"{order.notes}"</p>
                               </div>
                           )}
                       </TableCell>
-                      <TableCell className="align-top py-6">{order.orderDate ? format(order.orderDate.toDate(), 'MMM d, p') : 'N/A'}</TableCell>
-                      <TableCell className="align-top py-6 font-bold">R{(order.itemsTotal || 0).toFixed(2)}</TableCell>
+                      <TableCell className="align-top py-6 font-medium text-slate-600">
+                        {order.orderDate ? format(order.orderDate.toDate(), 'MMM d, p') : 'N/A'}
+                      </TableCell>
                       <TableCell className="align-top py-6">
-                          <Badge variant={order.status === 'Placed' ? 'destructive' : 'outline'}>{order.status}</Badge>
+                         <div className="flex flex-col">
+                            <span className="font-bold text-sm">{order.customerName || 'Guest'}</span>
+                            <span className="text-[10px] text-muted-foreground font-mono">#{order.id.slice(0, 6)}</span>
+                         </div>
+                      </TableCell>
+                      <TableCell className="align-top py-6">
+                          <Badge variant={order.status === 'Placed' ? 'destructive' : 'outline'} className="rounded-lg font-bold text-[10px] tracking-wide">
+                            {order.status}
+                          </Badge>
                       </TableCell>
                       <TableCell className="text-right align-top pr-8 py-6">
                        <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
-                              <MoreHorizontal />
+                            <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 hover:bg-white hover:shadow-sm">
+                              <MoreHorizontal className="h-5 w-5" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-xl border-none shadow-premium">
-                            <DropdownMenuItem onSelect={() => handleUpdateStatus(order.id, 'Preparing')}>
+                          <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl p-2 min-w-[180px]">
+                            <DropdownMenuItem onSelect={() => handleUpdateStatus(order.id, 'Preparing')} className="rounded-xl py-3 font-bold cursor-pointer">
                                Mark as Preparing
                             </DropdownMenuItem>
-                             <DropdownMenuItem onSelect={() => handleUpdateStatus(order.id, 'Out for Delivery')}>
+                             <DropdownMenuItem onSelect={() => handleUpdateStatus(order.id, 'Out for Delivery')} className="rounded-xl py-3 font-bold cursor-pointer">
                                Mark as Out for Delivery
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => handleUpdateStatus(order.id, 'Delivered')}>
+                            <DropdownMenuItem onSelect={() => handleUpdateStatus(order.id, 'Delivered')} className="rounded-xl py-3 font-bold cursor-pointer">
                                Mark as Delivered
                             </DropdownMenuItem>
-                             <DropdownMenuItem onSelect={() => handleUpdateStatus(order.id, 'Cancelled')} className="text-destructive focus:text-destructive">
+                             <DropdownMenuItem onSelect={() => handleUpdateStatus(order.id, 'Cancelled')} className="text-destructive focus:text-destructive focus:bg-destructive/10 rounded-xl py-3 font-bold cursor-pointer">
                                Cancel Order
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -173,8 +182,9 @@ export default function OwnerOrdersPage() {
                 </TableBody>
             </Table>
             {!areOrdersLoading && (!orders || orders.length === 0) && (
-              <div className='text-center py-20 text-muted-foreground'>
-                <p>No orders found for your store yet.</p>
+              <div className='text-center py-24 text-muted-foreground bg-slate-50/20'>
+                <p className="font-bold text-lg">No incoming orders yet.</p>
+                <p className="text-sm">When customers order, they will appear here in real-time.</p>
               </div>
             )}
             </CardContent>

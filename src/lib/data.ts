@@ -22,6 +22,12 @@ export type MenuItemAddOn = {
   price: number;
 };
 
+export type MenuItemAddOnGroup = {
+  id: string;
+  title: string;
+  items: MenuItemAddOn[];
+};
+
 export type MenuItem = {
   id: string;
   name: string;
@@ -34,8 +40,7 @@ export type MenuItem = {
   isBestseller?: boolean;
   category: string;
   options?: MenuItemOptionGroup[];
-  addOns?: MenuItemAddOn[];
-  addOnsTitle?: string; // Custom wording for the add-ons section
+  addOnGroups?: MenuItemAddOnGroup[];
 };
 
 export type Restaurant = {

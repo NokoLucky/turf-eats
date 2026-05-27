@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -11,7 +10,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
-import type { MenuItem, Restaurant, MenuItemOptionGroup, MenuItemAddOn } from '@/lib/data';
+import type { MenuItem, Restaurant, MenuItemOptionGroup, MenuItemAddOn, MenuItemAddOnGroup } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,14 +67,14 @@ const productSchema = z.object({
     maxSelections: z.number().optional(),
     isRequired: z.boolean().default(false),
   })).optional(),
-  addOnsTitle: z.string().optional(),
-  addOns: z.array(z.object({
+  addOnGroups: z.array(z.object({
     id: z.string(),
-    name: z.string().min(1, 'Add-on name is required'),
-    price: z.preprocess(
-      (val) => (typeof val === 'string' ? parseFloat(val) : val),
-      z.number().nonnegative('Price must be 0 or more')
-    ),
+    title: z.string().min(1, 'Section title is required'),
+    items: z.array(z.object({
+      id: z.string(),
+      name: z.string().min(1, 'Item name is required'),
+      price: z.preprocess((val) => (typeof val === 'string' ? parseFloat(val) : val), z.number().nonnegative('Price must be 0 or more'))
+    })).min(1, 'At least one extra item is required')
   })).optional(),
 }).refine(data => {
     if (data.promotionalPrice === undefined || data.promotionalPrice === null) return true;
@@ -124,8 +123,7 @@ function ProductDialog({
       isSoldOut: false,
       isBestseller: false,
       options: [],
-      addOnsTitle: 'Would you like to add extras?',
-      addOns: [],
+      addOnGroups: [],
     },
   });
 
@@ -134,9 +132,9 @@ function ProductDialog({
     name: "options"
   });
 
-  const { fields: addOnFields, append: appendAddOn, remove: removeAddOn } = useFieldArray({
+  const { fields: addOnGroupFields, append: appendAddOnGroup, remove: removeAddOnGroup } = useFieldArray({
     control: form.control,
-    name: "addOns"
+    name: "addOnGroups"
   });
   
   useEffect(() => {
@@ -152,6 +150,7 @@ function ProductDialog({
       form.reset({
         ...product,
         options: migratedOptions,
+        addOnGroups: product.addOnGroups || [],
         category: isPredefined ? product.category : 'Other',
         customCategory: isPredefined ? '' : product.category,
       });
@@ -167,8 +166,7 @@ function ProductDialog({
         isSoldOut: false, 
         isBestseller: false,
         options: [],
-        addOnsTitle: 'Would you like to add extras?',
-        addOns: [] 
+        addOnGroups: [] 
       });
     }
   }, [product, form, storeCategory]);
@@ -223,11 +221,11 @@ function ProductDialog({
     });
   };
 
-  const addAddOn = () => {
-    appendAddOn({
+  const addAddOnGroup = () => {
+    appendAddOnGroup({
       id: Math.random().toString(36).substr(2, 9),
-      name: '',
-      price: 0
+      title: '',
+      items: [{ id: Math.random().toString(36).substr(2, 9), name: '', price: 0 }]
     });
   };
 
@@ -238,7 +236,7 @@ function ProductDialog({
       <DialogContent className="max-h-[95vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{product?.id ? 'Edit Product' : 'Add New Product'}</DialogTitle>
-          <DialogDescription>Configure your product details and multiple customization questions.</DialogDescription>
+          <DialogDescription>Configure your product details and customization categories.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-10">
@@ -362,10 +360,10 @@ function ProductDialog({
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-black text-slate-800">Menu Customizations</h3>
-                  <p className="text-xs text-muted-foreground">Add multiple questions (e.g. "Choose your flavor", "Any removals?").</p>
+                  <p className="text-xs text-muted-foreground">Force choices like "Rare or Well Done" or "Choose a Flavor".</p>
                 </div>
                 <Button type="button" variant="outline" size="sm" onClick={addOptionGroup} className="rounded-full border-primary text-primary hover:bg-primary/5">
-                  <Plus className="h-4 w-4 mr-2" /> Add Question block
+                  <Plus className="h-4 w-4 mr-2" /> Add Question Block
                 </Button>
               </div>
 
@@ -463,11 +461,6 @@ function ProductDialog({
                     </div>
                   </Card>
                 ))}
-                {optionFields.length === 0 && (
-                  <div className="text-center py-10 border-2 border-dashed rounded-[2.5rem] bg-slate-50/50">
-                    <p className="text-sm text-muted-foreground">Add questions to let customers customize their order.</p>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -477,68 +470,47 @@ function ProductDialog({
             <div className="space-y-6">
                <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-xl font-black text-slate-800">General Extras</h3>
-                    <p className="text-xs text-muted-foreground">Quick list of optional add-ons (e.g. "Extra napkins", "Utensils").</p>
+                    <h3 className="text-xl font-black text-slate-800">General Extra Groups</h3>
+                    <p className="text-xs text-muted-foreground">Groups of optional extras like "Add Sauces" or "Extra Sides".</p>
                   </div>
-                  <Button type="button" variant="outline" size="sm" onClick={addAddOn} className="rounded-full border-primary text-primary hover:bg-primary/5">
-                    <Plus className="h-4 w-4 mr-2" /> Add Extra Item
+                  <Button type="button" variant="outline" size="sm" onClick={addAddOnGroup} className="rounded-full border-primary text-primary hover:bg-primary/5">
+                    <Plus className="h-4 w-4 mr-2" /> Add Extra Group
                   </Button>
                </div>
 
-               <div className="bg-slate-50/50 p-6 rounded-[2.5rem] border-2 border-slate-100 space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="addOnsTitle"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Section Header</FormLabel>
-                        <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Would you like to add anything else?" className="rounded-xl h-11 bg-white" /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="space-y-4">
-                      {addOnFields.map((field, index) => (
-                        <div key={field.id} className="flex gap-4 items-end animate-in fade-in slide-in-from-top-2 duration-300">
-                           <div className="flex-1">
-                              <FormField
-                                control={form.control}
-                                name={`addOns.${index}.name`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className={index > 0 ? "sr-only" : "text-[10px] font-bold text-slate-400 uppercase"}>Item Name</FormLabel>
-                                    <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Extra Cheese" className="rounded-xl h-11 bg-white shadow-sm" /></FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                           </div>
-                           <div className="w-32">
-                              <FormField
-                                control={form.control}
-                                name={`addOns.${index}.price`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className={index > 0 ? "sr-only" : "text-[10px] font-bold text-slate-400 uppercase"}>Extra (ZAR)</FormLabel>
-                                    <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="0.00" className="rounded-xl h-11 bg-white shadow-sm text-center font-bold" /></FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                           </div>
-                           <Button 
+               <div className="space-y-10">
+                  {addOnGroupFields.map((group, groupIndex) => (
+                    <Card key={group.id} className="relative border-2 border-slate-100 shadow-none rounded-[2.5rem] overflow-hidden bg-slate-50/30">
+                       <div className="p-6 border-b bg-slate-50/50">
+                          <Button 
                             type="button" 
                             variant="ghost" 
                             size="icon" 
-                            className="rounded-xl h-11 w-11 text-destructive hover:bg-destructive/10"
-                            onClick={() => removeAddOn(index)}
-                           >
-                             <Trash2 className="h-4 w-4" />
-                           </Button>
-                        </div>
-                      ))}
-                  </div>
+                            className="absolute top-4 right-4 h-8 w-8 text-destructive hover:bg-destructive/10"
+                            onClick={() => removeAddOnGroup(groupIndex)}
+                          >
+                            <X className="h-5 w-5" />
+                          </Button>
+                          
+                          <FormField
+                            control={form.control}
+                            name={`addOnGroups.${groupIndex}.title`}
+                            render={({ field }) => (
+                              <FormItem className="max-w-md">
+                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Section Title</FormLabel>
+                                <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Would you like to add sauces?" className="rounded-xl h-11 bg-white" /></FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                       </div>
+                       
+                       <div className="p-6 space-y-4">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Extra Items</p>
+                          <AddOnItemsList control={form.control} groupIndex={groupIndex} />
+                       </div>
+                    </Card>
+                  ))}
                </div>
             </div>
 
@@ -600,9 +572,6 @@ function ProductDialog({
   );
 }
 
-/**
- * Sub-component for managing the choices list within an option group.
- */
 function ChoicesList({ control, groupIndex }: { control: any, groupIndex: number }) {
   const { fields, append, remove } = useFieldArray({
     control,
@@ -656,6 +625,67 @@ function ChoicesList({ control, groupIndex }: { control: any, groupIndex: number
         onClick={() => append({ name: '', price: 0 })}
       >
         <Plus className="h-3 w-3 mr-1" /> Add Another Choice
+      </Button>
+    </div>
+  );
+}
+
+function AddOnItemsList({ control, groupIndex }: { control: any, groupIndex: number }) {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: `addOnGroups.${groupIndex}.items`
+  });
+
+  return (
+    <div className="space-y-4">
+      {fields.map((itemField, itemIndex) => (
+        <div key={itemField.id} className="flex gap-4 items-end animate-in fade-in slide-in-from-top-2 duration-300">
+           <div className="flex-1">
+              <FormField
+                control={control}
+                name={`addOnGroups.${groupIndex}.items.${itemIndex}.name`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className={itemIndex > 0 ? "sr-only" : "text-[10px] font-bold text-slate-400 uppercase"}>Item Name</FormLabel>
+                    <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Extra Cheese" className="rounded-xl h-11 bg-white shadow-sm" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+           </div>
+           <div className="w-32">
+              <FormField
+                control={control}
+                name={`addOnGroups.${groupIndex}.items.${itemIndex}.price`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className={itemIndex > 0 ? "sr-only" : "text-[10px] font-bold text-slate-400 uppercase"}>Extra (ZAR)</FormLabel>
+                    <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="0.00" className="rounded-xl h-11 bg-white shadow-sm text-center font-bold" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+           </div>
+           <Button 
+            type="button" 
+            variant="ghost" 
+            size="icon" 
+            className="rounded-xl h-11 w-11 text-destructive hover:bg-destructive/10"
+            onClick={() => remove(itemIndex)}
+            disabled={fields.length === 1}
+           >
+             <Trash2 className="h-4 w-4" />
+           </Button>
+        </div>
+      ))}
+      <Button 
+        type="button" 
+        variant="ghost" 
+        size="sm" 
+        className="text-[10px] font-bold uppercase text-primary h-8 hover:bg-primary/5 rounded-lg"
+        onClick={() => append({ id: Math.random().toString(36).substr(2, 9), name: '', price: 0 })}
+      >
+        <Plus className="h-3 w-3 mr-1" /> Add Another Item
       </Button>
     </div>
   );
@@ -806,16 +836,16 @@ export default function ProductsManagementPage() {
               <CardDescription className="mt-1 h-12 overflow-hidden text-ellipsis line-clamp-2">
                 {item.description}
               </CardDescription>
-              {(item.options || item.addOns) && (
+              {(item.options || item.addOnGroups) && (
                 <div className="mt-4 flex gap-2 flex-wrap">
                   {item.options?.map(opt => (
                     <Badge key={opt.id} variant="outline" className="text-[9px] uppercase border-primary/20 text-primary bg-primary/5">
                       {opt.name}
                     </Badge>
                   ))}
-                  {item.addOns?.map(addon => (
-                    <Badge key={addon.id} variant="outline" className="text-[9px] uppercase border-orange-200 text-orange-600 bg-orange-50">
-                      + {addon.name}
+                   {item.addOnGroups?.map(group => (
+                    <Badge key={group.id} variant="outline" className="text-[9px] uppercase border-orange-200 text-orange-600 bg-orange-50">
+                      {group.title}
                     </Badge>
                   ))}
                 </div>

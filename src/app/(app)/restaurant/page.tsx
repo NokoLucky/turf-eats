@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { doc, collection, getDoc, getDocs } from 'firebase/firestore';
-import type { Restaurant, MenuItem, MenuItemOptionGroup, MenuItemAddOn, MenuItemOptionChoice } from '@/lib/data';
+import type { Restaurant, MenuItem, MenuItemOptionGroup, MenuItemAddOn, MenuItemOptionChoice, MenuItemAddOnGroup } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -97,7 +97,7 @@ function SelectionDialog({
     if (!item) return 0;
     let extraCost = 0;
 
-    // Calculate cost from Choice Groups
+    // Calculate cost from Choice Groups (Options)
     if (item.options) {
       item.options.forEach(group => {
         const selectedForGroup = internalSelections[group.id] || [];
@@ -211,6 +211,7 @@ function SelectionDialog({
           
           <div className="text-xl font-black text-primary">R{item.price.toFixed(2)}</div>
 
+          {/* QUESTION BLOCKS (OPTIONS) */}
           {item.options?.map((group) => {
             const normalizedChoices = group.choices.map(c => typeof c === 'string' ? { name: c, price: 0 } : c);
 
@@ -269,13 +270,14 @@ function SelectionDialog({
             );
           })}
 
-          {item.addOns && item.addOns.length > 0 && (
-            <div className="space-y-4">
+          {/* EXTRA GROUPS (ADD-ONS) */}
+          {item.addOnGroups?.map((group) => (
+            <div key={group.id} className="space-y-4">
                <div className="bg-[#F8F9FA] -mx-6 px-6 py-3 border-y">
-                  <h4 className="font-black text-sm text-slate-800">{item.addOnsTitle || 'Extras'}</h4>
+                  <h4 className="font-black text-sm text-slate-800">{group.title}</h4>
                </div>
                <div className="space-y-3">
-                  {item.addOns.map((addon) => {
+                  {group.items.map((addon) => {
                     const isChecked = selectedAddOns.some(a => a.id === addon.id);
                     return (
                       <div 
@@ -304,7 +306,7 @@ function SelectionDialog({
                   })}
                </div>
             </div>
-          )}
+          ))}
         </div>
 
         <DialogFooter className="p-6 bg-white border-t shrink-0 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
