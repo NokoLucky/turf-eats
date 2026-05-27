@@ -144,7 +144,7 @@ function SelectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden rounded-t-[2.5rem] sm:rounded-[2.5rem] border-none shadow-2xl h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden rounded-t-[2.5rem] sm:rounded-[2.5rem] border-none shadow-2xl h-[90vh] flex flex-col pt-[env(safe-area-inset-top)]">
         <DialogHeader className="sr-only">
           <DialogTitle>{item.name}</DialogTitle>
         </DialogHeader>
@@ -248,7 +248,7 @@ function SelectionDialog({
           )}
         </div>
 
-        <DialogFooter className="p-6 bg-white border-t shrink-0">
+        <DialogFooter className="p-6 bg-white border-t shrink-0 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
           <div className="flex items-center justify-between w-full gap-4">
             <div className="flex items-center bg-[#F1F3F5] rounded-full px-3 py-1">
               <Button 
@@ -408,7 +408,7 @@ export default function RestaurantMenuPage() {
               onClick={() => openPreview(restaurant?.bannerUrl || '', restaurant?.name)}
             />
             <div className="absolute inset-0 bg-black/40 pointer-events-none" />
-            <div className="absolute top-6 left-4 flex gap-2">
+            <div className="absolute top-6 left-4 flex gap-2 pt-[env(safe-area-inset-top)]">
                 <Button asChild size="icon" className="bg-white/20 backdrop-blur-md rounded-full text-white">
                   <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
                 </Button>

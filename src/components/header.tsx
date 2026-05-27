@@ -16,14 +16,13 @@ const navItems = [
   { href: '/profile', label: 'Profile' },
 ];
 
-
 export default function Header() {
   const { state } = useCart();
   const pathname = usePathname();
   const cartItemCount = state.items.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-[env(safe-area-inset-top)]">
       <div className="container flex h-16 items-center px-4 sm:px-8">
         <Logo href="/dashboard" />
 

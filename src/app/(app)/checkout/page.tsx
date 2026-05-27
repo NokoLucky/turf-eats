@@ -112,8 +112,8 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-32">
-      <header className="bg-white border-b px-4 py-6 flex items-center gap-4">
+    <div className="min-h-screen bg-[#F8F9FA] pb-44">
+      <header className="bg-white border-b px-4 py-6 flex items-center gap-4 pt-[env(safe-area-inset-top)]">
         <Button onClick={() => router.back()} variant="ghost" size="icon" className="rounded-full">
            <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -228,7 +228,7 @@ export default function CheckoutPage() {
         </section>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white p-6 shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.1)] z-50">
+      <div className="fixed bottom-0 left-0 right-0 bg-white p-6 shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.1)] z-50 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
            <div className="max-w-md mx-auto">
               <div className="flex justify-between items-center text-lg font-bold mb-4">
                  <span>Total</span>

@@ -12,7 +12,7 @@ export default function WhatsAppFAB() {
   return (
     <Button
       onClick={handleSupport}
-      className="fixed bottom-24 right-6 md:bottom-10 md:right-10 h-14 w-14 rounded-full shadow-2xl z-50 bg-[#25D366] hover:bg-[#128C7E] border-none text-white p-0 flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+      className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-6 md:bottom-10 md:right-10 h-14 w-14 rounded-full shadow-2xl z-50 bg-[#25D366] hover:bg-[#128C7E] border-none text-white p-0 flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
       aria-label="Need Help? Chat on WhatsApp"
     >
       <div className="relative">
