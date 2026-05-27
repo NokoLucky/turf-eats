@@ -1,2 +1,7 @@
-export function generateStaticParams() { return []; }
-export default function Page() { return null; }
+export function generateStaticParams() {
+  return [];
+}
+
+export default function Page() {
+  return null;
+}
