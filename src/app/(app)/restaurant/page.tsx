@@ -276,7 +276,9 @@ function SelectionDialog({
                             />
                             <Label htmlFor={`addon-${addon.id}`} className="text-sm font-bold cursor-pointer text-slate-700">{addon.name}</Label>
                          </div>
-                         <span className="text-xs font-black text-primary">+ R{addon.price.toFixed(2)}</span>
+                         {addon.price > 0 && (
+                            <span className="text-xs font-black text-primary">+ R{addon.price.toFixed(2)}</span>
+                         )}
                       </div>
                     );
                   })}
