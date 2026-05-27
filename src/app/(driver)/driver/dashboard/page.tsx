@@ -455,7 +455,7 @@ export default function DriverDashboard() {
                     </Badge>
                   </div>
 
-                  <div className="space-y-3 pb-4">
+                  <div className="space-y-3 pb-8">
                     {historyOrders.length > 0 ? (
                         historyOrders.map((order) => (
                           <div key={order.id} className="bg-[#222] p-4 rounded-2xl border border-white/5 flex items-center justify-between">
@@ -483,14 +483,6 @@ export default function DriverDashboard() {
               </div>
             </div>
           </ScrollArea>
-
-          <div className="p-6 bg-[#222]/50 border-t border-white/5 shrink-0">
-             <DialogClose asChild>
-                <Button variant="outline" className="w-full rounded-2xl h-12 font-bold border-white/10 hover:bg-white/5 text-white">
-                    <ChevronLeft className="h-4 w-4 mr-2" /> Back to Dashboard
-                </Button>
-             </DialogClose>
-          </div>
         </DialogContent>
       </Dialog>
     </div>
