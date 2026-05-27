@@ -144,7 +144,6 @@ function ProductDialog({
       const options = getCategoryList(storeCategory);
       const isPredefined = options.includes(product.category);
       
-      // Migration helper: Convert string[] choices to {name, price}[] objects if necessary
       const migratedOptions = product.options?.map(opt => ({
         ...opt,
         choices: opt.choices.map(c => typeof c === 'string' ? { name: c, price: 0 } : c)
@@ -239,10 +238,10 @@ function ProductDialog({
       <DialogContent className="max-h-[95vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{product?.id ? 'Edit Product' : 'Add New Product'}</DialogTitle>
-          <DialogDescription>Fill in the details for your product and customization options.</DialogDescription>
+          <DialogDescription>Configure your product details and multiple customization questions.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-10">
             <FormField
                 control={form.control}
                 name="imageUrl"
@@ -356,23 +355,23 @@ function ProductDialog({
                 />
             </div>
 
-            <Separator className="bg-primary/10 h-[2px]" />
+            <Separator className="bg-primary/20 h-[2px]" />
             
-            {/* CHOICE GROUPS SECTION */}
+            {/* CUSTOM QUESTIONS SECTION */}
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-black text-slate-800">Choice Groups</h3>
-                  <p className="text-xs text-muted-foreground">Ask questions like "Choose your flavor" or "Select a size".</p>
+                  <h3 className="text-xl font-black text-slate-800">Menu Customizations</h3>
+                  <p className="text-xs text-muted-foreground">Add multiple questions (e.g. "Choose your flavor", "Any removals?").</p>
                 </div>
                 <Button type="button" variant="outline" size="sm" onClick={addOptionGroup} className="rounded-full border-primary text-primary hover:bg-primary/5">
-                  <Plus className="h-4 w-4 mr-2" /> Add Question
+                  <Plus className="h-4 w-4 mr-2" /> Add Question block
                 </Button>
               </div>
 
-              <div className="space-y-8">
+              <div className="space-y-10">
                 {optionFields.map((groupField, groupIndex) => (
-                  <Card key={groupField.id} className="relative border-2 border-slate-100 shadow-none rounded-[2rem] overflow-hidden">
+                  <Card key={groupField.id} className="relative border-2 border-slate-100 shadow-none rounded-[2.5rem] overflow-hidden">
                     <div className="bg-slate-50 p-6 border-b">
                       <Button 
                         type="button" 
@@ -391,7 +390,7 @@ function ProductDialog({
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Question wording</FormLabel>
-                              <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Choose your flavor" className="rounded-xl h-11 bg-white" /></FormControl>
+                              <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. What flavor would you like?" className="rounded-xl h-11 bg-white" /></FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -423,7 +422,7 @@ function ProductDialog({
                               <FormControl>
                                 <Switch checked={field.value} onCheckedChange={field.onChange} />
                               </FormControl>
-                              <FormLabel className="text-[10px] font-bold uppercase cursor-pointer">Required</FormLabel>
+                              <FormLabel className="text-[10px] font-bold uppercase cursor-pointer">Required Question</FormLabel>
                             </FormItem>
                           )}
                         />
@@ -466,34 +465,34 @@ function ProductDialog({
                 ))}
                 {optionFields.length === 0 && (
                   <div className="text-center py-10 border-2 border-dashed rounded-[2.5rem] bg-slate-50/50">
-                    <p className="text-sm text-muted-foreground">No custom questions added yet.</p>
+                    <p className="text-sm text-muted-foreground">Add questions to let customers customize their order.</p>
                   </div>
                 )}
               </div>
             </div>
 
-            <Separator className="bg-primary/10 h-[2px]" />
+            <Separator className="bg-primary/20 h-[2px]" />
 
             {/* ADD-ONS SECTION */}
             <div className="space-y-6">
                <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-xl font-black text-slate-800">Extras & Add-ons</h3>
-                    <p className="text-xs text-muted-foreground">Simple checkboxes for items like "Extra Cheese" or "Cutlery".</p>
+                    <h3 className="text-xl font-black text-slate-800">General Extras</h3>
+                    <p className="text-xs text-muted-foreground">Quick list of optional add-ons (e.g. "Extra napkins", "Utensils").</p>
                   </div>
                   <Button type="button" variant="outline" size="sm" onClick={addAddOn} className="rounded-full border-primary text-primary hover:bg-primary/5">
                     <Plus className="h-4 w-4 mr-2" /> Add Extra Item
                   </Button>
                </div>
 
-               <div className="bg-slate-50/50 p-6 rounded-[2rem] border-2 border-slate-100 space-y-6">
+               <div className="bg-slate-50/50 p-6 rounded-[2.5rem] border-2 border-slate-100 space-y-6">
                   <FormField
                     control={form.control}
                     name="addOnsTitle"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Section wording</FormLabel>
-                        <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Would you like to add condiments?" className="rounded-xl h-11 bg-white" /></FormControl>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Section Header</FormLabel>
+                        <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Would you like to add anything else?" className="rounded-xl h-11 bg-white" /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -539,14 +538,11 @@ function ProductDialog({
                            </Button>
                         </div>
                       ))}
-                      {addOnFields.length === 0 && (
-                        <p className="text-xs text-muted-foreground italic text-center py-4 bg-white/50 rounded-2xl border-2 border-dashed">No extras added yet.</p>
-                      )}
                   </div>
                </div>
             </div>
 
-            <Separator className="bg-primary/10 h-[2px]" />
+            <Separator className="bg-primary/20 h-[2px]" />
 
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <FormField
@@ -798,7 +794,7 @@ export default function ProductsManagementPage() {
                     <Badge variant="destructive" className="absolute top-4 right-4 shadow-lg uppercase font-bold text-[10px]">SOLD OUT</Badge>
                 )}
                  {item.isBestseller && !item.isSoldOut && (
-                    <Badge className="absolute top-4 right-4 bg-orange-500 text-white shadow-lg uppercase font-bold text-[10px] border-none"><Star className="h-2 w-2 mr-1 fill-white" /> BESTSELLER</Badge>
+                    <Badge className="absolute top-4 right-4 bg-orange-50 text-white shadow-lg uppercase font-bold text-[10px] border-none"><Star className="h-2 w-2 mr-1 fill-white" /> BESTSELLER</Badge>
                 )}
                 <Badge variant="secondary" className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm text-primary font-bold text-[10px] border-none">
                   {item.category || 'General'}

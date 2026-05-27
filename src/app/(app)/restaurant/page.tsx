@@ -88,7 +88,8 @@ function SelectionDialog({
   onOpenChange: (open: boolean) => void;
   onConfirm: (selections: Record<string, string[]>, addOns: MenuItemAddOn[], quantity: number, totalUnitPrice: number) => void;
 }) {
-  const [selections, setSelections] = useState<Record<string, string[]>>({});
+  // Use IDs for tracking to prevent collisions between questions with same text
+  const [internalSelections, setInternalSelections] = useState<Record<string, string[]>>({});
   const [selectedAddOns, setSelectedAddOns] = useState<MenuItemAddOn[]>([]);
   const [quantity, setQuantity] = useState(1);
 
@@ -99,7 +100,7 @@ function SelectionDialog({
     // Calculate cost from Choice Groups
     if (item.options) {
       item.options.forEach(group => {
-        const selectedForGroup = selections[group.name] || [];
+        const selectedForGroup = internalSelections[group.id] || [];
         selectedForGroup.forEach(choiceName => {
           const choice = group.choices.find(c => c.name === choiceName);
           if (choice) extraCost += (choice.price || 0);
@@ -112,7 +113,7 @@ function SelectionDialog({
     extraCost += addOnTotal;
 
     return item.price + extraCost;
-  }, [item, selections, selectedAddOns]);
+  }, [item, internalSelections, selectedAddOns]);
 
   const totalPrice = totalUnitPrice * quantity;
 
@@ -121,12 +122,11 @@ function SelectionDialog({
       const initial: Record<string, string[]> = {};
       if (item.options) {
         item.options.forEach(opt => {
-          // Normalization: Ensure choices are objects
           const choices = opt.choices.map(c => typeof c === 'string' ? { name: c, price: 0 } : c);
-          initial[opt.name] = opt.type === 'radio' ? (opt.isRequired ? [choices[0].name] : []) : [];
+          initial[opt.id] = opt.type === 'radio' ? (opt.isRequired ? [choices[0].name] : []) : [];
         });
       }
-      setSelections(initial);
+      setInternalSelections(initial);
       setSelectedAddOns([]);
       setQuantity(1);
     }
@@ -134,14 +134,18 @@ function SelectionDialog({
 
   if (!item) return null;
 
-  const handleCheckboxChange = (groupName: string, choiceName: string, checked: boolean, max?: number) => {
-    setSelections(prev => {
-      const current = prev[groupName] || [];
-      if (checked) {
+  const handleChoiceToggle = (groupId: string, choiceName: string, type: 'radio' | 'checkbox', isChecked: boolean, max?: number) => {
+    setInternalSelections(prev => {
+      const current = prev[groupId] || [];
+      if (type === 'radio') {
+        return { ...prev, [groupId]: [choiceName] };
+      }
+      
+      if (isChecked) {
         if (max && current.length >= max) return prev;
-        return { ...prev, [groupName]: [...current, choiceName] };
+        return { ...prev, [groupId]: [...current, choiceName] };
       } else {
-        return { ...prev, [groupName]: current.filter(c => c !== choiceName) };
+        return { ...prev, [groupId]: current.filter(c => c !== choiceName) };
       }
     });
   };
@@ -155,11 +159,24 @@ function SelectionDialog({
   const isValid = () => {
     if (!item.options) return true;
     return item.options.every(opt => {
-      const selected = selections[opt.name] || [];
+      const selected = internalSelections[opt.id] || [];
       if (opt.isRequired && selected.length === 0) return false;
       if (opt.minSelections && selected.length < opt.minSelections) return false;
       return true;
     });
+  };
+
+  const handleConfirmOrder = () => {
+    // Map internal IDs back to Display Names for the Cart/Order Record
+    const displaySelections: Record<string, string[]> = {};
+    item.options?.forEach(opt => {
+      const selected = internalSelections[opt.id];
+      if (selected && selected.length > 0) {
+        displaySelections[opt.name] = selected;
+      }
+    });
+
+    onConfirm(displaySelections, selectedAddOns, quantity, totalUnitPrice);
   };
 
   return (
@@ -181,7 +198,7 @@ function SelectionDialog({
            </Button>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+        <div className="flex-1 overflow-y-auto p-6 space-y-10">
           <div className="flex justify-between items-start">
             <div>
               <h3 className="text-2xl font-black text-slate-800">{item.name}</h3>
@@ -194,20 +211,26 @@ function SelectionDialog({
           
           <div className="text-xl font-black text-primary">R{item.price.toFixed(2)}</div>
 
-          {item.options?.map((group, index) => {
-            // Normalization check
+          {item.options?.map((group) => {
             const normalizedChoices = group.choices.map(c => typeof c === 'string' ? { name: c, price: 0 } : c);
 
             return (
               <div key={group.id} className="space-y-4">
                 <div className="flex items-center justify-between bg-[#F8F9FA] -mx-6 px-6 py-3 border-y">
-                  <h4 className="font-black text-sm text-slate-800">{group.name} {group.maxSelections && <span className="text-muted-foreground font-medium ml-1">(Select up to {group.maxSelections})</span>}</h4>
-                  {group.isRequired && <Badge variant="secondary" className="text-[9px] bg-primary text-white border-none font-black tracking-widest">REQUIRED</Badge>}
+                  <h4 className="font-black text-sm text-slate-800">
+                    {group.name} 
+                    {group.type === 'checkbox' && group.maxSelections && (
+                      <span className="text-muted-foreground font-medium ml-1 text-xs">(Select up to {group.maxSelections})</span>
+                    )}
+                  </h4>
+                  {group.isRequired && (
+                    <Badge variant="secondary" className="text-[9px] bg-primary text-white border-none font-black tracking-widest">REQUIRED</Badge>
+                  )}
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {normalizedChoices.map((choice) => {
-                    const isChecked = selections[group.name]?.includes(choice.name);
+                    const isChecked = internalSelections[group.id]?.includes(choice.name);
                     return (
                       <div 
                         key={choice.name} 
@@ -215,10 +238,7 @@ function SelectionDialog({
                           "flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer group",
                           isChecked ? "border-primary bg-primary/5" : "border-slate-50 hover:border-slate-200"
                         )}
-                        onClick={() => {
-                          if (group.type === 'radio') setSelections(prev => ({ ...prev, [group.name]: [choice.name] }));
-                          else handleCheckboxChange(group.name, choice.name, !isChecked, group.maxSelections);
-                        }}
+                        onClick={() => handleChoiceToggle(group.id, choice.name, group.type, !isChecked, group.maxSelections)}
                       >
                         <div className="flex items-center gap-3">
                             {group.type === 'radio' ? (
@@ -252,7 +272,7 @@ function SelectionDialog({
           {item.addOns && item.addOns.length > 0 && (
             <div className="space-y-4">
                <div className="bg-[#F8F9FA] -mx-6 px-6 py-3 border-y">
-                  <h4 className="font-black text-sm text-slate-800">{item.addOnsTitle || 'Would you like to add extras?'}</h4>
+                  <h4 className="font-black text-sm text-slate-800">{item.addOnsTitle || 'Extras'}</h4>
                </div>
                <div className="space-y-3">
                   {item.addOns.map((addon) => {
@@ -309,7 +329,7 @@ function SelectionDialog({
               </Button>
             </div>
             <Button 
-              onClick={() => onConfirm(selections, selectedAddOns, quantity, totalUnitPrice)} 
+              onClick={handleConfirmOrder} 
               disabled={!isValid()} 
               className="flex-1 h-14 rounded-2xl font-black text-lg shadow-xl shadow-primary/20 flex justify-between px-8"
             >
