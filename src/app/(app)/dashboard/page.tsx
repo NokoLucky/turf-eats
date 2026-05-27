@@ -224,7 +224,7 @@ export default function CustomerDashboardPage() {
                       </span>
                     </div>
                   </div>
-                  <Link href={`/restaurant/${store.id}`}>
+                  <Link href={`/restaurant?id=${store.id}`}>
                     <CardContent className="p-3 hover:bg-muted/30 transition-colors">
                       <h3 className="font-bold text-sm truncate">{store.name}</h3>
                       <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground font-medium">
@@ -286,7 +286,7 @@ export default function CustomerDashboardPage() {
                                 <div className="flex items-center gap-1"><Truck className="h-3 w-3" /> R{store.deliveryFee?.toFixed(2) || '30.00'}</div>
                              </div>
                              <Button asChild className="w-full rounded-xl bg-orange-50 text-primary hover:bg-orange-100 hover:text-primary shadow-none font-bold text-xs h-10">
-                                <Link href={`/restaurant/${store.id}`}>Browse Products</Link>
+                                <Link href={`/restaurant?id=${store.id}`}>Browse Products</Link>
                              </Button>
                         </CardContent>
                     </Card>

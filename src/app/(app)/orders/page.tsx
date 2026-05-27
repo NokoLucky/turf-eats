@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -38,8 +37,6 @@ export default function OrdersPage() {
 
     const ordersQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
-        // Query the root 'orders' collection for documents where the user's ID is in the participantUids array.
-        // orderBy('orderDate', 'desc') was removed as it requires a composite index. Sorting is now done client-side.
         return query(
             collection(firestore, `orders`),
             where('participantUids', 'array-contains', user.uid)
@@ -64,11 +61,9 @@ export default function OrdersPage() {
     
     const handleRatingSubmitted = () => {
         if (!selectedOrder || !orders) return;
-        // Optimistically update the UI to reflect the rated state
         const updatedOrders = orders.map(o => 
             o.id === selectedOrder.id ? { ...o, isRated: true } : o
         );
-        // This assumes your useCollection hook has a 'setData' method to update local state
         if (setOrders) {
             setOrders(updatedOrders);
         }
@@ -147,7 +142,7 @@ export default function OrdersPage() {
                                 </Button>
                              )}
                             <Button asChild variant="ghost" size="sm">
-                            <Link href={`/orders/${order.id}`}>
+                            <Link href={`/order-details?id=${order.id}`}>
                                 View Details <ArrowRight className="ml-2 h-4 w-4" />
                             </Link>
                             </Button>
@@ -172,7 +167,7 @@ export default function OrdersPage() {
                         </div>
                         <div className="flex flex-col items-end gap-2">
                             <Button asChild variant="default" size="sm">
-                                <Link href={`/orders/${order.id}`}>
+                                <Link href={`/order-details?id=${order.id}`}>
                                     View
                                 </Link>
                             </Button>

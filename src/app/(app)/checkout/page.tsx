@@ -104,7 +104,7 @@ export default function CheckoutPage() {
       await batch.commit();
       dispatch({ type: 'CLEAR_CART' });
       
-      router.push(`/order-success/${orderRef.id}`);
+      router.push(`/order-success?id=${orderRef.id}`);
 
     } catch (error) {
       console.error(error);
