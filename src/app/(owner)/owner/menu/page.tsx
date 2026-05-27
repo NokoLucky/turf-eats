@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -57,13 +58,17 @@ const productSchema = z.object({
   isBestseller: z.boolean().default(false),
   options: z.array(z.object({
     id: z.string(),
-    name: z.string().min(1, 'Option group name is required'),
+    name: z.string().min(1, 'Question wording is required'),
     type: z.enum(['radio', 'checkbox']),
-    choices: z.array(z.string()).min(1, 'At least one choice is required'),
+    choices: z.array(z.object({
+      name: z.string().min(1, 'Choice name required'),
+      price: z.preprocess((val) => (typeof val === 'string' ? parseFloat(val) : val), z.number().default(0))
+    })).min(1, 'At least one choice is required'),
     minSelections: z.number().optional(),
     maxSelections: z.number().optional(),
     isRequired: z.boolean().default(false),
   })).optional(),
+  addOnsTitle: z.string().optional(),
   addOns: z.array(z.object({
     id: z.string(),
     name: z.string().min(1, 'Add-on name is required'),
@@ -119,6 +124,7 @@ function ProductDialog({
       isSoldOut: false,
       isBestseller: false,
       options: [],
+      addOnsTitle: 'Would you like to add extras?',
       addOns: [],
     },
   });
@@ -135,11 +141,18 @@ function ProductDialog({
   
   useEffect(() => {
     if (product) {
-      // Determine if it's a predefined category
       const options = getCategoryList(storeCategory);
       const isPredefined = options.includes(product.category);
+      
+      // Migration helper: Convert string[] choices to {name, price}[] objects if necessary
+      const migratedOptions = product.options?.map(opt => ({
+        ...opt,
+        choices: opt.choices.map(c => typeof c === 'string' ? { name: c, price: 0 } : c)
+      })) || [];
+
       form.reset({
         ...product,
+        options: migratedOptions,
         category: isPredefined ? product.category : 'Other',
         customCategory: isPredefined ? '' : product.category,
       });
@@ -155,6 +168,7 @@ function ProductDialog({
         isSoldOut: false, 
         isBestseller: false,
         options: [],
+        addOnsTitle: 'Would you like to add extras?',
         addOns: [] 
       });
     }
@@ -205,7 +219,7 @@ function ProductDialog({
       id: Math.random().toString(36).substr(2, 9),
       name: '',
       type: 'radio',
-      choices: [''],
+      choices: [{ name: '', price: 0 }],
       isRequired: false,
     });
   };
@@ -222,13 +236,13 @@ function ProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[95vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{product?.id ? 'Edit Product' : 'Add New Product'}</DialogTitle>
-          <DialogDescription>Fill in the details for your product.</DialogDescription>
+          <DialogDescription>Fill in the details for your product and customization options.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
             <FormField
                 control={form.control}
                 name="imageUrl"
@@ -246,7 +260,7 @@ function ProductDialog({
                 </FormItem>
                 )}
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
                 name="name"
@@ -254,7 +268,7 @@ function ProductDialog({
                   <FormItem>
                     <FormLabel>Product Name</FormLabel>
                     <FormControl>
-                      <Input {...field} value={field.value || ''} className="rounded-xl" />
+                      <Input {...field} value={field.value || ''} className="rounded-xl h-12" placeholder="e.g. Deluxe Cheeseburger" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -268,7 +282,7 @@ function ProductDialog({
                     <FormLabel>Product Category</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
-                        <SelectTrigger className="rounded-xl">
+                        <SelectTrigger className="rounded-xl h-12">
                           <SelectValue placeholder="Select a category" />
                         </SelectTrigger>
                       </FormControl>
@@ -307,21 +321,21 @@ function ProductDialog({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea {...field} value={field.value || ''} className="rounded-xl" />
+                    <Textarea {...field} value={field.value || ''} className="rounded-xl min-h-[100px]" placeholder="Describe your product..." />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-6">
                 <FormField
                 control={form.control}
                 name="price"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Price (ZAR)</FormLabel>
+                    <FormLabel>Base Price (ZAR)</FormLabel>
                     <FormControl>
-                        <Input type="number" step="0.01" {...field} value={field.value ?? ''} className="rounded-xl" />
+                        <Input type="number" step="0.01" {...field} value={field.value ?? ''} className="rounded-xl h-12 font-bold" />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -332,9 +346,9 @@ function ProductDialog({
                 name="promotionalPrice"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Promotional Price</FormLabel>
+                    <FormLabel>Promotional Price (Optional)</FormLabel>
                     <FormControl>
-                        <Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="e.g. 89.99" className="rounded-xl" />
+                        <Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="e.g. 89.99" className="rounded-xl h-12" />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -342,188 +356,208 @@ function ProductDialog({
                 />
             </div>
 
-            <Separator />
+            <Separator className="bg-primary/10 h-[2px]" />
             
-            <div className="space-y-4">
+            {/* CHOICE GROUPS SECTION */}
+            <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold">Customization Options</h3>
-                <Button type="button" variant="outline" size="sm" onClick={addOptionGroup} className="rounded-full">
-                  <Plus className="h-4 w-4 mr-2" /> Add Choice Group
+                <div>
+                  <h3 className="text-xl font-black text-slate-800">Choice Groups</h3>
+                  <p className="text-xs text-muted-foreground">Ask questions like "Choose your flavor" or "Select a size".</p>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={addOptionGroup} className="rounded-full border-primary text-primary hover:bg-primary/5">
+                  <Plus className="h-4 w-4 mr-2" /> Add Question
                 </Button>
               </div>
 
-              {optionFields.map((field, index) => (
-                <Card key={field.id} className="p-4 border-dashed relative">
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute top-2 right-2 h-8 w-8 text-destructive"
-                    onClick={() => removeOption(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                  <div className="grid sm:grid-cols-2 gap-4 mb-4">
-                    <FormField
-                      control={form.control}
-                      name={`options.${index}.name`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Question (e.g., "Choose your side")</FormLabel>
-                          <FormControl><Input {...field} value={field.value || ''} placeholder="Group Name" className="rounded-xl" /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`options.${index}.type`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Selection Type</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || "radio"}>
-                            <FormControl><SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent>
-                              <SelectItem value="radio">Single Choice (Radio)</SelectItem>
-                              <SelectItem value="checkbox">Multiple Choice (Checkbox)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )}
-                    />
+              <div className="space-y-8">
+                {optionFields.map((groupField, groupIndex) => (
+                  <Card key={groupField.id} className="relative border-2 border-slate-100 shadow-none rounded-[2rem] overflow-hidden">
+                    <div className="bg-slate-50 p-6 border-b">
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="icon" 
+                        className="absolute top-4 right-4 h-8 w-8 text-destructive hover:bg-destructive/10"
+                        onClick={() => removeOption(groupIndex)}
+                      >
+                        <X className="h-5 w-5" />
+                      </Button>
+                      
+                      <div className="grid sm:grid-cols-2 gap-6 pr-10">
+                        <FormField
+                          control={form.control}
+                          name={`options.${groupIndex}.name`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Question wording</FormLabel>
+                              <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Choose your flavor" className="rounded-xl h-11 bg-white" /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`options.${groupIndex}.type`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Selection Type</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value || "radio"}>
+                                <FormControl><SelectTrigger className="rounded-xl h-11 bg-white"><SelectValue /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                  <SelectItem value="radio">Single Choice (Radio)</SelectItem>
+                                  <SelectItem value="checkbox">Multiple Choice (Checkbox)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-6 mt-4">
+                        <FormField
+                          control={form.control}
+                          name={`options.${groupIndex}.isRequired`}
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                              <FormControl>
+                                <Switch checked={field.value} onCheckedChange={field.onChange} />
+                              </FormControl>
+                              <FormLabel className="text-[10px] font-bold uppercase cursor-pointer">Required</FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                        {form.watch(`options.${groupIndex}.type`) === 'checkbox' && (
+                          <div className="flex items-center gap-4">
+                            <FormField
+                              control={form.control}
+                              name={`options.${groupIndex}.minSelections`}
+                              render={({ field }) => (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase">Min</span>
+                                  <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseInt(e.target.value))} className="w-16 h-8 rounded-lg text-xs text-center" />
+                                </div>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`options.${groupIndex}.maxSelections`}
+                              render={({ field }) => (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase">Max</span>
+                                  <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseInt(e.target.value))} className="w-16 h-8 rounded-lg text-xs text-center" />
+                                </div>
+                              )}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="p-6 space-y-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Choices & Extra Prices</p>
+                      
+                      <ChoicesList 
+                        control={form.control} 
+                        groupIndex={groupIndex} 
+                      />
+                    </div>
+                  </Card>
+                ))}
+                {optionFields.length === 0 && (
+                  <div className="text-center py-10 border-2 border-dashed rounded-[2.5rem] bg-slate-50/50">
+                    <p className="text-sm text-muted-foreground">No custom questions added yet.</p>
                   </div>
-                  
+                )}
+              </div>
+            </div>
+
+            <Separator className="bg-primary/10 h-[2px]" />
+
+            {/* ADD-ONS SECTION */}
+            <div className="space-y-6">
+               <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-black text-slate-800">Extras & Add-ons</h3>
+                    <p className="text-xs text-muted-foreground">Simple checkboxes for items like "Extra Cheese" or "Cutlery".</p>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={addAddOn} className="rounded-full border-primary text-primary hover:bg-primary/5">
+                    <Plus className="h-4 w-4 mr-2" /> Add Extra Item
+                  </Button>
+               </div>
+
+               <div className="bg-slate-50/50 p-6 rounded-[2rem] border-2 border-slate-100 space-y-6">
                   <FormField
                     control={form.control}
-                    name={`options.${index}.choices`}
+                    name="addOnsTitle"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Choices (comma separated)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            value={Array.isArray(field.value) ? field.value.join(', ') : ''} 
-                            onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()))}
-                            placeholder="Choice 1, Choice 2, Choice 3"
-                            className="rounded-xl"
-                          />
-                        </FormControl>
-                        <FormDescription>Separate choices with a comma.</FormDescription>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Section wording</FormLabel>
+                        <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Would you like to add condiments?" className="rounded-xl h-11 bg-white" /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  <div className="flex items-center gap-2 mt-4">
-                    <FormField
-                      control={form.control}
-                      name={`options.${index}.isRequired`}
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <Switch checked={field.value} onCheckedChange={field.onChange} />
-                          </FormControl>
-                          <FormLabel className="text-[10px] font-bold uppercase">Required Selection</FormLabel>
-                        </FormItem>
+                  <div className="space-y-4">
+                      {addOnFields.map((field, index) => (
+                        <div key={field.id} className="flex gap-4 items-end animate-in fade-in slide-in-from-top-2 duration-300">
+                           <div className="flex-1">
+                              <FormField
+                                control={form.control}
+                                name={`addOns.${index}.name`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={index > 0 ? "sr-only" : "text-[10px] font-bold text-slate-400 uppercase"}>Item Name</FormLabel>
+                                    <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Extra Cheese" className="rounded-xl h-11 bg-white shadow-sm" /></FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                           </div>
+                           <div className="w-32">
+                              <FormField
+                                control={form.control}
+                                name={`addOns.${index}.price`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel className={index > 0 ? "sr-only" : "text-[10px] font-bold text-slate-400 uppercase"}>Extra (ZAR)</FormLabel>
+                                    <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="0.00" className="rounded-xl h-11 bg-white shadow-sm text-center font-bold" /></FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                           </div>
+                           <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon" 
+                            className="rounded-xl h-11 w-11 text-destructive hover:bg-destructive/10"
+                            onClick={() => removeAddOn(index)}
+                           >
+                             <Trash2 className="h-4 w-4" />
+                           </Button>
+                        </div>
+                      ))}
+                      {addOnFields.length === 0 && (
+                        <p className="text-xs text-muted-foreground italic text-center py-4 bg-white/50 rounded-2xl border-2 border-dashed">No extras added yet.</p>
                       )}
-                    />
                   </div>
-
-                  {form.watch(`options.${index}.type`) === 'checkbox' && (
-                    <div className="grid grid-cols-2 gap-4 mt-4">
-                      <FormField
-                        control={form.control}
-                        name={`options.${index}.minSelections`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Min Selections</FormLabel>
-                            <FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseInt(e.target.value))} className="rounded-xl" /></FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`options.${index}.maxSelections`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Max Selections</FormLabel>
-                            <FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseInt(e.target.value))} className="rounded-xl" /></FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  )}
-                </Card>
-              ))}
-            </div>
-
-            <Separator />
-
-            <div className="space-y-4">
-               <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold">Would you like to add extras?</h3>
-                  <Button type="button" variant="outline" size="sm" onClick={addAddOn} className="rounded-full">
-                    <Plus className="h-4 w-4 mr-2" /> Add Extra Item
-                  </Button>
-               </div>
-
-               <div className="space-y-4">
-                  {addOnFields.map((field, index) => (
-                    <div key={field.id} className="flex gap-3 items-end group">
-                       <div className="flex-1">
-                          <FormField
-                            control={form.control}
-                            name={`addOns.${index}.name`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className={index > 0 ? "sr-only" : ""}>Extra Name</FormLabel>
-                                <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Extra Cheese" className="rounded-xl" /></FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                       </div>
-                       <div className="w-32">
-                          <FormField
-                            control={form.control}
-                            name={`addOns.${index}.price`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className={index > 0 ? "sr-only" : ""}>Price (ZAR)</FormLabel>
-                                <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="15.00" className="rounded-xl" /></FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                       </div>
-                       <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="icon" 
-                        className="rounded-xl h-10 w-10 text-destructive mb-[2px]"
-                        onClick={() => removeAddOn(index)}
-                       >
-                         <X className="h-4 w-4" />
-                       </Button>
-                    </div>
-                  ))}
-                  {addOnFields.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic text-center py-4 bg-muted/20 rounded-2xl">No extras added yet.</p>
-                  )}
                </div>
             </div>
 
-            <Separator />
+            <Separator className="bg-primary/10 h-[2px]" />
 
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <FormField
                     control={form.control}
                     name="isSoldOut"
                     render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 shadow-sm">
+                    <FormItem className="flex flex-row items-center justify-between rounded-[1.5rem] border-2 border-slate-100 p-6 shadow-none bg-slate-50/50">
                         <div className="space-y-0.5">
-                            <FormLabel>Sold Out</FormLabel>
+                            <FormLabel className="text-sm font-bold">Temporarily Sold Out</FormLabel>
                             <FormDescription className="text-[10px]">
-                                Temporarily unavailable.
+                                Hide from menu until stock arrives.
                             </FormDescription>
                         </div>
                         <FormControl>
@@ -540,11 +574,11 @@ function ProductDialog({
                     control={form.control}
                     name="isBestseller"
                     render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 shadow-sm">
+                    <FormItem className="flex flex-row items-center justify-between rounded-[1.5rem] border-2 border-slate-100 p-6 shadow-none bg-slate-50/50">
                         <div className="space-y-0.5">
-                            <FormLabel className="flex items-center gap-2"><Star className="h-3 w-3 fill-primary text-primary" /> Bestseller</FormLabel>
+                            <FormLabel className="flex items-center gap-2 text-sm font-bold"><Star className="h-3 w-3 fill-primary text-primary" /> Popular Item</FormLabel>
                             <FormDescription className="text-[10px]">
-                                Highlight this item.
+                                Show a "Bestseller" badge to customers.
                             </FormDescription>
                         </div>
                         <FormControl>
@@ -558,15 +592,76 @@ function ProductDialog({
                 />
             </div>
             
-            <DialogFooter>
-              <Button type="submit" disabled={form.formState.isSubmitting} className="rounded-xl font-bold px-8">
-                {form.formState.isSubmitting ? 'Saving...' : 'Save Product'}
+            <DialogFooter className="sticky bottom-0 bg-white pt-6 border-t pb-2">
+              <Button type="submit" disabled={form.formState.isSubmitting} className="w-full sm:w-auto rounded-2xl font-black text-lg px-12 h-14 shadow-xl shadow-primary/20">
+                {form.formState.isSubmitting ? 'Saving Product...' : 'Save Product Changes'}
               </Button>
             </DialogFooter>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Sub-component for managing the choices list within an option group.
+ */
+function ChoicesList({ control, groupIndex }: { control: any, groupIndex: number }) {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: `options.${groupIndex}.choices`
+  });
+
+  return (
+    <div className="space-y-3">
+      {fields.map((choiceField, choiceIndex) => (
+        <div key={choiceField.id} className="flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
+          <div className="flex-1">
+            <FormField
+              control={control}
+              name={`options.${groupIndex}.choices.${choiceIndex}.name`}
+              render={({ field }) => (
+                <FormControl><Input {...field} value={field.value || ''} placeholder="Choice name (e.g. Vanilla)" className="rounded-xl h-10 bg-white border-slate-200" /></FormControl>
+              )}
+            />
+          </div>
+          <div className="w-28">
+            <FormField
+              control={control}
+              name={`options.${groupIndex}.choices.${choiceIndex}.price`}
+              render={({ field }) => (
+                <FormControl>
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">+R</span>
+                    <Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="0.00" className="rounded-xl h-10 bg-white border-slate-200 pl-8 text-xs font-bold text-center" />
+                  </div>
+                </FormControl>
+              )}
+            />
+          </div>
+          <Button 
+            type="button" 
+            variant="ghost" 
+            size="icon" 
+            className="h-10 w-10 text-slate-300 hover:text-destructive rounded-xl"
+            onClick={() => remove(choiceIndex)}
+            disabled={fields.length === 1}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      ))}
+      <Button 
+        type="button" 
+        variant="ghost" 
+        size="sm" 
+        className="text-[10px] font-bold uppercase text-primary h-8 hover:bg-primary/5 rounded-lg"
+        onClick={() => append({ name: '', price: 0 })}
+      >
+        <Plus className="h-3 w-3 mr-1" /> Add Another Choice
+      </Button>
+    </div>
   );
 }
 
@@ -695,7 +790,7 @@ export default function ProductsManagementPage() {
         {isLoading && Array.from({length: 4}).map((_, i) => <Card key={i} className="border-none shadow-premium rounded-[2rem] overflow-hidden"><CardContent className="p-4 space-y-2"><Skeleton className="aspect-video w-full rounded-2xl" /><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-1/2" /></CardContent></Card>)}
 
         {!isLoading && products?.map((item) => (
-          <Card key={item.id} className={cn("border-none shadow-premium rounded-[2rem] overflow-hidden group", item.isSoldOut && "opacity-60")}>
+          <Card key={item.id} className={cn("border-none shadow-premium rounded-[2rem] overflow-hidden group flex flex-col h-full", item.isSoldOut && "opacity-60")}>
             <CardHeader className="p-0 relative">
               <div className="relative aspect-video w-full overflow-hidden">
                 <Image src={item.imageUrl || 'https://picsum.photos/seed/product/400/300'} alt={item.name} fill className="object-cover transition-transform group-hover:scale-105" />
@@ -710,7 +805,7 @@ export default function ProductsManagementPage() {
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-6 flex-1 flex flex-col">
               <CardTitle className="font-headline text-xl group-hover:text-primary transition-colors">{item.name}</CardTitle>
               <CardDescription className="mt-1 h-12 overflow-hidden text-ellipsis line-clamp-2">
                 {item.description}
@@ -742,10 +837,10 @@ export default function ProductsManagementPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="rounded-xl border-none shadow-premium">
-                  <DropdownMenuItem onSelect={() => handleEdit(item)} className="rounded-lg cursor-pointer">
-                    <Edit className="mr-2 h-4 w-4" /> Edit
+                  <DropdownMenuItem onSelect={() => handleEdit(item)} className="rounded-lg cursor-pointer font-bold">
+                    <Edit className="mr-2 h-4 w-4" /> Edit Product
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleDelete(item.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10 rounded-lg cursor-pointer">
+                  <DropdownMenuItem onSelect={() => handleDelete(item.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10 rounded-lg cursor-pointer font-bold">
                     <Trash2 className="mr-2 h-4 w-4" /> Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>

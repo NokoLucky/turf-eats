@@ -20,7 +20,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MenuItem",
       "type": "object",
-      "description": "Represents a menu item with optional customization groups.",
+      "description": "Represents a menu item with customizable questions and options.",
       "properties": {
         "id": { "type": "string" },
         "restaurantId": { "type": "string" },
@@ -30,7 +30,9 @@
         "promotionalPrice": { "type": "number" },
         "imageUrl": { "type": "string" },
         "isSoldOut": { "type": "boolean" },
+        "isBestseller": { "type": "boolean" },
         "category": { "type": "string" },
+        "addOnsTitle": { "type": "string" },
         "options": {
           "type": "array",
           "items": {
@@ -39,7 +41,16 @@
               "id": { "type": "string" },
               "name": { "type": "string" },
               "type": { "type": "string", "enum": ["radio", "checkbox"] },
-              "choices": { "type": "array", "items": { "type": "string" } },
+              "choices": { 
+                "type": "array", 
+                "items": { 
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "price": { "type": "number" }
+                  }
+                } 
+              },
               "minSelections": { "type": "number" },
               "maxSelections": { "type": "number" },
               "isRequired": { "type": "boolean" }

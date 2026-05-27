@@ -3,14 +3,14 @@ import type { Timestamp } from 'firebase/firestore';
 
 export type MenuItemOptionChoice = {
   name: string;
-  priceDelta?: number; // Optional price increase for this choice
+  price: number; // Additional cost for this choice
 };
 
 export type MenuItemOptionGroup = {
   id: string;
-  name: string;
+  name: string; // The Question/Label
   type: 'radio' | 'checkbox';
-  choices: string[];
+  choices: MenuItemOptionChoice[];
   minSelections?: number;
   maxSelections?: number;
   isRequired?: boolean;
@@ -35,6 +35,7 @@ export type MenuItem = {
   category: string;
   options?: MenuItemOptionGroup[];
   addOns?: MenuItemAddOn[];
+  addOnsTitle?: string; // Custom wording for the add-ons section
 };
 
 export type Restaurant = {

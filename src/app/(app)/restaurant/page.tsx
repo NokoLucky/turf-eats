@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState, useMemo, Suspense } from 'react';
@@ -11,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { doc, collection, getDoc, getDocs } from 'firebase/firestore';
-import type { Restaurant, MenuItem, MenuItemOptionGroup, MenuItemAddOn } from '@/lib/data';
+import type { Restaurant, MenuItem, MenuItemOptionGroup, MenuItemAddOn, MenuItemOptionChoice } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -85,24 +86,44 @@ function SelectionDialog({
   item: MenuItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (selections: Record<string, string[]>, addOns: MenuItemAddOn[], quantity: number) => void;
+  onConfirm: (selections: Record<string, string[]>, addOns: MenuItemAddOn[], quantity: number, totalUnitPrice: number) => void;
 }) {
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [selectedAddOns, setSelectedAddOns] = useState<MenuItemAddOn[]>([]);
   const [quantity, setQuantity] = useState(1);
 
-  const totalPrice = useMemo(() => {
+  const totalUnitPrice = useMemo(() => {
     if (!item) return 0;
+    let extraCost = 0;
+
+    // Calculate cost from Choice Groups
+    if (item.options) {
+      item.options.forEach(group => {
+        const selectedForGroup = selections[group.name] || [];
+        selectedForGroup.forEach(choiceName => {
+          const choice = group.choices.find(c => c.name === choiceName);
+          if (choice) extraCost += (choice.price || 0);
+        });
+      });
+    }
+
+    // Calculate cost from Add-ons
     const addOnTotal = selectedAddOns.reduce((sum, a) => sum + a.price, 0);
-    return (item.price + addOnTotal) * quantity;
-  }, [item, selectedAddOns, quantity]);
+    extraCost += addOnTotal;
+
+    return item.price + extraCost;
+  }, [item, selections, selectedAddOns]);
+
+  const totalPrice = totalUnitPrice * quantity;
 
   useEffect(() => {
     if (open && item) {
       const initial: Record<string, string[]> = {};
       if (item.options) {
         item.options.forEach(opt => {
-          initial[opt.name] = opt.type === 'radio' ? (opt.isRequired ? [opt.choices[0]] : []) : [];
+          // Normalization: Ensure choices are objects
+          const choices = opt.choices.map(c => typeof c === 'string' ? { name: c, price: 0 } : c);
+          initial[opt.name] = opt.type === 'radio' ? (opt.isRequired ? [choices[0].name] : []) : [];
         });
       }
       setSelections(initial);
@@ -113,14 +134,14 @@ function SelectionDialog({
 
   if (!item) return null;
 
-  const handleCheckboxChange = (groupName: string, choice: string, checked: boolean, max?: number) => {
+  const handleCheckboxChange = (groupName: string, choiceName: string, checked: boolean, max?: number) => {
     setSelections(prev => {
       const current = prev[groupName] || [];
       if (checked) {
         if (max && current.length >= max) return prev;
-        return { ...prev, [groupName]: [...current, choice] };
+        return { ...prev, [groupName]: [...current, choiceName] };
       } else {
-        return { ...prev, [groupName]: current.filter(c => c !== choice) };
+        return { ...prev, [groupName]: current.filter(c => c !== choiceName) };
       }
     });
   };
@@ -160,73 +181,89 @@ function SelectionDialog({
            </Button>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-8">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-2xl font-bold">{item.name}</h3>
+              <h3 className="text-2xl font-black text-slate-800">{item.name}</h3>
               <p className="text-muted-foreground text-sm mt-1">{item.description}</p>
             </div>
             {item.isBestseller && (
-              <Badge variant="secondary" className="bg-orange-100 text-primary border-none text-[10px] font-bold">Bestseller</Badge>
+              <Badge variant="secondary" className="bg-orange-100 text-primary border-none text-[10px] font-bold px-3 py-1">Popular</Badge>
             )}
           </div>
           
-          <div className="text-xl font-bold text-primary">R{item.price.toFixed(2)}</div>
+          <div className="text-xl font-black text-primary">R{item.price.toFixed(2)}</div>
 
-          {item.options?.map((group, index) => (
-            <div key={group.id} className="space-y-4">
-              <div className="flex items-center justify-between bg-[#F8F9FA] -mx-6 px-6 py-3">
-                <h4 className="font-bold text-sm">{group.name} {group.maxSelections && <span className="text-muted-foreground font-normal ml-1">(Select up to {group.maxSelections})</span>}</h4>
-                {group.isRequired && <Badge variant="secondary" className="text-[9px] bg-primary/10 text-primary border-none">REQUIRED</Badge>}
-              </div>
+          {item.options?.map((group, index) => {
+            // Normalization check
+            const normalizedChoices = group.choices.map(c => typeof c === 'string' ? { name: c, price: 0 } : c);
 
-              <div className="space-y-3">
-                {group.choices.map((choice) => {
-                  const isChecked = selections[group.name]?.includes(choice);
-                  return (
-                    <div 
-                      key={choice} 
-                      className="flex items-center justify-between py-1 cursor-pointer group"
-                      onClick={() => {
-                        if (group.type === 'radio') setSelections(prev => ({ ...prev, [group.name]: [choice] }));
-                        else handleCheckboxChange(group.name, choice, !isChecked, group.maxSelections);
-                      }}
-                    >
-                      <Label className="font-medium text-sm cursor-pointer group-hover:text-primary transition-colors">{choice}</Label>
-                      {group.type === 'radio' ? (
-                        <div className={cn(
-                          "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                          isChecked ? "border-primary bg-primary" : "border-muted-foreground/30"
-                        )}>
-                          {isChecked && <div className="w-2 h-2 rounded-full bg-white" />}
+            return (
+              <div key={group.id} className="space-y-4">
+                <div className="flex items-center justify-between bg-[#F8F9FA] -mx-6 px-6 py-3 border-y">
+                  <h4 className="font-black text-sm text-slate-800">{group.name} {group.maxSelections && <span className="text-muted-foreground font-medium ml-1">(Select up to {group.maxSelections})</span>}</h4>
+                  {group.isRequired && <Badge variant="secondary" className="text-[9px] bg-primary text-white border-none font-black tracking-widest">REQUIRED</Badge>}
+                </div>
+
+                <div className="space-y-4">
+                  {normalizedChoices.map((choice) => {
+                    const isChecked = selections[group.name]?.includes(choice.name);
+                    return (
+                      <div 
+                        key={choice.name} 
+                        className={cn(
+                          "flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer group",
+                          isChecked ? "border-primary bg-primary/5" : "border-slate-50 hover:border-slate-200"
+                        )}
+                        onClick={() => {
+                          if (group.type === 'radio') setSelections(prev => ({ ...prev, [group.name]: [choice.name] }));
+                          else handleCheckboxChange(group.name, choice.name, !isChecked, group.maxSelections);
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                            {group.type === 'radio' ? (
+                                <div className={cn(
+                                "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                                isChecked ? "border-primary bg-primary" : "border-slate-300"
+                                )}>
+                                {isChecked && <div className="w-2 h-2 rounded-full bg-white" />}
+                                </div>
+                            ) : (
+                                <div className={cn(
+                                "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all",
+                                isChecked ? "border-primary bg-primary" : "border-slate-300"
+                                )}>
+                                {isChecked && <Check className="h-3 w-3 text-white" />}
+                                </div>
+                            )}
+                            <Label className="font-bold text-sm cursor-pointer text-slate-700">{choice.name}</Label>
                         </div>
-                      ) : (
-                        <div className={cn(
-                          "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all",
-                          isChecked ? "border-primary bg-primary" : "border-muted-foreground/30"
-                        )}>
-                          {isChecked && <Check className="h-3 w-3 text-white" />}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                        {choice.price > 0 && (
+                          <span className="text-xs font-black text-primary">+ R{choice.price.toFixed(2)}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {item.addOns && item.addOns.length > 0 && (
             <div className="space-y-4">
-               <div className="bg-[#F8F9FA] -mx-6 px-6 py-3">
-                  <h4 className="font-bold text-sm">Would you like to add extras?</h4>
+               <div className="bg-[#F8F9FA] -mx-6 px-6 py-3 border-y">
+                  <h4 className="font-black text-sm text-slate-800">{item.addOnsTitle || 'Would you like to add extras?'}</h4>
                </div>
-               <div className="space-y-4">
+               <div className="space-y-3">
                   {item.addOns.map((addon) => {
                     const isChecked = selectedAddOns.some(a => a.id === addon.id);
                     return (
                       <div 
                         key={addon.id} 
-                        className="flex items-center justify-between py-1 cursor-pointer group"
+                        className={cn(
+                          "flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer",
+                          isChecked ? "border-primary bg-primary/5" : "border-slate-50 hover:border-slate-200"
+                        )}
                         onClick={() => handleAddOnToggle(addon, !isChecked)}
                       >
                          <div className="flex items-center gap-3">
@@ -234,11 +271,12 @@ function SelectionDialog({
                               id={`addon-${addon.id}`} 
                               checked={isChecked}
                               onCheckedChange={(checked) => handleAddOnToggle(addon, !!checked)}
+                              className="h-5 w-5 rounded-md"
                               onClick={(e) => e.stopPropagation()}
                             />
-                            <Label htmlFor={`addon-${addon.id}`} className="text-sm font-medium cursor-pointer group-hover:text-primary transition-colors">{addon.name}</Label>
+                            <Label htmlFor={`addon-${addon.id}`} className="text-sm font-bold cursor-pointer text-slate-700">{addon.name}</Label>
                          </div>
-                         <span className="text-sm text-muted-foreground font-medium">+ R{addon.price.toFixed(2)}</span>
+                         <span className="text-xs font-black text-primary">+ R{addon.price.toFixed(2)}</span>
                       </div>
                     );
                   })}
@@ -253,25 +291,25 @@ function SelectionDialog({
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="h-8 w-8 rounded-full" 
+                className="h-10 w-10 rounded-full hover:bg-white/50" 
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
               >
                 -
               </Button>
-              <span className="w-8 text-center font-bold">{quantity}</span>
+              <span className="w-10 text-center font-black text-lg">{quantity}</span>
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="h-8 w-8 rounded-full" 
+                className="h-10 w-10 rounded-full hover:bg-white/50" 
                 onClick={() => setQuantity(quantity + 1)}
               >
                 +
               </Button>
             </div>
             <Button 
-              onClick={() => onConfirm(selections, selectedAddOns, quantity)} 
+              onClick={() => onConfirm(selections, selectedAddOns, quantity, totalUnitPrice)} 
               disabled={!isValid()} 
-              className="flex-1 h-12 rounded-2xl font-bold shadow-lg shadow-primary/20 flex justify-between px-6"
+              className="flex-1 h-14 rounded-2xl font-black text-lg shadow-xl shadow-primary/20 flex justify-between px-8"
             >
                <span>Add to Cart</span>
                <span>R{totalPrice.toFixed(2)}</span>
@@ -348,13 +386,10 @@ function RestaurantContent() {
 
   const categories = ['All', ...sortedCategoryNames];
 
-  const handleAddToCart = (item: MenuItem, selectedOptions?: Record<string, string[]>, selectedAddOns?: MenuItemAddOn[], quantity: number = 1) => {
+  const handleAddToCart = (item: MenuItem, selectedOptions?: Record<string, string[]>, selectedAddOns?: MenuItemAddOn[], quantity: number = 1, finalUnitPrice: number = 0) => {
     const addOnIds = selectedAddOns?.map(a => a.id).join('-') || '';
-    const cartId = `${item.id}-${Object.values(selectedOptions || {}).flat().join('-')}-${addOnIds}`;
+    const cartId = `${item.id}-${Object.values(selectedOptions || {}).flat().join('-')}-${addOnIds}-${Date.now()}`;
     
-    const addOnPrice = selectedAddOns?.reduce((sum, a) => sum + a.price, 0) || 0;
-    const finalUnitPrice = item.price + addOnPrice;
-
     dispatch({
       type: 'ADD_ITEM',
       payload: { 
@@ -385,7 +420,7 @@ function RestaurantContent() {
         item={customizingItem}
         open={isSelectionOpen}
         onOpenChange={setSelectionOpen}
-        onConfirm={(selections, addOns, qty) => handleAddToCart(customizingItem!, selections, addOns, qty)}
+        onConfirm={(selections, addOns, qty, totalUnitPrice) => handleAddToCart(customizingItem!, selections, addOns, qty, totalUnitPrice)}
       />
       
       <ImagePreviewDialog 
@@ -433,8 +468,8 @@ function RestaurantContent() {
                       <Image src={restaurant?.logoUrl || ''} alt="logo" width={56} height={56} className="object-cover" />
                    </div>
                    <div>
-                      <h1 className="text-xl font-bold">{restaurant?.name}</h1>
-                      <p className="text-xs text-muted-foreground font-medium mt-0.5">Great food. Great experience.</p>
+                      <h1 className="text-xl font-black text-slate-800">{restaurant?.name}</h1>
+                      <p className="text-xs text-muted-foreground font-medium mt-0.5">Reliable local delivery partner.</p>
                    </div>
                 </div>
                 <div className="flex items-center gap-1 bg-orange-50 px-2 py-1 rounded-lg text-primary font-bold text-sm">
@@ -445,7 +480,7 @@ function RestaurantContent() {
 
              <div className="flex items-center gap-4 text-[11px] text-muted-foreground font-bold uppercase tracking-wider mb-6">
                 <div className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {restaurant?.openingHours}</div>
-                <div className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> 1.5 km</div>
+                <div className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> nearby</div>
                 <div className="flex items-center gap-1"><Badge variant="outline" className="text-[9px] border-muted">30-40 min</Badge></div>
              </div>
 
@@ -474,7 +509,7 @@ function RestaurantContent() {
                         const items = menuByCategory[catName];
                         return (
                           <div key={catName}>
-                            <h2 className="text-lg font-bold mb-4">{catName}</h2>
+                            <h2 className="text-lg font-black text-slate-800 mb-4">{catName}</h2>
                             <div className="space-y-4">
                                 {items.map(item => (
                                   <Card key={item.id} className="border-none shadow-sm rounded-2xl overflow-hidden bg-white">
@@ -492,9 +527,9 @@ function RestaurantContent() {
                                           )}
                                       </div>
                                       <div className="flex-1">
-                                          <h3 className="font-bold text-sm">{item.name}</h3>
+                                          <h3 className="font-bold text-sm text-slate-700">{item.name}</h3>
                                           <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{item.description}</p>
-                                          <p className="text-primary font-bold text-sm mt-1">R{item.price.toFixed(2)}</p>
+                                          <p className="text-primary font-black text-sm mt-1">R{item.price.toFixed(2)}</p>
                                       </div>
                                       <Button 
                                         size="icon" 
