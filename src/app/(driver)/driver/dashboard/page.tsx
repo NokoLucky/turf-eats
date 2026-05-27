@@ -393,8 +393,8 @@ export default function DriverDashboard() {
       </div>
 
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden rounded-[2.5rem] bg-[#1a1a1a] border-white/5 text-white">
-          <div className="bg-primary p-6 relative">
+        <DialogContent className="sm:max-w-md w-[95vw] max-h-[90vh] p-0 overflow-hidden rounded-[2rem] bg-[#1a1a1a] border-white/5 text-white flex flex-col">
+          <div className="bg-primary p-6 relative shrink-0">
             <DialogClose asChild>
               <Button 
                   variant="ghost" 
@@ -426,65 +426,65 @@ export default function DriverDashboard() {
             </DialogHeader>
           </div>
 
-          <div className="p-6 space-y-6">
-             <div className="bg-[#222] p-4 rounded-3xl border border-white/5 flex flex-col items-center">
-                <Calendar 
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  className="rounded-md border-none"
-                  classNames={{
-                    day_selected: "bg-primary text-white hover:bg-primary hover:text-white focus:bg-primary focus:text-white",
-                    day_today: "bg-white/10 text-white",
-                    head_cell: "text-muted-foreground",
-                    cell: "text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
-                    nav_button: "hover:bg-white/10 text-white",
-                  }}
-                />
-             </div>
+          <ScrollArea className="flex-1 overflow-y-auto">
+            <div className="p-6 space-y-6">
+              <div className="bg-[#222] p-4 rounded-3xl border border-white/5 flex flex-col items-center">
+                  <Calendar 
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    className="rounded-md border-none"
+                    classNames={{
+                      day_selected: "bg-primary text-white hover:bg-primary hover:text-white focus:bg-primary focus:text-white",
+                      day_today: "bg-white/10 text-white",
+                      head_cell: "text-muted-foreground",
+                      cell: "text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+                      nav_button: "hover:bg-white/10 text-white",
+                    }}
+                  />
+              </div>
 
-             <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                   <h3 className="text-sm font-bold flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-primary" />
-                      {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : 'Select a date'}
-                   </h3>
-                   <Badge variant="outline" className="text-white border-white/10">
-                      {historyOrders.length} {historyOrders.length === 1 ? 'Trip' : 'Trips'}
-                   </Badge>
-                </div>
+              <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-primary" />
+                        {selectedDate ? format(selectedDate, 'MMM d, yyyy') : 'Select a date'}
+                    </h3>
+                    <Badge variant="outline" className="text-white border-white/10">
+                        {historyOrders.length} {historyOrders.length === 1 ? 'Trip' : 'Trips'}
+                    </Badge>
+                  </div>
 
-                <ScrollArea className="h-[250px] pr-4">
-                   {historyOrders.length > 0 ? (
-                      <div className="space-y-3">
-                         {historyOrders.map((order) => (
-                            <div key={order.id} className="bg-[#222] p-4 rounded-2xl border border-white/5 flex items-center justify-between">
-                               <div>
-                                  <p className="text-xs font-bold">Order #{order.id.slice(0, 6)}</p>
-                                  <p className="text-[10px] text-muted-foreground">
-                                     Delivered at {order.deliveredAt ? format(order.deliveredAt.toDate(), 'p') : 'N/A'}
-                                  </p>
-                               </div>
-                               <div className="text-right">
-                                  <p className="text-sm font-bold text-green-500">+ R{(24 + (order.tip || 0)).toFixed(2)}</p>
-                                  <p className="text-[9px] text-muted-foreground uppercase font-medium">
-                                    {order.tip ? `Inc. R${order.tip.toFixed(2)} Tip` : 'Base Payout'}
-                                  </p>
-                               </div>
-                            </div>
-                         ))}
-                      </div>
-                   ) : (
-                      <div className="h-full flex flex-col items-center justify-center text-center opacity-30 py-10">
-                         <History className="h-10 w-10 mb-2" />
-                         <p className="text-sm">No deliveries on this day.</p>
-                      </div>
-                   )}
-                </ScrollArea>
-             </div>
-          </div>
+                  <div className="space-y-3 pb-4">
+                    {historyOrders.length > 0 ? (
+                        historyOrders.map((order) => (
+                          <div key={order.id} className="bg-[#222] p-4 rounded-2xl border border-white/5 flex items-center justify-between">
+                              <div>
+                                <p className="text-xs font-bold">Order #{order.id.slice(0, 6)}</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                    Delivered at {order.deliveredAt ? format(order.deliveredAt.toDate(), 'p') : 'N/A'}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-bold text-green-500">+ R{(24 + (order.tip || 0)).toFixed(2)}</p>
+                                <p className="text-[9px] text-muted-foreground uppercase font-medium">
+                                  {order.tip ? `Inc. R${order.tip.toFixed(2)} Tip` : 'Base Payout'}
+                                </p>
+                              </div>
+                          </div>
+                        ))
+                    ) : (
+                        <div className="flex flex-col items-center justify-center text-center opacity-30 py-10">
+                          <History className="h-10 w-10 mb-2" />
+                          <p className="text-sm">No deliveries on this day.</p>
+                        </div>
+                    )}
+                  </div>
+              </div>
+            </div>
+          </ScrollArea>
 
-          <div className="p-6 bg-[#222]/50 border-t border-white/5">
+          <div className="p-6 bg-[#222]/50 border-t border-white/5 shrink-0">
              <DialogClose asChild>
                 <Button variant="outline" className="w-full rounded-2xl h-12 font-bold border-white/10 hover:bg-white/5 text-white">
                     <ChevronLeft className="h-4 w-4 mr-2" /> Back to Dashboard

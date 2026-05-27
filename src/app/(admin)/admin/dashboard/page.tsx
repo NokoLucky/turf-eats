@@ -368,7 +368,7 @@ export default function AdminDashboard() {
       </Tabs>
 
       <Dialog open={isBreakdownOpen} onOpenChange={setIsBreakdownOpen}>
-        <DialogContent className="max-w-md rounded-[2.5rem] border-none shadow-2xl overflow-hidden p-0">
+        <DialogContent className="sm:max-w-md w-[95vw] max-h-[90vh] rounded-[2rem] border-none shadow-2xl overflow-hidden p-0 flex flex-col">
           <div className="bg-primary p-6 text-white shrink-0">
              <DialogHeader>
                 <div className="bg-white/20 p-2 w-fit rounded-xl backdrop-blur-md mb-4">
@@ -379,7 +379,7 @@ export default function AdminDashboard() {
              </DialogHeader>
           </div>
           
-          <ScrollArea className="max-h-[60vh] bg-background">
+          <ScrollArea className="flex-1 bg-background overflow-y-auto">
              <div className="p-6">
                 {breakdownItems.length > 0 ? (
                   <div className="space-y-1">
@@ -401,17 +401,17 @@ export default function AdminDashboard() {
              </div>
           </ScrollArea>
           
-          <div className="p-4 bg-muted/30 border-t flex justify-end">
+          <div className="p-4 bg-muted/30 border-t flex justify-end shrink-0">
              <Button variant="outline" className="rounded-xl font-bold" onClick={() => setIsBreakdownOpen(false)}>Close</Button>
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl h-[85vh] p-0 overflow-hidden rounded-[2.5rem] border-none shadow-2xl flex flex-col">
+        <DialogContent className="sm:max-w-2xl w-[95vw] h-[85vh] p-0 overflow-hidden rounded-[2rem] border-none shadow-2xl flex flex-col">
           {inspectedItem && inspectionType && (
             <>
-              <div className="bg-primary p-8 text-white flex-shrink-0">
+              <div className="bg-primary p-6 sm:p-8 text-white flex-shrink-0">
                 <DialogHeader>
                   <div className="flex items-center gap-4 mb-2">
                     <div className="bg-white/20 p-2 rounded-xl backdrop-blur-md">
@@ -424,26 +424,26 @@ export default function AdminDashboard() {
                       {inspectionType} Inspection
                     </Badge>
                   </div>
-                  <DialogTitle className="text-3xl font-bold">{inspectedItem.name || 'N/A'}</DialogTitle>
-                  <DialogDescription className="text-white/80">
+                  <DialogTitle className="text-2xl sm:text-3xl font-bold truncate">{inspectedItem.name || 'N/A'}</DialogTitle>
+                  <DialogDescription className="text-white/80 text-xs truncate">
                     ID: {inspectedItem.id} {inspectedItem.status ? `• Status: ${inspectedItem.status}` : ''}
                   </DialogDescription>
                 </DialogHeader>
               </div>
 
-              <ScrollArea className="flex-1 min-h-0 bg-background">
-                <div className="p-8 space-y-8 pb-12">
+              <ScrollArea className="flex-1 min-h-0 bg-background overflow-y-auto">
+                <div className="p-6 sm:p-8 space-y-8 pb-12">
                   {inspectionType === 'restaurant' && (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Logo</p>
-                        <div className="h-24 w-24 rounded-2xl overflow-hidden border-4 border-white shadow-md bg-muted">
+                        <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl overflow-hidden border-4 border-white shadow-md bg-muted">
                            <img src={inspectedItem.logoUrl} className="w-full h-full object-cover" alt="logo" />
                         </div>
                       </div>
                       <div className="space-y-2">
                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Banner</p>
-                         <div className="h-24 w-full rounded-2xl overflow-hidden border-4 border-white shadow-md bg-muted">
+                         <div className="h-20 sm:h-24 w-full rounded-2xl overflow-hidden border-4 border-white shadow-md bg-muted">
                            <img src={inspectedItem.bannerUrl} className="w-full h-full object-cover" alt="banner" />
                         </div>
                       </div>
@@ -526,29 +526,27 @@ export default function AdminDashboard() {
                                  </Badge>
                               </div>
 
-                              <ScrollArea className="h-[300px]">
+                              <div className="h-[250px] overflow-y-auto space-y-3 pr-2">
                                  {driverHistoryLogs.length > 0 ? (
-                                    <div className="space-y-3">
-                                       {driverHistoryLogs.map(order => (
-                                          <div key={order.id} className="p-3 rounded-2xl bg-white border shadow-sm group hover:border-primary/30 transition-colors">
-                                             <div className="flex justify-between items-start mb-1">
-                                                <p className="text-[10px] font-bold">#ORD{order.id.slice(0, 6)}</p>
-                                                <p className="text-[10px] font-bold text-green-600">R{(24 + (order.tip || 0)).toFixed(2)}</p>
-                                             </div>
-                                             <div className="flex items-center justify-between text-[9px] text-muted-foreground">
-                                                <span className="flex items-center gap-1"><Clock className="h-2.5 w-2.5" /> {order.deliveredAt ? format(order.deliveredAt.toDate(), 'p') : 'N/A'}</span>
-                                                {order.tip && <span className="flex items-center gap-0.5 text-primary font-bold"><Heart className="h-2 w-2 fill-primary" /> R{order.tip.toFixed(2)} Tip</span>}
-                                             </div>
-                                          </div>
-                                       ))}
-                                    </div>
+                                    driverHistoryLogs.map(order => (
+                                      <div key={order.id} className="p-3 rounded-2xl bg-white border shadow-sm group hover:border-primary/30 transition-colors">
+                                         <div className="flex justify-between items-start mb-1">
+                                            <p className="text-[10px] font-bold">#ORD{order.id.slice(0, 6)}</p>
+                                            <p className="text-[10px] font-bold text-green-600">R{(24 + (order.tip || 0)).toFixed(2)}</p>
+                                         </div>
+                                         <div className="flex items-center justify-between text-[9px] text-muted-foreground">
+                                            <span className="flex items-center gap-1"><Clock className="h-2.5 w-2.5" /> {order.deliveredAt ? format(order.deliveredAt.toDate(), 'p') : 'N/A'}</span>
+                                            {order.tip && <span className="flex items-center gap-0.5 text-primary font-bold"><Heart className="h-2 w-2 fill-primary" /> R{order.tip.toFixed(2)} Tip</span>}
+                                         </div>
+                                      </div>
+                                    ))
                                  ) : (
                                     <div className="flex flex-col items-center justify-center py-10 opacity-30 text-center">
                                        <History className="h-10 w-10 mb-2" />
                                        <p className="text-xs font-bold uppercase tracking-widest">No activity</p>
                                     </div>
                                  )}
-                              </ScrollArea>
+                              </div>
                            </div>
                         </div>
                     </div>
@@ -558,22 +556,22 @@ export default function AdminDashboard() {
               
               <Separator className="flex-shrink-0" />
               
-              <div className="p-6 bg-muted/30 flex gap-3 flex-shrink-0">
-                <Button className="flex-1 rounded-2xl h-12 font-bold" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Close Inspection
+              <div className="p-4 sm:p-6 bg-muted/30 flex flex-wrap gap-2 shrink-0">
+                <Button className="flex-1 rounded-xl h-10 sm:h-12 font-bold text-xs sm:text-sm" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Close
                 </Button>
                 {inspectedItem.status === 'pending' && (
-                  <Button className="flex-1 rounded-2xl h-12 font-bold bg-primary text-white" onClick={(e) => {
+                  <Button className="flex-1 rounded-xl h-10 sm:h-12 font-bold bg-primary text-white text-xs sm:text-sm" onClick={(e) => {
                     handleApprove(e, inspectionType === 'driver' ? 'drivers' : 'storeOwners', inspectedItem.id);
                     setIsDialogOpen(false);
                   }}>
-                    Approve Request
+                    Approve
                   </Button>
                 )}
                 {(inspectionType === 'customer' || inspectionType === 'driver' || inspectionType === 'owner') && (
                    <Button 
                     variant="destructive" 
-                    className="flex-1 rounded-2xl h-12 font-bold" 
+                    className="flex-1 rounded-xl h-10 sm:h-12 font-bold text-xs sm:text-sm" 
                     onClick={(e) => {
                       const path = inspectionType === 'customer' 
                         ? `users/${inspectedItem.id}/customers/${inspectedItem.id}` 
@@ -585,7 +583,7 @@ export default function AdminDashboard() {
                       setIsDialogOpen(false);
                     }}
                   >
-                    Delete {inspectionType.charAt(0).toUpperCase() + inspectionType.slice(1)}
+                    Delete
                   </Button>
                 )}
               </div>
