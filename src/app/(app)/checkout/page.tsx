@@ -7,11 +7,10 @@ import { Card } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ArrowLeft, MapPin, Truck, ShieldCheck, MessageSquare, Heart } from 'lucide-react';
+import { ArrowLeft, MapPin, ShieldCheck, MessageSquare, Heart, Loader2 } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp, writeBatch, doc, getDoc } from 'firebase/firestore';
+import { collection, serverTimestamp, writeBatch, doc, getDoc } from 'firebase/firestore';
 import { Textarea } from '@/components/ui/textarea';
-import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 const tipOptions = [
@@ -35,6 +34,8 @@ export default function CheckoutPage() {
   }, [user, firestore]);
 
   const { data: customerData } = useDoc<{name: string; phoneNumber: string; address: string}>(customerRef);
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -51,11 +52,14 @@ export default function CheckoutPage() {
     }
   }, [customerData]);
 
+  // Only auto-redirect if the cart is empty AND we aren't currently placing an order
   useEffect(() => {
-    if (state.items.length === 0) router.replace('/dashboard');
-  }, [state.items, router]);
+    if (state.items.length === 0 && !isSubmitting) {
+      router.replace('/dashboard');
+    }
+  }, [state.items.length, isSubmitting, router]);
 
-  if (state.items.length === 0) return null;
+  if (state.items.length === 0 && !isSubmitting) return null;
 
   const subtotal = state.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const serviceFee = 5.0; 
@@ -63,14 +67,21 @@ export default function CheckoutPage() {
   const total = subtotal + serviceFee + deliveryFee + selectedTip;
 
   const handleConfirmOrder = async () => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || isSubmitting) return;
     
+    setIsSubmitting(true);
     try {
       const restaurantId = state.items[0]?.restaurantId;
       const restaurantSnap = await getDoc(doc(firestore, 'restaurants', restaurantId));
       const storeOwnerId = restaurantSnap.data()?.storeOwnerId;
 
-      const orderRef = await addDoc(collection(firestore, 'orders'), {
+      // Prepare order doc and ID
+      const orderRef = doc(collection(firestore, 'orders'));
+      const orderId = orderRef.id;
+
+      const batch = writeBatch(firestore);
+
+      batch.set(orderRef, {
         customerId: user.uid,
         customerName: customerName || user.displayName || 'Guest',
         customerPhone: customerPhone || user.phoneNumber || '',
@@ -89,11 +100,10 @@ export default function CheckoutPage() {
         participantUids: [user.uid, storeOwnerId],
       });
 
-      const batch = writeBatch(firestore);
       state.items.forEach(item => {
-        const orderItemRef = doc(collection(firestore, `orders/${orderRef.id}/orderItems`));
+        const orderItemRef = doc(collection(firestore, `orders/${orderId}/orderItems`));
         batch.set(orderItemRef, {
-            orderId: orderRef.id,
+            orderId: orderId,
             menuItemId: item.actualId,
             quantity: item.quantity,
             itemPrice: item.price,
@@ -101,13 +111,20 @@ export default function CheckoutPage() {
             selectedOptions: item.selectedOptions || null,
         });
       });
+
       await batch.commit();
-      dispatch({ type: 'CLEAR_CART' });
       
-      router.push(`/order-success?id=${orderRef.id}`);
+      // Navigate first, then clear cart to avoid the "empty cart" redirect logic
+      router.push(`/order-success?id=${orderId}`);
+      
+      // Small delay before clearing global cart state
+      setTimeout(() => {
+        dispatch({ type: 'CLEAR_CART' });
+      }, 500);
 
     } catch (error) {
-      console.error(error);
+      console.error("Order failed:", error);
+      setIsSubmitting(false);
     }
   };
 
@@ -129,7 +146,7 @@ export default function CheckoutPage() {
               <div className="flex-1">
                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Delivering to</p>
                  <p className="text-sm font-bold mt-0.5">{deliveryAddress || 'Set address in profile'}</p>
-                 <p className="text-[10px] text-muted-foreground mt-1">{customerName} • {customerPhone}</p>
+                 <p className="text-[10px] text-muted-foreground mt-1">{customerName || 'Update name in profile'} • {customerPhone || 'Update phone'}</p>
               </div>
               <Button variant="ghost" className="text-primary text-xs font-bold h-auto p-0" onClick={() => router.push('/profile')}>Change</Button>
            </div>
@@ -234,8 +251,19 @@ export default function CheckoutPage() {
                  <span>Total</span>
                  <span className="text-primary">R{total.toFixed(2)}</span>
               </div>
-              <Button onClick={handleConfirmOrder} className="w-full h-14 rounded-2xl font-bold text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
-                 Place Order
+              <Button 
+                onClick={handleConfirmOrder} 
+                disabled={isSubmitting}
+                className="w-full h-14 rounded-2xl font-bold text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
+              >
+                 {isSubmitting ? (
+                   <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Placing Order...
+                   </>
+                 ) : (
+                   "Place Order"
+                 )}
               </Button>
               <p className="text-center mt-3 text-[10px] text-muted-foreground flex items-center justify-center gap-1">
                  <ShieldCheck className="h-3 w-3" /> Safe & secure payments
