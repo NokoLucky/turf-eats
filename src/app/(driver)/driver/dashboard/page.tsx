@@ -8,7 +8,7 @@ import {
   TrendingUp, Star, DollarSign, Clock,
   Navigation, ShoppingBag, ArrowRight,
   Calendar as CalendarIcon, History, ChevronLeft, ChevronRight,
-  Heart
+  Heart, X
 } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc, query, where, updateDoc, arrayUnion, getDoc, serverTimestamp } from 'firebase/firestore';
@@ -27,6 +27,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -394,14 +395,25 @@ export default function DriverDashboard() {
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
         <DialogContent className="max-w-md p-0 overflow-hidden rounded-[2.5rem] bg-[#1a1a1a] border-white/5 text-white">
           <div className="bg-primary p-6 relative">
-             <Button 
-                variant="ghost" 
-                size="icon" 
-                className="absolute top-4 left-4 text-white hover:bg-white/20 rounded-full"
-                onClick={() => setIsHistoryOpen(false)}
-             >
-                <ChevronLeft className="h-6 w-6" />
-             </Button>
+            <DialogClose asChild>
+              <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute top-4 left-4 text-white hover:bg-white/20 rounded-full"
+              >
+                  <ChevronLeft className="h-6 w-6" />
+              </Button>
+            </DialogClose>
+            
+            <DialogClose asChild>
+              <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute top-4 right-4 text-white hover:bg-white/20 rounded-full"
+              >
+                  <X className="h-6 w-6" />
+              </Button>
+            </DialogClose>
 
             <DialogHeader className="pt-8">
               <div className="flex items-center gap-3 mb-2">
@@ -473,9 +485,11 @@ export default function DriverDashboard() {
           </div>
 
           <div className="p-6 bg-[#222]/50 border-t border-white/5">
-             <Button variant="outline" className="w-full rounded-2xl h-12 font-bold border-white/10 hover:bg-white/5 text-white" onClick={() => setIsHistoryOpen(false)}>
-                <ChevronLeft className="h-4 w-4 mr-2" /> Back to Dashboard
-             </Button>
+             <DialogClose asChild>
+                <Button variant="outline" className="w-full rounded-2xl h-12 font-bold border-white/10 hover:bg-white/5 text-white">
+                    <ChevronLeft className="h-4 w-4 mr-2" /> Back to Dashboard
+                </Button>
+             </DialogClose>
           </div>
         </DialogContent>
       </Dialog>
