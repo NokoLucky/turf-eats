@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState } from 'react';
@@ -248,8 +247,12 @@ export default function AdminDashboard() {
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-secondary overflow-hidden">
-                       <img src={`https://picsum.photos/seed/${driver.id}/100/100`} alt="avatar" />
+                    <div className="h-12 w-12 rounded-full bg-secondary overflow-hidden border border-muted">
+                       <img 
+                        src={driver.photoUrl || `https://picsum.photos/seed/${driver.id}/100/100`} 
+                        alt={driver.name} 
+                        className="w-full h-full object-cover"
+                       />
                     </div>
                     <div>
                       <h3 className="font-bold group-hover:text-primary transition-colors">{driver.name}</h3>
@@ -444,6 +447,15 @@ export default function AdminDashboard() {
                            <img src={inspectedItem.bannerUrl} className="w-full h-full object-cover" alt="banner" />
                         </div>
                       </div>
+                    </div>
+                  )}
+
+                  {inspectionType === 'driver' && inspectedItem.photoUrl && (
+                    <div className="space-y-2">
+                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Driver Photo</p>
+                       <div className="h-24 w-24 rounded-2xl overflow-hidden border-4 border-white shadow-md bg-muted">
+                          <img src={inspectedItem.photoUrl} className="w-full h-full object-cover" alt="driver photo" />
+                       </div>
                     </div>
                   )}
 

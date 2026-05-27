@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -258,8 +257,12 @@ export default function DriverDashboard() {
       <div className="bg-[#1a1a1a] p-6 rounded-b-[2rem] shadow-lg">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-primary">
-              <img src={user?.photoURL || `https://picsum.photos/seed/${user?.uid}/100/100`} alt="profile" className="object-cover" />
+            <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-primary bg-[#222]">
+              <img 
+                src={driverProfile?.photoUrl || user?.photoURL || `https://picsum.photos/seed/${user?.uid}/100/100`} 
+                alt="profile" 
+                className="object-cover w-full h-full" 
+              />
             </div>
             <div>
               <h1 className="text-lg font-bold">{greeting}{firstName ? `, ${firstName}` : ''} 👋</h1>
