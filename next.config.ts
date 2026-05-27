@@ -1,14 +1,12 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  /* Capacitor requires a static export to bundle files into the native app */
+  output: 'export',
+  /* Image optimization requires a server, so we disable it for static/native builds */
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -65,6 +63,12 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       }
     ],
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
   },
 };
 
