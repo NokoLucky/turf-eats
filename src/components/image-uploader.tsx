@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, ChangeEvent, useEffect } from 'react';
@@ -111,48 +112,50 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
   };
 
   return (
-    <div className="space-y-4">
-      <div className="border rounded-lg p-4">
+    <div className="space-y-4 w-full">
+      <div className="border rounded-xl p-4 bg-muted/30">
         {previewUrl ? (
-          <div className="relative aspect-video">
+          <div className="relative aspect-square w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-white shadow-md">
             <Image
               src={previewUrl}
               alt="Preview"
               fill
-              className="object-contain"
+              className="object-cover"
               unoptimized={previewUrl.startsWith('blob:')}
             />
             <Button
               size="icon"
               variant="destructive"
-              className="absolute top-2 right-2"
-              onClick={handleRemove}
+              className="absolute top-1 right-1 h-6 w-6 rounded-full"
+              onClick={(e) => {
+                e.preventDefault();
+                handleRemove();
+              }}
             >
-              <X className="h-4 w-4" />
+              <X className="h-3 w-3" />
             </Button>
           </div>
         ) : (
-          <div className="aspect-video border-2 border-dashed rounded-lg flex items-center justify-center">
+          <div className="aspect-square w-32 h-32 mx-auto border-2 border-dashed rounded-full flex items-center justify-center bg-white">
             <div className="text-center">
-              <Upload className="h-12 w-12 mx-auto text-gray-400" />
-              <p className="mt-2 text-sm text-gray-500">No image selected</p>
+              <Upload className="h-6 w-6 mx-auto text-gray-400" />
             </div>
           </div>
         )}
       </div>
 
       <div>
-        <Button asChild disabled={isUploading || !storage} className="w-full">
-          <label>
+        <Button asChild disabled={isUploading || !storage} className="w-full cursor-pointer" variant="outline">
+          <label className="cursor-pointer flex items-center justify-center gap-2">
             {isUploading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
                 Uploading...
               </>
             ) : (
               <>
-                <Upload className="mr-2 h-4 w-4" />
-                Choose Image
+                <Upload className="h-4 w-4" />
+                {previewUrl ? 'Change Photo' : 'Choose Photo'}
               </>
             )}
             <input

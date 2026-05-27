@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -221,20 +222,22 @@ function RoleSelectionContent() {
         ))}
       </div>
       <Dialog open={isDriverDialogOpen} onOpenChange={(open) => !isSubmitting && setDriverDialogOpen(open)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Driver Application</DialogTitle>
             <DialogDescription>
               To ensure the safety of our customers, please upload a clear image of your driver's license.
             </DialogDescription>
           </DialogHeader>
-          <ImageUploader 
-            folderName="driver-licenses"
-            initialImageUrl={null}
-            onUploadComplete={(url) => setLicenseUrl(url)}
-          />
+          <div className="py-4">
+            <ImageUploader 
+              folderName="driver-licenses"
+              initialImageUrl={null}
+              onUploadComplete={(url) => setLicenseUrl(url)}
+            />
+          </div>
           <DialogFooter>
-            <Button onClick={handleDriverSubmit} disabled={!licenseUrl || isSubmitting}>
+            <Button onClick={handleDriverSubmit} disabled={!licenseUrl || isSubmitting} className="w-full">
               {isSubmitting ? 'Submitting...' : 'Submit Application'}
             </Button>
           </DialogFooter>

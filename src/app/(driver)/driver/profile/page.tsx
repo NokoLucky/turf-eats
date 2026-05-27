@@ -141,9 +141,9 @@ export default function DriverProfilePage() {
                       name="photoUrl"
                       render={({ field }) => (
                         <FormItem className="flex flex-col items-center justify-center space-y-4 py-4">
-                          <FormLabel>Profile Photo</FormLabel>
+                          <FormLabel className="text-lg font-bold">Profile Photo</FormLabel>
                           <FormControl>
-                            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-xl bg-muted group relative cursor-pointer">
+                            <div className="w-full max-w-sm">
                               <ImageUploader 
                                 folderName="driver-profiles"
                                 initialImageUrl={field.value}
@@ -151,7 +151,6 @@ export default function DriverProfilePage() {
                               />
                             </div>
                           </FormControl>
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold">Click to upload photo</p>
                           <FormMessage />
                         </FormItem>
                       )}
