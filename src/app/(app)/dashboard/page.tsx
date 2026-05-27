@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { 
   Star, Search, MapPin, 
   Clock, Truck, ChevronDown, X,
-  MoreHorizontal, ZoomIn
+  MoreHorizontal, ZoomIn, Info
 } from 'lucide-react';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
@@ -137,7 +137,7 @@ export default function CustomerDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-10 relative">
+    <div className="min-h-screen bg-[#F8F9FA] pb-24 relative">
       <ImagePreviewDialog 
         url={previewUrl}
         title={previewTitle}
@@ -188,7 +188,7 @@ export default function CustomerDashboardPage() {
       <div className="container px-4 sm:px-8 pt-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold">Popular Near You</h2>
-          <Link href="#" className="text-muted-foreground text-sm font-medium">See all</Link>
+          <Link href="#" className="text-primary text-xs font-bold uppercase tracking-widest">See all</Link>
         </div>
         
         <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -199,10 +199,10 @@ export default function CustomerDashboardPage() {
               </div>
             ))
           ) : filteredStores.length > 0 ? (
-            filteredStores.map((store) => (
-              <div key={store.id} className="min-w-[200px] flex flex-col gap-2">
+            filteredStores.filter(s => (s.rating || 0) >= 4).map((store) => (
+              <div key={store.id} className="min-w-[240px] flex flex-col gap-2">
                 <Card className="overflow-hidden border-none shadow-premium bg-white group h-full rounded-2xl">
-                  <div className="relative h-28 w-full overflow-hidden cursor-pointer" onClick={() => openPreview(store.bannerUrl || 'https://picsum.photos/seed/placeholder/600/400', store.name)}>
+                  <div className="relative h-32 w-full overflow-hidden cursor-pointer" onClick={() => openPreview(store.bannerUrl || 'https://picsum.photos/seed/placeholder/600/400', store.name)}>
                     <Image
                       src={store.bannerUrl || 'https://picsum.photos/seed/placeholder/600/400'}
                       alt={store.name}
@@ -227,21 +227,72 @@ export default function CustomerDashboardPage() {
                         <span>•</span>
                         <span>{store.deliveryTime || '20-30 min'}</span>
                         <span>•</span>
-                        <span>1.5 km</span>
+                        <span>{store.category}</span>
                       </div>
                     </CardContent>
                   </Link>
                 </Card>
               </div>
             ))
-          ) : (
-            <div className="w-full text-center py-10 bg-white rounded-3xl">
-              <p className="text-muted-foreground">No stores found.</p>
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
+
+      <div className="container px-4 sm:px-8 pt-8">
+        <h2 className="text-lg font-bold mb-6">Explore All Stores</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => <StoreCardSkeleton key={i} />)
+            ) : filteredStores.length > 0 ? (
+                filteredStores.map((store) => (
+                    <Card key={store.id} className="overflow-hidden border-none shadow-premium bg-white group rounded-[2rem] flex flex-col">
+                        <div className="relative h-40 w-full cursor-pointer" onClick={() => openPreview(store.bannerUrl || '', store.name)}>
+                             <Image
+                                src={store.bannerUrl || 'https://picsum.photos/seed/placeholder/600/400'}
+                                alt={store.name}
+                                fill
+                                className="object-cover transition-transform group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                            <div className="absolute bottom-4 left-4 flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-xl overflow-hidden border-2 border-white shadow-lg bg-white">
+                                    <Image src={store.logoUrl} alt="logo" width={40} height={40} className="object-cover" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-white text-sm leading-tight">{store.name}</h3>
+                                    <p className="text-[10px] text-white/80 font-medium">{store.category}</p>
+                                </div>
+                            </div>
+                            <div className="absolute top-4 right-4">
+                                <span className="bg-white px-2 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 shadow-md">
+                                    <Star className="h-3 w-3 text-orange-500 fill-orange-500" />
+                                    {(store.rating || 4.5).toFixed(1)}
+                                </span>
+                            </div>
+                        </div>
+                        <CardContent className="p-4 flex flex-col gap-3">
+                             <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                <div className="flex items-center gap-1"><Clock className="h-3 w-3" /> {store.deliveryTime || '25 min'}</div>
+                                <div className="flex items-center gap-1"><Truck className="h-3 w-3" /> R{store.deliveryFee?.toFixed(2) || '30.00'}</div>
+                             </div>
+                             <Button asChild className="w-full rounded-xl bg-orange-50 text-primary hover:bg-orange-100 hover:text-primary shadow-none font-bold text-xs h-10">
+                                <Link href={`/restaurant/${store.id}`}>Browse Products</Link>
+                             </Button>
+                        </CardContent>
+                    </Card>
+                ))
+            ) : (
+                <div className="col-span-full text-center py-20 bg-white rounded-[2rem] border-2 border-dashed flex flex-col items-center gap-3">
+                    <Info className="h-12 w-12 text-muted-foreground opacity-20" />
+                    <p className="text-muted-foreground font-medium">No stores match your search.</p>
+                    <Button variant="outline" className="rounded-xl" onClick={() => { setSearchTerm(''); setSelectedCategory(null); }}>Clear Filters</Button>
+                </div>
+            )}
+        </div>
+      </div>
+      
       <WhatsAppFAB />
     </div>
   );
 }
+
