@@ -44,7 +44,7 @@ export default function PrivacyPolicyPage() {
 
       <section className="mt-8">
         <h2 className="text-xl font-bold">5. Contact Us</h2>
-        <p>If you have any questions about this Privacy Policy, please contact us via WhatsApp support at 0707529446.</p>
+        <p>If you have any questions about this Privacy Policy, please contact our support team via the help center in the app.</p>
       </section>
     </div>
   );

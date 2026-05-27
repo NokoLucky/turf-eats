@@ -130,6 +130,11 @@ export default function CustomerDashboardPage() {
     });
   }, [stores, searchTerm, selectedCategory]);
 
+  // Logic for "Popular Near You": Pull first 3 stores for now
+  const popularStores = React.useMemo(() => {
+    return filteredStores.slice(0, 3);
+  }, [filteredStores]);
+
   const openPreview = (url: string, title?: string) => {
     setPreviewUrl(url);
     setPreviewTitle(title);
@@ -149,7 +154,7 @@ export default function CustomerDashboardPage() {
         <div className="mb-6">
           <h1 className="text-sm font-medium text-muted-foreground">{greeting}, {firstName} 👋</h1>
           <p className="text-2xl font-bold mt-1 leading-tight">
-            Anything you need, <span className="text-primary">delivered fast</span> in Turfloop & Polokwane.
+            Anything you need, <span className="text-primary">delivered fast</span> near you.
           </p>
         </div>
 
@@ -198,8 +203,8 @@ export default function CustomerDashboardPage() {
                 <StoreCardSkeleton />
               </div>
             ))
-          ) : filteredStores.length > 0 ? (
-            filteredStores.filter(s => (s.rating || 0) >= 4).map((store) => (
+          ) : popularStores.length > 0 ? (
+            popularStores.map((store) => (
               <div key={store.id} className="min-w-[240px] flex flex-col gap-2">
                 <Card className="overflow-hidden border-none shadow-premium bg-white group h-full rounded-2xl">
                   <div className="relative h-32 w-full overflow-hidden cursor-pointer" onClick={() => openPreview(store.bannerUrl || 'https://picsum.photos/seed/placeholder/600/400', store.name)}>
@@ -234,7 +239,12 @@ export default function CustomerDashboardPage() {
                 </Card>
               </div>
             ))
-          ) : null}
+          ) : (
+            <div className="min-w-full text-center py-10 opacity-30">
+               <Info className="mx-auto h-8 w-8 mb-2" />
+               <p className="text-sm font-bold uppercase tracking-widest">Finding stores...</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -295,4 +305,3 @@ export default function CustomerDashboardPage() {
     </div>
   );
 }
-

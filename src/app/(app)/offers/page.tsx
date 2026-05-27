@@ -17,7 +17,7 @@ const promoBanners = [
   {
     id: 1,
     title: "Flash Sale Friday!",
-    desc: "Get 40% OFF at selected burger joints in Turfloop.",
+    desc: "Get 40% OFF at selected burger joints near you.",
     code: "FLASH40",
     bg: "bg-gradient-to-r from-orange-600 to-red-500",
     icon: <Zap className="h-10 w-10 text-white/50" />
@@ -69,7 +69,7 @@ export default function OffersPage() {
           <span className="text-primary">Savings Today!</span>
         </h1>
         <p className="text-sm text-muted-foreground mt-2 max-w-[250px]">
-          The best local deals in Polokwane and Turfloop, updated hourly.
+          The best local deals in your area, updated hourly.
         </p>
       </header>
 

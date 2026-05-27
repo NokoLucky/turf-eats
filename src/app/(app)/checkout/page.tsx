@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -84,7 +83,7 @@ export default function CheckoutPage() {
         serviceFee,
         tip: selectedTip,
         totalAmount: total,
-        deliveryAddress: deliveryAddress || 'Turfloop, Polokwane',
+        deliveryAddress: deliveryAddress || 'Update address in profile',
         notes,
         paymentMethod,
         participantUids: [user.uid, storeOwnerId],
@@ -105,7 +104,7 @@ export default function CheckoutPage() {
       await batch.commit();
       dispatch({ type: 'CLEAR_CART' });
       
-      router.push(`/orders/${orderRef.id}`);
+      router.push(`/order-success/${orderRef.id}`);
 
     } catch (error) {
       console.error(error);
@@ -129,7 +128,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex-1">
                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Delivering to</p>
-                 <p className="text-sm font-bold mt-0.5">{deliveryAddress || 'Turfloop, Polokwane'}</p>
+                 <p className="text-sm font-bold mt-0.5">{deliveryAddress || 'Set address in profile'}</p>
                  <p className="text-[10px] text-muted-foreground mt-1">{customerName} • {customerPhone}</p>
               </div>
               <Button variant="ghost" className="text-primary text-xs font-bold h-auto p-0" onClick={() => router.push('/profile')}>Change</Button>
@@ -208,7 +207,7 @@ export default function CheckoutPage() {
                     <RadioGroupItem value="payshap" id="payshap" />
                     <Label htmlFor="payshap" className="cursor-pointer">
                         <p className="text-sm font-bold">PayShap</p>
-                        <p className="text-[10px] text-muted-foreground">Shap to: 0707529446</p>
+                        <p className="text-[10px] text-muted-foreground">Transfer via phone number</p>
                     </Label>
                  </div>
                  <div className="bg-blue-50 px-2 py-1 rounded-lg">
@@ -226,7 +225,6 @@ export default function CheckoutPage() {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
            />
-           <p className="text-right text-[10px] text-muted-foreground">0/100</p>
         </section>
       </div>
 
