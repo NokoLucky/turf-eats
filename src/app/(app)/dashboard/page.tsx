@@ -146,15 +146,6 @@ export default function CustomerDashboardPage() {
       />
 
       <div className="bg-white px-4 pt-8 pb-6 sm:px-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-             <div className="bg-primary/10 p-2 rounded-full">
-               <Image src="https://picsum.photos/seed/logo/100/100" alt="Pin2You" width={24} height={24} className="rounded-full" />
-             </div>
-             <span className="text-primary font-bold text-xl font-headline">Pin2You</span>
-          </div>
-        </div>
-
         <div className="mb-6">
           <h1 className="text-sm font-medium text-muted-foreground">{greeting}, {firstName} 👋</h1>
           <p className="text-2xl font-bold mt-1 leading-tight">
