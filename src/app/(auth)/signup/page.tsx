@@ -138,11 +138,6 @@ export default function SignupPage() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="email">
-            {/* Phone signup temporarily disabled */}
-            {/* <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="email">Email Signup</TabsTrigger>
-              <TabsTrigger value="phone">Phone Signup</TabsTrigger>
-            </TabsList> */}
             <TabsContent value="email" className="min-h-[16rem]">
               <Form {...emailForm}>
                 <form onSubmit={emailForm.handleSubmit(handleSignup)} className="space-y-4 pt-4">
@@ -204,70 +199,14 @@ export default function SignupPage() {
                 </form>
               </Form>
             </TabsContent>
-            {/* Phone signup content temporarily commented out */}
-            {/* <TabsContent value="phone" className="min-h-[16rem]">
-               {phoneAuthState === 'enter-phone' ? (
-                <Form {...phoneForm}>
-                  <form key="phone-form" onSubmit={phoneForm.handleSubmit(handlePhoneSignup)} className="space-y-4 pt-4">
-                    <FormField
-                      control={phoneForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="John Doe" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={phoneForm.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Phone Number</FormLabel>
-                          <FormControl>
-                            <Input placeholder="+27 12 345 6789" {...field} />
-                          </FormControl>
-                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full font-bold">
-                      Send Verification Code
-                    </Button>
-                  </form>
-                </Form>
-               ) : (
-                <Form {...codeForm}>
-                  <form key="code-form" onSubmit={codeForm.handleSubmit(handleVerifyCode)} className="space-y-4 pt-4">
-                    <FormField
-                      control={codeForm.control}
-                      name="code"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Verification Code</FormLabel>
-                          <FormControl>
-                            <Input placeholder="123456" {...field} autoComplete="one-time-code" />
-                          </FormControl>
-                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full font-bold">
-                      Verify & Sign Up
-                    </Button>
-                     <Button variant="link" type="button" onClick={() => setPhoneAuthState('enter-phone')} className="w-full">
-                      Use a different number
-                    </Button>
-                  </form>
-                </Form>
-               )}
-            </TabsContent> */}
           </Tabs>
-          <div className="mt-6 text-center text-sm">
+          <div className="mt-6 text-center text-xs text-muted-foreground">
+            By creating an account, you agree to our{' '}
+            <Link href="/legal/terms" className="underline hover:text-primary">Terms of Service</Link>{' '}
+            and{' '}
+            <Link href="/legal/privacy" className="underline hover:text-primary">Privacy Policy</Link>.
+          </div>
+          <div className="mt-4 text-center text-sm">
             Already have an account?{' '}
             <Link href="/login" className="font-semibold text-primary underline-offset-4 hover:underline">
               Sign In

@@ -7,6 +7,7 @@ import * as z from 'zod';
 import { doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
+import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +18,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking,
 import { getFriendlyErrorMessage } from '@/firebase/errors';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
-import { LogOut } from 'lucide-react';
+import { LogOut, ShieldCheck, FileText, ChevronRight } from 'lucide-react';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -108,103 +109,133 @@ export default function DriverProfilePage() {
           <h1 className="font-headline text-4xl font-bold">My Driver Profile</h1>
           <p className="mt-2 text-muted-foreground">View and update your account details.</p>
         </div>
-        <Card className="border-none shadow-premium rounded-[2rem]">
-          <CardHeader>
-            <CardTitle>Driver Information</CardTitle>
-            <CardDescription>Manage your name, contact, and vehicle information.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            ) : (
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="rounded-xl" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="phoneNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="rounded-xl" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="vehicleType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Vehicle Type</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g. Scooter, Sedan, Hatchback" {...field} className="rounded-xl" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                   <FormField
-                    control={form.control}
-                    name="licenseNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Driver's License Number</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="rounded-xl" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="vehicleRegistration"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Vehicle Registration Number</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g. ABC 123 GP" {...field} className="rounded-xl" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="flex justify-end pt-4">
-                    <Button type="submit" disabled={form.formState.isSubmitting} className="rounded-xl px-8 font-bold">
-                      {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
-                    </Button>
+
+        <div className="space-y-6">
+          <Card className="border-none shadow-premium rounded-[2rem]">
+            <CardHeader>
+              <CardTitle>Driver Information</CardTitle>
+              <CardDescription>Manage your name, contact, and vehicle information.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ) : (
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="rounded-xl" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="phoneNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="rounded-xl" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="vehicleType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Vehicle Type</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. Scooter, Sedan, Hatchback" {...field} className="rounded-xl" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                     <FormField
+                      control={form.control}
+                      name="licenseNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Driver's License Number</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="rounded-xl" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="vehicleRegistration"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Vehicle Registration Number</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. ABC 123 GP" {...field} className="rounded-xl" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex justify-end pt-4">
+                      <Button type="submit" disabled={form.formState.isSubmitting} className="rounded-xl px-8 font-bold">
+                        {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-none shadow-premium rounded-[2rem]">
+            <CardHeader>
+              <CardTitle>Legal & Compliance</CardTitle>
+              <CardDescription>Documents and agreements for drivers.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <Button asChild variant="ghost" className="w-full justify-between h-14 rounded-xl px-4">
+                <Link href="/legal/terms">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-medium">Independent Contractor Terms</span>
                   </div>
-                </form>
-              </Form>
-            )}
-             <Separator className="my-6" />
-             <Button onClick={handleSignOut} variant="outline" className="w-full rounded-xl">
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign Out
-            </Button>
-          </CardContent>
-        </Card>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              </Button>
+              <Button asChild variant="ghost" className="w-full justify-between h-14 rounded-xl px-4">
+                <Link href="/legal/privacy">
+                  <div className="flex items-center gap-3">
+                    <ShieldCheck className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-medium">Location Privacy Policy</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              </Button>
+               <Separator className="my-6" />
+               <Button onClick={handleSignOut} variant="outline" className="w-full rounded-xl h-12 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
