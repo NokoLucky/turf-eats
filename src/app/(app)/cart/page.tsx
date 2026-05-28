@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -82,8 +83,8 @@ export default function CartPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-40">
-      <header className="bg-white border-b px-4 py-6 flex items-center gap-4 pt-[env(safe-area-inset-top)]">
+    <div className="min-h-screen bg-background pb-40">
+      <header className="bg-card border-b px-4 py-6 flex items-center gap-4 pt-[env(safe-area-inset-top)]">
         <Button asChild variant="ghost" size="icon" className="rounded-full">
            <Link href="/dashboard"><ArrowLeft className="h-5 w-5" /></Link>
         </Button>
@@ -106,9 +107,9 @@ export default function CartPage() {
           <>
             <div className="space-y-4">
                {state.items.map((item) => (
-                 <Card key={item.id} className="border-none shadow-sm rounded-2xl overflow-hidden bg-white">
+                 <Card key={item.id} className="border-none shadow-sm rounded-2xl overflow-hidden bg-card">
                     <div className="p-4 flex gap-4">
-                       <div className="h-16 w-16 rounded-xl overflow-hidden shrink-0">
+                       <div className="h-16 w-16 rounded-xl overflow-hidden shrink-0 bg-muted">
                           <Image src={item.imageUrl} alt={item.name} width={64} height={64} className="object-cover h-full" />
                        </div>
                        <div className="flex-1">
@@ -123,12 +124,12 @@ export default function CartPage() {
                                  ))
                                ))}
                                {item.selectedAddOns?.map(addon => (
-                                 <Badge key={addon.id} variant="secondary" className="text-[8px] h-3 px-1 font-normal bg-orange-50 text-orange-600">+ {addon.name}</Badge>
+                                 <Badge key={addon.id} variant="secondary" className="text-[8px] h-3 px-1 font-normal bg-orange-50 dark:bg-orange-950/30 text-orange-600">+ {addon.name}</Badge>
                                ))}
                             </div>
                           )}
                           <div className="flex items-center justify-between mt-3">
-                             <div className="flex items-center bg-[#F1F3F5] rounded-full px-2 py-0.5">
+                             <div className="flex items-center bg-muted rounded-full px-2 py-0.5">
                                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity - 1)}>-</Button>
                                 <span className="w-6 text-center text-xs font-bold">{item.quantity}</span>
                                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity + 1)}>+</Button>
@@ -146,7 +147,7 @@ export default function CartPage() {
                  <h2 className="text-sm font-bold">You may also like</h2>
                  <div className="flex gap-4 overflow-x-auto no-scrollbar -mx-4 px-4 pb-2">
                     {upsellItems.map((item) => (
-                      <div key={item.id} className="min-w-[140px] bg-white p-3 rounded-2xl shadow-sm border border-transparent hover:border-primary transition-all relative">
+                      <div key={item.id} className="min-w-[140px] bg-card p-3 rounded-2xl shadow-sm border border-transparent hover:border-primary transition-all relative">
                           <div className="h-16 w-full relative mb-2">
                              <Image src={item.imageUrl} alt={item.name} fill className="object-contain" />
                           </div>
@@ -188,7 +189,7 @@ export default function CartPage() {
       </div>
 
       {state.items.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white p-6 shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.1)] z-50 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+        <div className="fixed bottom-0 left-0 right-0 bg-card p-6 shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.1)] z-50 pb-[calc(1.5rem+env(safe-area-inset-bottom))] border-t">
            <div className="max-w-md mx-auto space-y-4">
               <div className="flex justify-between items-center text-lg font-bold">
                  <span>Total</span>

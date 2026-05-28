@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -115,7 +116,7 @@ export default function CheckoutPage() {
       await batch.commit();
       
       // Navigate first, then clear cart to avoid the "empty cart" redirect logic
-      router.push(`/order-success?id=${orderId}`);
+      router.push(`/order-details?id=${orderId}`);
       
       // Small delay before clearing global cart state
       setTimeout(() => {
@@ -129,8 +130,8 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-44">
-      <header className="bg-white border-b px-4 py-6 flex items-center gap-4 pt-[env(safe-area-inset-top)]">
+    <div className="min-h-screen bg-background pb-44">
+      <header className="bg-card border-b px-4 py-6 flex items-center gap-4 pt-[env(safe-area-inset-top)]">
         <Button onClick={() => router.back()} variant="ghost" size="icon" className="rounded-full">
            <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -138,9 +139,9 @@ export default function CheckoutPage() {
       </header>
 
       <div className="container py-8 px-4 max-w-md mx-auto space-y-6">
-        <Card className="border-none shadow-sm rounded-2xl p-4 bg-white">
+        <Card className="border-none shadow-sm rounded-2xl p-4 bg-card">
            <div className="flex items-start gap-4">
-              <div className="bg-orange-100 p-2 rounded-xl text-primary">
+              <div className="bg-orange-100 dark:bg-orange-950/30 p-2 rounded-xl text-primary">
                  <MapPin className="h-5 w-5" />
               </div>
               <div className="flex-1">
@@ -168,7 +169,7 @@ export default function CheckoutPage() {
                   variant={selectedTip === opt.value ? 'default' : 'outline'}
                   className={cn(
                     "rounded-xl min-w-[60px] h-10 font-bold text-xs",
-                    selectedTip === opt.value ? "bg-primary" : "bg-white"
+                    selectedTip === opt.value ? "bg-primary" : "bg-card"
                   )}
                   onClick={() => setSelectedTip(opt.value)}
                 >
@@ -182,8 +183,8 @@ export default function CheckoutPage() {
            <h2 className="text-sm font-bold">Delivery option</h2>
            <RadioGroup value={deliveryOption} onValueChange={setDeliveryOption} className="space-y-3">
               <div className={cn(
-                "flex items-center justify-between p-4 rounded-2xl border bg-white transition-all",
-                deliveryOption === 'standard' ? "border-primary" : "border-transparent"
+                "flex items-center justify-between p-4 rounded-2xl border bg-card transition-all",
+                deliveryOption === 'standard' ? "border-primary" : "border-muted"
               )}>
                  <div className="flex items-center gap-3">
                     <RadioGroupItem value="standard" id="std" />
@@ -195,8 +196,8 @@ export default function CheckoutPage() {
                  <span className="text-sm font-bold">R30.00</span>
               </div>
               <div className={cn(
-                "flex items-center justify-between p-4 rounded-2xl border bg-white transition-all",
-                deliveryOption === 'express' ? "border-primary" : "border-transparent"
+                "flex items-center justify-between p-4 rounded-2xl border bg-card transition-all",
+                deliveryOption === 'express' ? "border-primary" : "border-muted"
               )}>
                  <div className="flex items-center gap-3">
                     <RadioGroupItem value="express" id="exp" />
@@ -213,13 +214,13 @@ export default function CheckoutPage() {
         <section className="space-y-3">
            <h2 className="text-sm font-bold">Payment method</h2>
            <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
-              <div className="flex items-center justify-between p-4 rounded-2xl border border-transparent bg-white">
+              <div className="flex items-center justify-between p-4 rounded-2xl border border-muted bg-card">
                  <div className="flex items-center gap-3">
                     <RadioGroupItem value="cod" id="cod" />
                     <Label htmlFor="cod" className="text-sm font-bold cursor-pointer">Cash on Delivery</Label>
                  </div>
               </div>
-              <div className="flex items-center justify-between p-4 rounded-2xl border border-transparent bg-white">
+              <div className="flex items-center justify-between p-4 rounded-2xl border border-muted bg-card">
                  <div className="flex items-center gap-3">
                     <RadioGroupItem value="payshap" id="payshap" />
                     <Label htmlFor="payshap" className="cursor-pointer">
@@ -227,8 +228,8 @@ export default function CheckoutPage() {
                         <p className="text-[10px] text-muted-foreground">Transfer via phone number</p>
                     </Label>
                  </div>
-                 <div className="bg-blue-50 px-2 py-1 rounded-lg">
-                    <span className="text-[10px] font-black text-blue-600 italic uppercase">PayShap</span>
+                 <div className="bg-blue-50 dark:bg-blue-950/30 px-2 py-1 rounded-lg">
+                    <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 italic uppercase">PayShap</span>
                  </div>
               </div>
            </RadioGroup>
@@ -238,14 +239,14 @@ export default function CheckoutPage() {
            <h2 className="text-sm font-bold flex items-center gap-2"><MessageSquare className="h-4 w-4" /> Note to rider <span className="text-muted-foreground font-normal">(optional)</span></h2>
            <Textarea 
             placeholder="Add a note for your rider..." 
-            className="rounded-2xl bg-white border-none shadow-sm min-h-[80px]"
+            className="rounded-2xl bg-card border-muted shadow-sm min-h-[80px]"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
            />
         </section>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white p-6 shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.1)] z-50 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+      <div className="fixed bottom-0 left-0 right-0 bg-card p-6 shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.1)] z-50 pb-[calc(1.5rem+env(safe-area-inset-bottom))] border-t">
            <div className="max-w-md mx-auto">
               <div className="flex justify-between items-center text-lg font-bold mb-4">
                  <span>Total</span>

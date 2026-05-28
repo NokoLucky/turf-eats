@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { doc, collection, getDoc, getDocs } from 'firebase/firestore';
-import type { Restaurant, MenuItem, MenuItemOptionGroup, MenuItemAddOn, MenuItemOptionChoice, MenuItemAddOnGroup } from '@/lib/data';
+import type { Restaurant, MenuItem, MenuItemOptionGroup, MenuItemAddOn, MenuItemAddOnGroup } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -181,7 +181,7 @@ function SelectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden rounded-t-[2.5rem] sm:rounded-[2.5rem] border-none shadow-2xl h-[90vh] flex flex-col pt-[env(safe-area-inset-top)]">
+      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden rounded-t-[2.5rem] sm:rounded-[2.5rem] border-none shadow-2xl h-[90vh] flex flex-col pt-[env(safe-area-inset-top)] bg-background">
         <DialogHeader className="sr-only">
           <DialogTitle>{item.name}</DialogTitle>
         </DialogHeader>
@@ -201,11 +201,11 @@ function SelectionDialog({
         <div className="flex-1 overflow-y-auto p-6 space-y-10">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-2xl font-black text-slate-800">{item.name}</h3>
+              <h3 className="text-2xl font-black text-foreground">{item.name}</h3>
               <p className="text-muted-foreground text-sm mt-1">{item.description}</p>
             </div>
             {item.isBestseller && (
-              <Badge variant="secondary" className="bg-orange-100 text-primary border-none text-[10px] font-bold px-3 py-1">Popular</Badge>
+              <Badge variant="secondary" className="bg-orange-100 dark:bg-orange-950/40 text-primary border-none text-[10px] font-bold px-3 py-1">Popular</Badge>
             )}
           </div>
           
@@ -217,8 +217,8 @@ function SelectionDialog({
 
             return (
               <div key={group.id} className="space-y-4">
-                <div className="flex items-center justify-between bg-[#F8F9FA] -mx-6 px-6 py-3 border-y">
-                  <h4 className="font-black text-sm text-slate-800">
+                <div className="flex items-center justify-between bg-muted/50 -mx-6 px-6 py-3 border-y">
+                  <h4 className="font-black text-sm text-foreground">
                     {group.name} 
                     {group.type === 'checkbox' && group.maxSelections && (
                       <span className="text-muted-foreground font-medium ml-1 text-xs">(Select up to {group.maxSelections})</span>
@@ -237,7 +237,7 @@ function SelectionDialog({
                         key={choice.name} 
                         className={cn(
                           "flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer group",
-                          isChecked ? "border-primary bg-primary/5" : "border-slate-50 hover:border-slate-200"
+                          isChecked ? "border-primary bg-primary/5" : "border-muted hover:border-slate-200 dark:hover:border-slate-800"
                         )}
                         onClick={() => handleChoiceToggle(group.id, choice.name, group.type, !isChecked, group.maxSelections)}
                       >
@@ -245,19 +245,19 @@ function SelectionDialog({
                             {group.type === 'radio' ? (
                                 <div className={cn(
                                 "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                                isChecked ? "border-primary bg-primary" : "border-slate-300"
+                                isChecked ? "border-primary bg-primary" : "border-muted-foreground/30"
                                 )}>
                                 {isChecked && <div className="w-2 h-2 rounded-full bg-white" />}
                                 </div>
                             ) : (
                                 <div className={cn(
                                 "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all",
-                                isChecked ? "border-primary bg-primary" : "border-slate-300"
+                                isChecked ? "border-primary bg-primary" : "border-muted-foreground/30"
                                 )}>
                                 {isChecked && <Check className="h-3 w-3 text-white" />}
                                 </div>
                             )}
-                            <Label className="font-bold text-sm cursor-pointer text-slate-700">{choice.name}</Label>
+                            <Label className="font-bold text-sm cursor-pointer text-foreground/80">{choice.name}</Label>
                         </div>
                         {choice.price > 0 && (
                           <span className="text-xs font-black text-primary">+ R{choice.price.toFixed(2)}</span>
@@ -273,8 +273,8 @@ function SelectionDialog({
           {/* EXTRA GROUPS (ADD-ONS) */}
           {item.addOnGroups?.map((group) => (
             <div key={group.id} className="space-y-4">
-               <div className="bg-[#F8F9FA] -mx-6 px-6 py-3 border-y">
-                  <h4 className="font-black text-sm text-slate-800">{group.title}</h4>
+               <div className="bg-muted/50 -mx-6 px-6 py-3 border-y">
+                  <h4 className="font-black text-sm text-foreground">{group.title}</h4>
                </div>
                <div className="space-y-3">
                   {group.items.map((addon) => {
@@ -284,7 +284,7 @@ function SelectionDialog({
                         key={addon.id} 
                         className={cn(
                           "flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer",
-                          isChecked ? "border-primary bg-primary/5" : "border-slate-50 hover:border-slate-200"
+                          isChecked ? "border-primary bg-primary/5" : "border-muted hover:border-slate-200 dark:hover:border-slate-800"
                         )}
                         onClick={() => handleAddOnToggle(addon, !isChecked)}
                       >
@@ -296,7 +296,7 @@ function SelectionDialog({
                               className="h-5 w-5 rounded-md"
                               onClick={(e) => e.stopPropagation()}
                             />
-                            <Label htmlFor={`addon-${addon.id}`} className="text-sm font-bold cursor-pointer text-slate-700">{addon.name}</Label>
+                            <Label htmlFor={`addon-${addon.id}`} className="text-sm font-bold cursor-pointer text-foreground/80">{addon.name}</Label>
                          </div>
                          {addon.price > 0 && (
                             <span className="text-xs font-black text-primary">+ R{addon.price.toFixed(2)}</span>
@@ -309,9 +309,9 @@ function SelectionDialog({
           ))}
         </div>
 
-        <DialogFooter className="p-6 bg-white border-t shrink-0 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+        <DialogFooter className="p-6 bg-card border-t shrink-0 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
           <div className="flex items-center justify-between w-full gap-4">
-            <div className="flex items-center bg-[#F1F3F5] rounded-full px-3 py-1">
+            <div className="flex items-center bg-muted rounded-full px-3 py-1">
               <Button 
                 variant="ghost" 
                 size="icon" 
@@ -439,7 +439,7 @@ function RestaurantContent() {
   if (!isLoading && !restaurant) notFound();
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA]">
+    <div className="min-h-screen bg-background">
       <SelectionDialog 
         item={customizingItem}
         open={isSelectionOpen}
@@ -482,21 +482,21 @@ function RestaurantContent() {
             </div>
           </div>
 
-          <div className="bg-white rounded-t-[2.5rem] -mt-10 relative z-10 px-6 pt-8 pb-4 shadow-sm">
+          <div className="bg-background rounded-t-[2.5rem] -mt-10 relative z-10 px-6 pt-8 pb-4 shadow-sm">
              <div className="flex justify-between items-start mb-4">
                 <div className="flex gap-4">
                    <div 
-                    className="h-14 w-14 rounded-xl overflow-hidden border shadow-sm shrink-0 cursor-pointer"
+                    className="h-14 w-14 rounded-xl overflow-hidden border shadow-sm shrink-0 cursor-pointer bg-card"
                     onClick={() => openPreview(restaurant?.logoUrl || '', restaurant?.name)}
                    >
                       <Image src={restaurant?.logoUrl || ''} alt="logo" width={56} height={56} className="object-cover" />
                    </div>
                    <div>
-                      <h1 className="text-xl font-black text-slate-800">{restaurant?.name}</h1>
+                      <h1 className="text-xl font-black text-foreground">{restaurant?.name}</h1>
                       <p className="text-xs text-muted-foreground font-medium mt-0.5">Reliable local delivery partner.</p>
                    </div>
                 </div>
-                <div className="flex items-center gap-1 bg-orange-50 px-2 py-1 rounded-lg text-primary font-bold text-sm">
+                <div className="flex items-center gap-1 bg-orange-50 dark:bg-orange-950/30 px-2 py-1 rounded-lg text-primary font-bold text-sm">
                    <Star className="h-3.5 w-3.5 fill-primary" />
                    <span>{(restaurant?.rating || 4.5).toFixed(1)}</span>
                 </div>
@@ -520,7 +520,7 @@ function RestaurantContent() {
                           key={cat} 
                           variant={selectedMenuCategory === cat ? 'default' : 'outline'}
                           size="sm"
-                          className={cn("rounded-full font-bold px-5", selectedMenuCategory === cat ? "bg-orange-500 hover:bg-orange-600" : "bg-white text-muted-foreground")}
+                          className={cn("rounded-full font-bold px-5", selectedMenuCategory === cat ? "bg-orange-500 hover:bg-orange-600" : "bg-card text-muted-foreground")}
                           onClick={() => setSelectedMenuCategory(cat)}
                         >
                           {cat}
@@ -528,15 +528,15 @@ function RestaurantContent() {
                       ))}
                    </div>
 
-                   <div className="space-y-8">
+                   <div className="space-y-8 pb-20">
                       {sortedCategoryNames.filter((name) => selectedMenuCategory === 'All' || name === selectedMenuCategory).map((catName) => {
                         const items = menuByCategory[catName];
                         return (
                           <div key={catName}>
-                            <h2 className="text-lg font-black text-slate-800 mb-4">{catName}</h2>
+                            <h2 className="text-lg font-black text-foreground mb-4">{catName}</h2>
                             <div className="space-y-4">
                                 {items.map(item => (
-                                  <Card key={item.id} className="border-none shadow-sm rounded-2xl overflow-hidden bg-white">
+                                  <Card key={item.id} className="border-none shadow-sm rounded-2xl overflow-hidden bg-card">
                                     <div className="flex items-center p-3 gap-4">
                                       <div 
                                         className="relative h-20 w-20 rounded-xl overflow-hidden shrink-0 cursor-pointer group"
@@ -551,7 +551,7 @@ function RestaurantContent() {
                                           )}
                                       </div>
                                       <div className="flex-1">
-                                          <h3 className="font-bold text-sm text-slate-700">{item.name}</h3>
+                                          <h3 className="font-bold text-sm text-foreground/90">{item.name}</h3>
                                           <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{item.description}</p>
                                           <p className="text-primary font-black text-sm mt-1">R{item.price.toFixed(2)}</p>
                                       </div>
