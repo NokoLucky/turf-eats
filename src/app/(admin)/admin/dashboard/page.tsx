@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { collectionGroup, collection, doc, setDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser, deleteDocumentNonBlocking } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,7 +39,12 @@ export default function AdminDashboard() {
   const [inspectionType, setInspectionType] = useState<InspectionType | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
-  const [logDate, setLogDate] = useState<Date | undefined>(new Date());
+  // Initialize as undefined to avoid hydration mismatch with new Date()
+  const [logDate, setLogDate] = useState<Date | undefined>(undefined);
+
+  useEffect(() => {
+    setLogDate(new Date());
+  }, []);
 
   const [breakdownTitle, setBreakdownTitle] = useState<string | null>(null);
   const [breakdownItems, setBreakdownData] = useState<{ name: string; value: string | number }[]>([]);

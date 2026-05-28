@@ -10,7 +10,7 @@ interface StoreStatusBadgeProps {
   className?: string;
 }
 
-type Status = 'Open' | 'Closing Soon' | 'Closed';
+type Status = 'Open' | 'Closing Soon' | 'Closed' | 'Loading';
 
 const parseTime = (timeStr: string): Date | null => {
   try {
@@ -38,12 +38,9 @@ const getStoreStatus = (openingHours: string): { status: Status; minutesUntilClo
 
   // Handle overnight hours (e.g., 8:00 PM - 2:00 AM)
   if (isBefore(closeTime, openTime)) {
-    // If current time is after open time (e.g. 10 PM), close time is tomorrow
     if (isBefore(openTime, now)) {
       closeTime = set(closeTime, { date: closeTime.getDate() + 1 });
-    }
-    // If current time is before close time (e.g. 1 AM), open time was yesterday
-    else {
+    } else {
       openTime = set(openTime, { date: openTime.getDate() - 1 });
     }
   }
@@ -62,22 +59,23 @@ const getStoreStatus = (openingHours: string): { status: Status; minutesUntilClo
 };
 
 export function StoreStatusBadge({ openingHours, className }: StoreStatusBadgeProps) {
-  const [statusInfo, setStatusInfo] = useState(() => getStoreStatus(openingHours));
+  const [statusInfo, setStatusInfo] = useState<{ status: Status; minutesUntilClose?: number }>({ status: 'Loading' });
   
   useEffect(() => {
-    // Update status every minute
+    // Initial calculation after mount to avoid hydration mismatch
+    setStatusInfo(getStoreStatus(openingHours));
+
     const interval = setInterval(() => {
       setStatusInfo(getStoreStatus(openingHours));
     }, 60000);
-
-    // Also update when openingHours change
-    setStatusInfo(getStoreStatus(openingHours));
 
     return () => clearInterval(interval);
   }, [openingHours]);
 
   const { status, minutesUntilClose } = statusInfo;
   
+  if (status === 'Loading') return null;
+
   if (status === 'Open') {
     return <Badge variant="default" className={cn('bg-green-600 hover:bg-green-700 text-white', className)}>Open</Badge>;
   }

@@ -5,10 +5,12 @@ import { Utensils } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function SplashScreen() {
-  const [isVisible, setIsVisible] = useState(true);
-  const [shouldRender, setShouldRender] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     // Check if this is the first mount of the app session
     const hasSeenSplash = sessionStorage.getItem('pin2you_splash_seen');
     
@@ -16,6 +18,9 @@ export default function SplashScreen() {
       setShouldRender(false);
       return;
     }
+
+    setShouldRender(true);
+    setIsVisible(true);
 
     const timer = setTimeout(() => {
       setIsVisible(false);
@@ -28,7 +33,7 @@ export default function SplashScreen() {
     return () => clearTimeout(timer);
   }, []);
 
-  if (!shouldRender) return null;
+  if (!mounted || !shouldRender) return null;
 
   return (
     <div

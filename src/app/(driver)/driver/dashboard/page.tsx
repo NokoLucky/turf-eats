@@ -119,9 +119,12 @@ export default function DriverDashboard() {
   const [greeting, setGreeting] = useState('Good morning');
   
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  
+  // Use undefined for initial value to avoid hydration mismatch
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
+    setSelectedDate(new Date());
     const hour = new Date().getHours();
     if (hour < 12) setGreeting('Good morning');
     else if (hour < 18) setGreeting('Good afternoon');
