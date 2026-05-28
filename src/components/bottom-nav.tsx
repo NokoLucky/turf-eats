@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -23,7 +22,7 @@ export default function BottomNav() {
   if (shouldHide) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.05)] border-t md:hidden pb-[env(safe-area-inset-bottom)]">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.05)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.5)] border-t border-border/50 md:hidden pb-[env(safe-area-inset-bottom)] transition-colors duration-300">
       <nav className="container flex h-20 items-center justify-around">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
@@ -33,7 +32,7 @@ export default function BottomNav() {
               href={item.href}
               className={cn(
                 'flex flex-col items-center gap-1.5 transition-all px-4 py-2 rounded-2xl',
-                isActive ? 'text-primary' : 'text-muted-foreground'
+                isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
               )}
             >
               <item.icon className={cn('h-6 w-6', isActive && 'fill-primary/10')} strokeWidth={isActive ? 2.5 : 2} />

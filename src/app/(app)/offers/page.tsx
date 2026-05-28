@@ -55,16 +55,16 @@ const featuredOffers = [
 
 export default function OffersPage() {
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-24">
+    <div className="min-h-screen bg-background pb-24">
       {/* Attractive Header */}
-      <header className="bg-white px-6 pt-10 pb-8 rounded-b-[2.5rem] shadow-sm">
+      <header className="bg-card px-6 pt-10 pb-8 rounded-b-[2.5rem] shadow-sm border-b border-border/50">
         <div className="flex items-center gap-2 mb-2">
            <div className="bg-primary/10 p-2 rounded-xl text-primary">
               <Tag className="h-5 w-5" />
            </div>
            <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Exclusive Deals</span>
         </div>
-        <h1 className="text-3xl font-black text-slate-800 leading-tight">
+        <h1 className="text-3xl font-black text-foreground leading-tight">
           Unlock Exclusive <br />
           <span className="text-primary">Savings Today!</span>
         </h1>
@@ -77,7 +77,7 @@ export default function OffersPage() {
         {/* Animated Promo Scroller */}
         <section className="space-y-4">
            <div className="flex items-center justify-between">
-              <h2 className="font-bold text-lg">Hot Promos</h2>
+              <h2 className="font-bold text-lg text-foreground">Hot Promos</h2>
               <Link href="#" className="text-xs font-bold text-primary">View Rules</Link>
            </div>
            <div className="flex gap-4 overflow-x-auto no-scrollbar -mx-4 px-4">
@@ -109,39 +109,39 @@ export default function OffersPage() {
 
         {/* Categories of Savings */}
         <section className="grid grid-cols-2 gap-4">
-           <div className="bg-orange-100 p-4 rounded-3xl flex flex-col gap-3 relative overflow-hidden group active:scale-95 transition-all">
+           <div className="bg-orange-100 dark:bg-orange-950/20 p-4 rounded-3xl flex flex-col gap-3 relative overflow-hidden group active:scale-95 transition-all border border-orange-200 dark:border-orange-900/30">
               <div className="bg-orange-500 w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg">
                  <Zap className="h-5 w-5 fill-white" />
               </div>
               <div>
-                 <p className="font-black text-orange-900 leading-tight">Flash <br />Deals</p>
-                 <p className="text-[10px] text-orange-700 font-bold mt-1">Live Now</p>
+                 <p className="font-black text-orange-900 dark:text-orange-100 leading-tight">Flash <br />Deals</p>
+                 <p className="text-[10px] text-orange-700 dark:text-orange-400 font-bold mt-1">Live Now</p>
               </div>
-              <Sparkles className="absolute -right-2 -bottom-2 h-16 w-16 text-orange-200/50 group-hover:rotate-12 transition-transform" />
+              <Sparkles className="absolute -right-2 -bottom-2 h-16 w-16 text-orange-200/50 dark:text-orange-900/10 group-hover:rotate-12 transition-transform" />
            </div>
            
-           <div className="bg-blue-100 p-4 rounded-3xl flex flex-col gap-3 relative overflow-hidden group active:scale-95 transition-all">
+           <div className="bg-blue-100 dark:bg-blue-950/20 p-4 rounded-3xl flex flex-col gap-3 relative overflow-hidden group active:scale-95 transition-all border border-blue-200 dark:border-blue-900/30">
               <div className="bg-blue-500 w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg">
                  <Truck className="h-5 w-5" />
               </div>
               <div>
-                 <p className="font-black text-blue-900 leading-tight">Free <br />Shipping</p>
-                 <p className="text-[10px] text-blue-700 font-bold mt-1">12+ Stores</p>
+                 <p className="font-black text-blue-900 dark:text-blue-100 leading-tight">Free <br />Shipping</p>
+                 <p className="text-[10px] text-blue-700 dark:text-blue-400 font-bold mt-1">12+ Stores</p>
               </div>
-              <Gift className="absolute -right-2 -bottom-2 h-16 w-16 text-blue-200/50 group-hover:rotate-12 transition-transform" />
+              <Gift className="absolute -right-2 -bottom-2 h-16 w-16 text-blue-200/50 dark:text-blue-900/10 group-hover:rotate-12 transition-transform" />
            </div>
         </section>
 
         {/* Featured Card Offers */}
         <section className="space-y-6">
-           <h2 className="font-bold text-lg">Specials of the Week</h2>
+           <h2 className="font-bold text-lg text-foreground">Specials of the Week</h2>
            <div className="space-y-6">
               {featuredOffers.map((offer) => (
-                <Card key={offer.id} className="border-none shadow-premium rounded-[2.5rem] overflow-hidden bg-white group">
+                <Card key={offer.id} className="border-none shadow-premium rounded-[2.5rem] overflow-hidden bg-card group">
                    <div className="relative h-44 w-full">
                       <Image src={offer.image} alt="offer" fill className="object-cover transition-transform group-hover:scale-105" />
                       <div className="absolute top-4 left-4">
-                         <Badge className="bg-white/90 backdrop-blur-md text-primary border-none font-black text-[10px] px-3 py-1 rounded-full shadow-sm">
+                         <Badge className="bg-white/90 dark:bg-black/60 backdrop-blur-md text-primary border-none font-black text-[10px] px-3 py-1 rounded-full shadow-sm">
                             {offer.badge}
                          </Badge>
                       </div>
@@ -154,9 +154,9 @@ export default function OffersPage() {
                       <div className="flex justify-between items-start mb-2">
                          <div>
                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{offer.category}</p>
-                            <h3 className="text-lg font-black text-slate-800">{offer.title}</h3>
+                            <h3 className="text-lg font-black text-foreground">{offer.title}</h3>
                          </div>
-                         <div className="bg-orange-50 p-2 rounded-xl text-primary">
+                         <div className="bg-primary/10 p-2 rounded-xl text-primary">
                             <Heart className="h-5 w-5" />
                          </div>
                       </div>
@@ -174,17 +174,17 @@ export default function OffersPage() {
 
         {/* Referral Card */}
         <section className="pb-10">
-           <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden">
+           <div className="bg-slate-900 dark:bg-primary/10 rounded-[2.5rem] p-8 text-white dark:text-foreground relative overflow-hidden border dark:border-primary/20">
               <div className="relative z-10">
                  <Smartphone className="h-10 w-10 text-primary mb-4" />
                  <h2 className="text-2xl font-black mb-2 leading-tight">Refer a friend <br />& get R50!</h2>
-                 <p className="text-slate-400 text-sm mb-6 max-w-[200px]">Help grow the Pin2You community and get rewarded.</p>
-                 <Button className="rounded-xl font-bold bg-white text-slate-900 hover:bg-slate-100">
+                 <p className="text-slate-400 dark:text-muted-foreground text-sm mb-6 max-w-[200px]">Help grow the Pin2You community and get rewarded.</p>
+                 <Button className="rounded-xl font-bold bg-white dark:bg-primary text-slate-900 dark:text-primary-foreground hover:bg-slate-100 dark:hover:bg-primary/90">
                     Invite Friends
                  </Button>
               </div>
               <div className="absolute -right-10 -bottom-10 h-40 w-40 bg-primary/20 rounded-full blur-3xl" />
-              <div className="absolute right-6 top-10 opacity-20 transform rotate-12">
+              <div className="absolute right-6 top-10 opacity-20 transform rotate-12 text-primary">
                  <Tag className="h-32 w-32" />
               </div>
            </div>
