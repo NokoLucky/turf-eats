@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -9,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Logo from '@/components/logo';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const navItems = [
   { href: '/dashboard', label: 'Home' },
@@ -41,8 +43,9 @@ export default function Header() {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-4">
-          <Button asChild size="icon" className="relative bg-accent text-accent-foreground hover:bg-accent/90">
+        <div className="ml-auto flex items-center gap-2 sm:gap-4">
+          <ThemeToggle />
+          <Button asChild size="icon" className="relative bg-accent text-accent-foreground hover:bg-accent/90 rounded-full">
             <Link href="/cart">
               <ShoppingCart className="h-5 w-5" />
               {cartItemCount > 0 && (

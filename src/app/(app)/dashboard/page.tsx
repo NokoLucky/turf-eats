@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -21,14 +22,14 @@ import { Badge } from '@/components/ui/badge';
 import WhatsAppFAB from '@/components/whatsapp-fab';
 
 const categories = [
-  { name: 'Restaurants', emoji: '🍔', bg: 'bg-orange-100', color: 'text-orange-600' },
-  { name: 'Groceries', emoji: '🍎', bg: 'bg-green-100', color: 'text-green-600' },
-  { name: 'Liquor', emoji: '🍷', bg: 'bg-purple-100', color: 'text-purple-600' },
-  { name: 'Pharmacy', emoji: '💊', bg: 'bg-blue-100', color: 'text-blue-600' },
-  { name: 'Water', emoji: '💧', bg: 'bg-cyan-100', color: 'text-cyan-600' },
-  { name: 'Laundry', emoji: '🧺', bg: 'bg-pink-100', color: 'text-pink-600' },
-  { name: 'Parcels', emoji: '📦', bg: 'bg-amber-100', color: 'text-amber-600' },
-  { name: 'More', emoji: '•••', bg: 'bg-slate-100', color: 'text-slate-600' },
+  { name: 'Restaurants', emoji: '🍔', bg: 'bg-orange-100 dark:bg-orange-950/30', color: 'text-orange-600 dark:text-orange-400' },
+  { name: 'Groceries', emoji: '🍎', bg: 'bg-green-100 dark:bg-green-950/30', color: 'text-green-600 dark:text-green-400' },
+  { name: 'Liquor', emoji: '🍷', bg: 'bg-purple-100 dark:bg-purple-950/30', color: 'text-purple-600 dark:text-purple-400' },
+  { name: 'Pharmacy', emoji: '💊', bg: 'bg-blue-100 dark:bg-blue-950/30', color: 'text-blue-600 dark:text-blue-400' },
+  { name: 'Water', emoji: '💧', bg: 'bg-cyan-100 dark:bg-cyan-950/30', color: 'text-cyan-600 dark:text-cyan-400' },
+  { name: 'Laundry', emoji: '🧺', bg: 'bg-pink-100 dark:bg-pink-950/30', color: 'text-pink-600 dark:text-pink-400' },
+  { name: 'Parcels', emoji: '📦', bg: 'bg-amber-100 dark:bg-amber-950/30', color: 'text-amber-600 dark:text-amber-400' },
+  { name: 'More', emoji: '•••', bg: 'bg-slate-100 dark:bg-slate-800', color: 'text-slate-600 dark:text-slate-400' },
 ];
 
 function ImagePreviewDialog({
@@ -66,7 +67,7 @@ function ImagePreviewDialog({
 
 function StoreCardSkeleton() {
   return (
-    <Card className="overflow-hidden h-full border-none shadow-premium bg-white rounded-2xl">
+    <Card className="overflow-hidden h-full border-none shadow-premium bg-card rounded-2xl">
       <Skeleton className="h-40 w-full" />
       <CardContent className="p-4 space-y-3">
         <Skeleton className="h-6 w-3/4" />
@@ -142,7 +143,7 @@ export default function CustomerDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] pb-24 relative">
+    <div className="min-h-screen bg-background pb-24 relative">
       <ImagePreviewDialog 
         url={previewUrl}
         title={previewTitle}
@@ -150,7 +151,7 @@ export default function CustomerDashboardPage() {
         onOpenChange={setPreviewOpen}
       />
 
-      <div className="bg-white px-4 pt-8 pb-6 sm:px-8">
+      <div className="bg-card px-4 pt-8 pb-6 sm:px-8 rounded-b-[2rem] shadow-sm">
         <div className="mb-6">
           <h1 className="text-sm font-medium text-muted-foreground">{greeting}, {firstName} 👋</h1>
           <p className="text-2xl font-bold mt-1 leading-tight">
@@ -162,7 +163,7 @@ export default function CustomerDashboardPage() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
             placeholder="Search for stores, items or anything..."
-            className="pl-12 h-14 bg-[#F1F3F5] border-none rounded-2xl text-base"
+            className="pl-12 h-14 bg-muted/50 border-none rounded-2xl text-base"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -206,7 +207,7 @@ export default function CustomerDashboardPage() {
           ) : popularStores.length > 0 ? (
             popularStores.map((store) => (
               <div key={store.id} className="min-w-[240px] flex flex-col gap-2">
-                <Card className="overflow-hidden border-none shadow-premium bg-white group h-full rounded-2xl">
+                <Card className="overflow-hidden border-none shadow-premium bg-card group h-full rounded-2xl">
                   <div className="relative h-32 w-full overflow-hidden cursor-pointer" onClick={() => openPreview(store.bannerUrl || 'https://picsum.photos/seed/placeholder/600/400', store.name)}>
                     <Image
                       src={store.bannerUrl || 'https://picsum.photos/seed/placeholder/600/400'}
@@ -255,7 +256,7 @@ export default function CustomerDashboardPage() {
                 Array.from({ length: 4 }).map((_, i) => <StoreCardSkeleton key={i} />)
             ) : filteredStores.length > 0 ? (
                 filteredStores.map((store) => (
-                    <Card key={store.id} className="overflow-hidden border-none shadow-premium bg-white group rounded-[2rem] flex flex-col">
+                    <Card key={store.id} className="overflow-hidden border-none shadow-premium bg-card group rounded-[2rem] flex flex-col">
                         <div className="relative h-40 w-full cursor-pointer" onClick={() => openPreview(store.bannerUrl || '', store.name)}>
                              <Image
                                 src={store.bannerUrl || 'https://picsum.photos/seed/placeholder/600/400'}
@@ -274,7 +275,7 @@ export default function CustomerDashboardPage() {
                                 </div>
                             </div>
                             <div className="absolute top-4 right-4">
-                                <span className="bg-white px-2 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 shadow-md">
+                                <span className="bg-white px-2 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 shadow-md text-slate-800">
                                     <Star className="h-3 w-3 text-orange-500 fill-orange-500" />
                                     {(store.rating || 4.5).toFixed(1)}
                                 </span>
@@ -285,14 +286,14 @@ export default function CustomerDashboardPage() {
                                 <div className="flex items-center gap-1"><Clock className="h-3 w-3" /> {store.deliveryTime || '25 min'}</div>
                                 <div className="flex items-center gap-1"><Truck className="h-3 w-3" /> R{store.deliveryFee?.toFixed(2) || '30.00'}</div>
                              </div>
-                             <Button asChild className="w-full rounded-xl bg-orange-50 text-primary hover:bg-orange-100 hover:text-primary shadow-none font-bold text-xs h-10">
+                             <Button asChild className="w-full rounded-xl bg-orange-50 dark:bg-orange-950/20 text-primary hover:bg-orange-100 dark:hover:bg-orange-950/40 hover:text-primary shadow-none font-bold text-xs h-10 border border-orange-100 dark:border-orange-900/30">
                                 <Link href={`/restaurant?id=${store.id}`}>Browse Products</Link>
                              </Button>
                         </CardContent>
                     </Card>
                 ))
             ) : (
-                <div className="col-span-full text-center py-20 bg-white rounded-[2rem] border-2 border-dashed flex flex-col items-center gap-3">
+                <div className="col-span-full text-center py-20 bg-card rounded-[2rem] border-2 border-dashed flex flex-col items-center gap-3">
                     <Info className="h-12 w-12 text-muted-foreground opacity-20" />
                     <p className="text-muted-foreground font-medium">No stores match your search.</p>
                     <Button variant="outline" className="rounded-xl" onClick={() => { setSearchTerm(''); setSelectedCategory(null); }}>Clear Filters</Button>

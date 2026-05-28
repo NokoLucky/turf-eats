@@ -1,3 +1,4 @@
+
 'use client';
 import Link from 'next/link';
 import { collection, query, where, limit } from 'firebase/firestore';
@@ -8,11 +9,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import Logo from '@/components/logo';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Restaurant } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 function OwnerHeader() {
   const { user } = useUser();
@@ -27,8 +30,8 @@ function OwnerHeader() {
   const restaurant = restaurants?.[0];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background">
-      <div className="container flex h-16 items-center">
+    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center px-4">
         <Logo href="/owner/dashboard" />
         <nav className="ml-6 hidden items-center gap-6 text-sm font-medium md:flex">
           <Link href="/owner/dashboard" className="transition-colors hover:text-primary">
@@ -41,7 +44,8 @@ function OwnerHeader() {
             Orders
           </Link>
         </nav>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2">
@@ -49,24 +53,25 @@ function OwnerHeader() {
                 {isLoading ? (
                   <Skeleton className="h-5 w-24" />
                 ) : (
-                  <span className='truncate max-w-xs'>{restaurant?.name || 'My Store'}</span>
+                  <span className='truncate max-w-[120px] sm:max-w-xs'>{restaurant?.name || 'My Store'}</span>
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
+            <DropdownMenuContent align="end" className="rounded-xl border-none shadow-premium">
+              <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
                 <Link href="/owner/restaurant">
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Store Settings</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
                 <Link href="/owner/menu">
                   <Package className="mr-2 h-4 w-4" />
                   <span>Manage Products</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
                 <Link href="/login">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
@@ -85,7 +90,7 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
     <div className="relative flex min-h-screen flex-col">
       <OwnerHeader />
       <main className="flex-1">{children}</main>
-      <footer className="border-t py-6 md:py-8">
+      <footer className="border-t py-6 md:py-8 bg-card">
         <div className="container text-center text-sm text-muted-foreground">
           <p>Pin2You Owner Portal</p>
         </div>
