@@ -233,7 +233,7 @@ function ProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[95vh] overflow-y-auto sm:max-w-3xl">
+      <DialogContent className="max-h-[95vh] overflow-y-auto sm:max-w-3xl bg-background">
         <DialogHeader>
           <DialogTitle>{product?.id ? 'Edit Product' : 'Add New Product'}</DialogTitle>
           <DialogDescription>Configure your product details and customization categories.</DialogDescription>
@@ -265,7 +265,7 @@ function ProductDialog({
                   <FormItem>
                     <FormLabel>Product Name</FormLabel>
                     <FormControl>
-                      <Input {...field} value={field.value || ''} className="rounded-xl h-12" placeholder="e.g. Deluxe Cheeseburger" />
+                      <Input {...field} value={field.value || ''} className="rounded-xl h-12 bg-card" placeholder="e.g. Deluxe Cheeseburger" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -279,7 +279,7 @@ function ProductDialog({
                     <FormLabel>Product Category</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
-                        <SelectTrigger className="rounded-xl h-12">
+                        <SelectTrigger className="rounded-xl h-12 bg-card">
                           <SelectValue placeholder="Select a category" />
                         </SelectTrigger>
                       </FormControl>
@@ -303,7 +303,7 @@ function ProductDialog({
                   <FormItem>
                     <FormLabel>Custom Category Name</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="e.g. Specials, Toys, etc." className="rounded-xl" />
+                      <Input {...field} placeholder="e.g. Specials, Toys, etc." className="rounded-xl bg-card" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -318,7 +318,7 @@ function ProductDialog({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea {...field} value={field.value || ''} className="rounded-xl min-h-[100px]" placeholder="Describe your product..." />
+                    <Textarea {...field} value={field.value || ''} className="rounded-xl min-h-[100px] bg-card" placeholder="Describe your product..." />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -332,7 +332,7 @@ function ProductDialog({
                     <FormItem>
                     <FormLabel>Base Price (ZAR)</FormLabel>
                     <FormControl>
-                        <Input type="number" step="0.01" {...field} value={field.value ?? ''} className="rounded-xl h-12 font-bold" />
+                        <Input type="number" step="0.01" {...field} value={field.value ?? ''} className="rounded-xl h-12 font-bold bg-card" />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -345,7 +345,7 @@ function ProductDialog({
                     <FormItem>
                     <FormLabel>Promotional Price (Optional)</FormLabel>
                     <FormControl>
-                        <Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="e.g. 89.99" className="rounded-xl h-12" />
+                        <Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="e.g. 89.99" className="rounded-xl h-12 bg-card" />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -359,7 +359,7 @@ function ProductDialog({
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-black text-slate-800">Menu Customizations</h3>
+                  <h3 className="text-xl font-black text-foreground">Menu Customizations</h3>
                   <p className="text-xs text-muted-foreground">Force choices like "Rare or Well Done" or "Choose a Flavor".</p>
                 </div>
                 <Button type="button" variant="outline" size="sm" onClick={addOptionGroup} className="rounded-full border-primary text-primary hover:bg-primary/5">
@@ -369,8 +369,8 @@ function ProductDialog({
 
               <div className="space-y-10">
                 {optionFields.map((groupField, groupIndex) => (
-                  <Card key={groupField.id} className="relative border-2 border-slate-100 shadow-none rounded-[2.5rem] overflow-hidden">
-                    <div className="bg-slate-50 p-6 border-b">
+                  <Card key={groupField.id} className="relative border-2 border-border shadow-none rounded-[2.5rem] overflow-hidden bg-card">
+                    <div className="bg-muted/50 p-6 border-b">
                       <Button 
                         type="button" 
                         variant="ghost" 
@@ -387,8 +387,8 @@ function ProductDialog({
                           name={`options.${groupIndex}.name`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Question wording</FormLabel>
-                              <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. What flavor would you like?" className="rounded-xl h-11 bg-white" /></FormControl>
+                              <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Question wording</FormLabel>
+                              <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. What flavor would you like?" className="rounded-xl h-11 bg-background" /></FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -398,9 +398,9 @@ function ProductDialog({
                           name={`options.${groupIndex}.type`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Selection Type</FormLabel>
+                              <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Selection Type</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value || "radio"}>
-                                <FormControl><SelectTrigger className="rounded-xl h-11 bg-white"><SelectValue /></SelectTrigger></FormControl>
+                                <FormControl><SelectTrigger className="rounded-xl h-11 bg-background"><SelectValue /></SelectTrigger></FormControl>
                                 <SelectContent>
                                   <SelectItem value="radio">Single Choice (Radio)</SelectItem>
                                   <SelectItem value="checkbox">Multiple Choice (Checkbox)</SelectItem>
@@ -431,8 +431,8 @@ function ProductDialog({
                               name={`options.${groupIndex}.minSelections`}
                               render={({ field }) => (
                                 <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase">Min</span>
-                                  <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseInt(e.target.value))} className="w-16 h-8 rounded-lg text-xs text-center" />
+                                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Min</span>
+                                  <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseInt(e.target.value))} className="w-16 h-8 rounded-lg text-xs text-center bg-background" />
                                 </div>
                               )}
                             />
@@ -441,8 +441,8 @@ function ProductDialog({
                               name={`options.${groupIndex}.maxSelections`}
                               render={({ field }) => (
                                 <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase">Max</span>
-                                  <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseInt(e.target.value))} className="w-16 h-8 rounded-lg text-xs text-center" />
+                                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Max</span>
+                                  <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseInt(e.target.value))} className="w-16 h-8 rounded-lg text-xs text-center bg-background" />
                                 </div>
                               )}
                             />
@@ -452,7 +452,7 @@ function ProductDialog({
                     </div>
 
                     <div className="p-6 space-y-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Choices & Extra Prices</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Choices & Extra Prices</p>
                       
                       <ChoicesList 
                         control={form.control} 
@@ -470,7 +470,7 @@ function ProductDialog({
             <div className="space-y-6">
                <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-xl font-black text-slate-800">General Extra Groups</h3>
+                    <h3 className="text-xl font-black text-foreground">General Extra Groups</h3>
                     <p className="text-xs text-muted-foreground">Groups of optional extras like "Add Sauces" or "Extra Sides".</p>
                   </div>
                   <Button type="button" variant="outline" size="sm" onClick={addAddOnGroup} className="rounded-full border-primary text-primary hover:bg-primary/5">
@@ -480,8 +480,8 @@ function ProductDialog({
 
                <div className="space-y-10">
                   {addOnGroupFields.map((group, groupIndex) => (
-                    <Card key={group.id} className="relative border-2 border-slate-100 shadow-none rounded-[2.5rem] overflow-hidden bg-slate-50/30">
-                       <div className="p-6 border-b bg-slate-50/50">
+                    <Card key={group.id} className="relative border-2 border-border shadow-none rounded-[2.5rem] overflow-hidden bg-muted/30">
+                       <div className="p-6 border-b bg-muted/50">
                           <Button 
                             type="button" 
                             variant="ghost" 
@@ -497,8 +497,8 @@ function ProductDialog({
                             name={`addOnGroups.${groupIndex}.title`}
                             render={({ field }) => (
                               <FormItem className="max-w-md">
-                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Section Title</FormLabel>
-                                <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Would you like to add sauces?" className="rounded-xl h-11 bg-white" /></FormControl>
+                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Section Title</FormLabel>
+                                <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Would you like to add sauces?" className="rounded-xl h-11 bg-background" /></FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -506,7 +506,7 @@ function ProductDialog({
                        </div>
                        
                        <div className="p-6 space-y-4">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Extra Items</p>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Extra Items</p>
                           <AddOnItemsList control={form.control} groupIndex={groupIndex} />
                        </div>
                     </Card>
@@ -521,7 +521,7 @@ function ProductDialog({
                     control={form.control}
                     name="isSoldOut"
                     render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-[1.5rem] border-2 border-slate-100 p-6 shadow-none bg-slate-50/50">
+                    <FormItem className="flex flex-row items-center justify-between rounded-[1.5rem] border-2 border-border p-6 shadow-none bg-muted/50">
                         <div className="space-y-0.5">
                             <FormLabel className="text-sm font-bold">Temporarily Sold Out</FormLabel>
                             <FormDescription className="text-[10px]">
@@ -542,7 +542,7 @@ function ProductDialog({
                     control={form.control}
                     name="isBestseller"
                     render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-[1.5rem] border-2 border-slate-100 p-6 shadow-none bg-slate-50/50">
+                    <FormItem className="flex flex-row items-center justify-between rounded-[1.5rem] border-2 border-border p-6 shadow-none bg-muted/50">
                         <div className="space-y-0.5">
                             <FormLabel className="flex items-center gap-2 text-sm font-bold"><Star className="h-3 w-3 fill-primary text-primary" /> Popular Item</FormLabel>
                             <FormDescription className="text-[10px]">
@@ -560,7 +560,7 @@ function ProductDialog({
                 />
             </div>
             
-            <DialogFooter className="sticky bottom-0 bg-white pt-6 border-t pb-2">
+            <DialogFooter className="sticky bottom-0 bg-background pt-6 border-t pb-2">
               <Button type="submit" disabled={form.formState.isSubmitting} className="w-full sm:w-auto rounded-2xl font-black text-lg px-12 h-14 shadow-xl shadow-primary/20">
                 {form.formState.isSubmitting ? 'Saving Product...' : 'Save Product Changes'}
               </Button>
@@ -587,7 +587,7 @@ function ChoicesList({ control, groupIndex }: { control: any, groupIndex: number
               control={control}
               name={`options.${groupIndex}.choices.${choiceIndex}.name`}
               render={({ field }) => (
-                <FormControl><Input {...field} value={field.value || ''} placeholder="Choice name (e.g. Vanilla)" className="rounded-xl h-10 bg-white border-slate-200" /></FormControl>
+                <FormControl><Input {...field} value={field.value || ''} placeholder="Choice name (e.g. Vanilla)" className="rounded-xl h-10 bg-background border-border" /></FormControl>
               )}
             />
           </div>
@@ -599,7 +599,7 @@ function ChoicesList({ control, groupIndex }: { control: any, groupIndex: number
                 <FormControl>
                   <div className="relative">
                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">+R</span>
-                    <Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="0.00" className="rounded-xl h-10 bg-white border-slate-200 pl-8 text-xs font-bold text-center" />
+                    <Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="0.00" className="rounded-xl h-10 bg-background border-border pl-8 text-xs font-bold text-center" />
                   </div>
                 </FormControl>
               )}
@@ -609,7 +609,7 @@ function ChoicesList({ control, groupIndex }: { control: any, groupIndex: number
             type="button" 
             variant="ghost" 
             size="icon" 
-            className="h-10 w-10 text-slate-300 hover:text-destructive rounded-xl"
+            className="h-10 w-10 text-muted-foreground hover:text-destructive rounded-xl"
             onClick={() => remove(choiceIndex)}
             disabled={fields.length === 1}
           >
@@ -646,8 +646,8 @@ function AddOnItemsList({ control, groupIndex }: { control: any, groupIndex: num
                 name={`addOnGroups.${groupIndex}.items.${itemIndex}.name`}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className={itemIndex > 0 ? "sr-only" : "text-[10px] font-bold text-slate-400 uppercase"}>Item Name</FormLabel>
-                    <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Extra Cheese" className="rounded-xl h-11 bg-white shadow-sm" /></FormControl>
+                    <FormLabel className={itemIndex > 0 ? "sr-only" : "text-[10px] font-bold text-muted-foreground uppercase"}>Item Name</FormLabel>
+                    <FormControl><Input {...field} value={field.value || ''} placeholder="e.g. Extra Cheese" className="rounded-xl h-11 bg-background shadow-sm" /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -659,8 +659,8 @@ function AddOnItemsList({ control, groupIndex }: { control: any, groupIndex: num
                 name={`addOnGroups.${groupIndex}.items.${itemIndex}.price`}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className={itemIndex > 0 ? "sr-only" : "text-[10px] font-bold text-slate-400 uppercase"}>Extra (ZAR)</FormLabel>
-                    <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="0.00" className="rounded-xl h-11 bg-white shadow-sm text-center font-bold" /></FormControl>
+                    <FormLabel className={itemIndex > 0 ? "sr-only" : "text-[10px] font-bold text-muted-foreground uppercase"}>Extra (ZAR)</FormLabel>
+                    <FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''} placeholder="0.00" className="rounded-xl h-11 bg-background shadow-sm text-center font-bold" /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -877,7 +877,7 @@ export default function ProductsManagementPage() {
       </div>
       
        {!isLoading && (!products || products.length === 0) && (
-          <div className="text-center py-20 bg-white rounded-[3rem] shadow-premium">
+          <div className="text-center py-20 bg-card rounded-[3rem] shadow-premium">
              <div className="bg-primary/5 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <PlusCircle className="h-10 w-10 text-primary/30" />
              </div>
