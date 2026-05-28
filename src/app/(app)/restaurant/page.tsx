@@ -221,7 +221,7 @@ function SelectionDialog({
                   <h4 className="font-black text-sm text-foreground">
                     {group.name} 
                     {group.type === 'checkbox' && group.maxSelections && (
-                      <span className="text-muted-foreground font-medium ml-1 text-xs">(Select up to {group.maxSelections})</span>
+                      <span className="text-muted-foreground font-medium ml-1 text-xs">(Max {group.maxSelections})</span>
                     )}
                   </h4>
                   {group.isRequired && (
@@ -309,22 +309,22 @@ function SelectionDialog({
           ))}
         </div>
 
-        <DialogFooter className="p-6 bg-card border-t shrink-0 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
-          <div className="flex items-center justify-between w-full gap-4">
-            <div className="flex items-center bg-muted rounded-full px-3 py-1">
+        <DialogFooter className="p-4 sm:p-6 bg-card border-t shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <div className="flex items-center justify-between w-full gap-3 sm:gap-4">
+            <div className="flex items-center bg-muted rounded-full px-2 py-1">
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="h-10 w-10 rounded-full hover:bg-white/50" 
+                className="h-9 w-9 sm:h-10 sm:w-10 rounded-full hover:bg-white/50" 
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
               >
                 -
               </Button>
-              <span className="w-10 text-center font-black text-lg">{quantity}</span>
+              <span className="w-8 sm:w-10 text-center font-black text-base sm:text-lg">{quantity}</span>
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="h-10 w-10 rounded-full hover:bg-white/50" 
+                className="h-9 w-9 sm:h-10 sm:w-10 rounded-full hover:bg-white/50" 
                 onClick={() => setQuantity(quantity + 1)}
               >
                 +
@@ -333,7 +333,7 @@ function SelectionDialog({
             <Button 
               onClick={handleConfirmOrder} 
               disabled={!isValid()} 
-              className="flex-1 h-14 rounded-2xl font-black text-lg shadow-xl shadow-primary/20 flex justify-between px-8"
+              className="flex-1 h-12 sm:h-14 rounded-2xl font-black text-base sm:text-lg shadow-xl shadow-primary/20 flex justify-between px-4 sm:px-8"
             >
                <span>Add to Cart</span>
                <span>R{totalPrice.toFixed(2)}</span>
