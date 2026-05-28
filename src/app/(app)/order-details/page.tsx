@@ -32,7 +32,7 @@ function OrderDetailsSkeleton() {
         </div>
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             <div className="lg:col-span-2">
-                <Card className="rounded-[2rem] border-none shadow-premium">
+                <Card className="rounded-[2rem] border-none shadow-premium bg-card">
                     <CardHeader>
                         <CardTitle>Live Tracking</CardTitle>
                     </CardHeader>
@@ -42,7 +42,7 @@ function OrderDetailsSkeleton() {
                 </Card>
             </div>
             <div className="space-y-8">
-                <Card className="rounded-[2rem] border-none shadow-premium">
+                <Card className="rounded-[2rem] border-none shadow-premium bg-card">
                     <CardHeader>
                         <CardTitle>Order Status</CardTitle>
                     </CardHeader>
@@ -150,7 +150,7 @@ function OrderDetailsContent() {
             <div className="flex items-center gap-3 mb-2">
                 <Badge className="bg-primary/10 text-primary border-none rounded-full px-3 py-1 text-xs font-bold">#{order.id.slice(0, 8)}</Badge>
                 {order.status === 'Delivered' && (
-                    <Badge className="bg-green-100 text-green-700 border-none rounded-full px-3 py-1 text-xs font-bold">DELIVERED</Badge>
+                    <Badge className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-none rounded-full px-3 py-1 text-xs font-bold">DELIVERED</Badge>
                 )}
             </div>
             <h1 className="font-headline text-4xl font-bold">Track Your Order</h1>
@@ -161,10 +161,10 @@ function OrderDetailsContent() {
       </div>
 
       {order.status === 'Delivered' && (
-        <Card className="mb-10 border-none shadow-premium bg-gradient-to-br from-orange-50 to-primary/5 rounded-[2.5rem] overflow-hidden">
+        <Card className="mb-10 border-none shadow-premium bg-gradient-to-br from-orange-50 to-primary/5 dark:from-primary/10 dark:to-background rounded-[2.5rem] overflow-hidden">
           <CardContent className="p-8 flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="flex items-center gap-6">
-              <div className="bg-white p-4 rounded-[1.5rem] shadow-sm transform -rotate-3">
+              <div className="bg-background p-4 rounded-[1.5rem] shadow-sm transform -rotate-3 border border-border/50">
                 <Star className="h-10 w-10 text-primary fill-primary" />
               </div>
               <div>
@@ -173,7 +173,7 @@ function OrderDetailsContent() {
               </div>
             </div>
             {!order.isRated ? (
-              <Button onClick={() => setRatingOpen(true)} className="rounded-2xl px-10 h-14 font-bold text-lg shadow-xl shadow-primary/20 hover:scale-105 transition-transform">
+              <Button onClick={() => setRatingOpen(true)} className="rounded-2xl px-10 h-14 font-bold text-lg shadow-xl shadow-primary/20 hover:scale-105 transition-transform w-full md:w-auto">
                 Rate Order
               </Button>
             ) : (
@@ -188,8 +188,8 @@ function OrderDetailsContent() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <Card className="rounded-[2.5rem] border-none shadow-premium overflow-hidden">
-            <CardHeader className="bg-white/50 backdrop-blur-sm border-b px-8 py-6">
+          <Card className="rounded-[2.5rem] border-none shadow-premium overflow-hidden bg-card">
+            <CardHeader className="bg-muted/30 backdrop-blur-sm border-b px-8 py-6">
               <CardTitle className="text-lg">Live Tracking</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -200,7 +200,7 @@ function OrderDetailsContent() {
 
         <div className="space-y-8">
           {driverInfo && order.status !== 'Placed' && order.status !== 'Cancelled' && (
-             <Card className="rounded-[2.5rem] border-none shadow-premium overflow-hidden bg-white">
+             <Card className="rounded-[2.5rem] border-none shadow-premium overflow-hidden bg-card border border-border/50">
                 <CardHeader className="px-8 pt-8 pb-4">
                   <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">Your Delivery Partner</p>
                   <CardTitle className="text-lg">Meet {driverInfo.name.split(' ')[0]}</CardTitle>
@@ -236,7 +236,7 @@ function OrderDetailsContent() {
              </Card>
           )}
 
-          <Card className="rounded-[2.5rem] border-none shadow-premium overflow-hidden">
+          <Card className="rounded-[2.5rem] border-none shadow-premium overflow-hidden bg-card border border-border/50">
             <CardHeader className="px-8 py-6">
               <CardTitle className="text-lg">Order Status</CardTitle>
             </CardHeader>
@@ -275,7 +275,7 @@ function OrderDetailsContent() {
             </CardContent>
           </Card>
           
-          <Card className="rounded-[2.5rem] border-none shadow-premium overflow-hidden">
+          <Card className="rounded-[2.5rem] border-none shadow-premium overflow-hidden bg-card border border-border/50">
             <CardHeader className="px-8 py-6">
               <CardTitle className="text-lg">Order Summary</CardTitle>
             </CardHeader>
@@ -329,7 +329,7 @@ function OrderDetailsContent() {
           </Card>
           
           {order.notes && (
-            <Card className="rounded-[2rem] border-none shadow-premium bg-primary/5">
+            <Card className="rounded-[2rem] border-none shadow-premium bg-primary/5 border border-primary/10">
                 <CardHeader className="px-6 pt-6 pb-2">
                     <CardTitle className="text-sm uppercase tracking-widest text-primary font-bold">Your Notes</CardTitle>
                 </CardHeader>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -206,9 +205,9 @@ export default function CustomerDashboardPage() {
             ))
           ) : popularStores.length > 0 ? (
             popularStores.map((store) => (
-              <div key={store.id} className="min-w-[240px] flex flex-col gap-2">
-                <Card className="overflow-hidden border-none shadow-premium bg-card group h-full rounded-2xl">
-                  <div className="relative h-32 w-full overflow-hidden cursor-pointer" onClick={() => openPreview(store.bannerUrl || 'https://picsum.photos/seed/placeholder/600/400', store.name)}>
+              <div key={store.id} className="min-w-[240px] flex flex-col gap-2 h-full">
+                <Card className="overflow-hidden border-none shadow-premium bg-card group h-full rounded-2xl flex flex-col">
+                  <div className="relative h-32 w-full overflow-hidden cursor-pointer shrink-0" onClick={() => openPreview(store.bannerUrl || 'https://picsum.photos/seed/placeholder/600/400', store.name)}>
                     <Image
                       src={store.bannerUrl || 'https://picsum.photos/seed/placeholder/600/400'}
                       alt={store.name}
@@ -225,8 +224,8 @@ export default function CustomerDashboardPage() {
                       </span>
                     </div>
                   </div>
-                  <Link href={`/restaurant?id=${store.id}`}>
-                    <CardContent className="p-3 hover:bg-muted/30 transition-colors">
+                  <Link href={`/restaurant?id=${store.id}`} className="flex-1 flex flex-col">
+                    <CardContent className="p-3 hover:bg-muted/30 transition-colors flex-1 flex flex-col justify-center">
                       <h3 className="font-bold text-sm truncate">{store.name}</h3>
                       <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground font-medium">
                         <span>$$</span>
@@ -266,7 +265,7 @@ export default function CustomerDashboardPage() {
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                             <div className="absolute bottom-4 left-4 flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-xl overflow-hidden border-2 border-white shadow-lg bg-white">
+                                <div className="h-10 w-10 rounded-xl overflow-hidden border-2 border-background shadow-lg bg-card">
                                     <Image src={store.logoUrl} alt="logo" width={40} height={40} className="object-cover" />
                                 </div>
                                 <div>
@@ -275,7 +274,7 @@ export default function CustomerDashboardPage() {
                                 </div>
                             </div>
                             <div className="absolute top-4 right-4">
-                                <span className="bg-white px-2 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 shadow-md text-slate-800">
+                                <span className="bg-card/90 backdrop-blur-sm px-2 py-1 rounded-xl text-[10px] font-bold flex items-center gap-1 shadow-md text-foreground border border-border/50">
                                     <Star className="h-3 w-3 text-orange-500 fill-orange-500" />
                                     {(store.rating || 4.5).toFixed(1)}
                                 </span>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, ChangeEvent, useEffect } from 'react';
@@ -113,9 +112,9 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
 
   return (
     <div className="space-y-4 w-full">
-      <div className="border rounded-xl p-4 bg-muted/30">
+      <div className="border rounded-2xl p-6 bg-muted/30 border-dashed border-border/50">
         {previewUrl ? (
-          <div className="relative aspect-square w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-white shadow-md">
+          <div className="relative aspect-square w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-card shadow-md">
             <Image
               src={previewUrl}
               alt="Preview"
@@ -136,16 +135,16 @@ export default function ImageUploader({ onUploadComplete, initialImageUrl, folde
             </Button>
           </div>
         ) : (
-          <div className="aspect-square w-32 h-32 mx-auto border-2 border-dashed rounded-full flex items-center justify-center bg-white">
+          <div className="aspect-square w-32 h-32 mx-auto border-2 border-dashed rounded-full flex items-center justify-center bg-muted/50 border-border/50">
             <div className="text-center">
-              <Upload className="h-6 w-6 mx-auto text-gray-400" />
+              <Upload className="h-6 w-6 mx-auto text-muted-foreground/50" />
             </div>
           </div>
         )}
       </div>
 
       <div>
-        <Button asChild disabled={isUploading || !storage} className="w-full cursor-pointer" variant="outline">
+        <Button asChild disabled={isUploading || !storage} className="w-full cursor-pointer h-12 rounded-xl font-bold" variant="outline">
           <label className="cursor-pointer flex items-center justify-center gap-2">
             {isUploading ? (
               <>

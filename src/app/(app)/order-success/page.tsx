@@ -25,8 +25,8 @@ function OrderSuccessContent() {
   const { data: order } = useDoc<Order>(orderRef);
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center p-6">
-       <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-premium overflow-hidden p-8 text-center space-y-8">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+       <div className="w-full max-w-md bg-card rounded-[2.5rem] shadow-premium overflow-hidden p-8 text-center space-y-8 border border-border/50">
           <div className="relative mx-auto w-24 h-24">
              <div className="absolute inset-0 bg-green-500/10 rounded-full animate-ping" />
              <div className="relative bg-green-500 w-24 h-24 rounded-full flex items-center justify-center shadow-lg shadow-green-500/20">
@@ -45,12 +45,12 @@ function OrderSuccessContent() {
 
           <div>
              <h1 className="text-2xl font-bold">Order Confirmed! 🎉</h1>
-             {id && <p className="text-green-600 font-bold mt-2">Order #PIN{id.slice(0, 7).toUpperCase()}</p>}
+             {id && <p className="text-green-600 font-bold mt-2 uppercase text-xs tracking-widest">Order #PIN{id.slice(0, 7).toUpperCase()}</p>}
           </div>
 
-          <div className="bg-[#F8F9FA] rounded-3xl p-6 space-y-2">
+          <div className="bg-muted/50 rounded-3xl p-6 space-y-2 border border-border/50">
              <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Estimated delivery</p>
-             <p className="text-3xl font-black text-slate-800">25 - 35 mins</p>
+             <p className="text-3xl font-black text-foreground">25 - 35 mins</p>
           </div>
 
           <div className="text-left space-y-6 pt-4">
@@ -60,7 +60,7 @@ function OrderSuccessContent() {
              </div>
 
              <div className="flex justify-between items-center relative px-2">
-                <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-0.5 bg-slate-100 -z-0" />
+                <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-0.5 bg-muted -z-0" />
                 {[
                   { icon: <Check />, label: 'Confirmed', active: true },
                   { icon: <Package />, label: 'Preparing', active: false },
@@ -69,12 +69,12 @@ function OrderSuccessContent() {
                 ].map((step, i) => (
                   <div key={i} className="flex flex-col items-center gap-2 relative z-10">
                      <div className={cn(
-                       "w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all",
-                       step.active ? "bg-green-500 text-white scale-110" : "bg-white text-slate-300"
+                       "w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all border border-border/50",
+                       step.active ? "bg-green-500 text-white scale-110 border-transparent" : "bg-card text-muted-foreground"
                      )}>
-                        {React.cloneElement(step.icon as React.ReactElement, { className: "h-4 w-4", strokeWidth: 3 })}
+                        {React.cloneElement(step.icon as React.ReactElement, { className: "h-3.5 w-3.5", strokeWidth: 3 })}
                      </div>
-                     <span className={cn("text-[9px] font-bold uppercase", step.active ? "text-slate-800" : "text-slate-300")}>
+                     <span className={cn("text-[8px] font-bold uppercase tracking-tight", step.active ? "text-foreground" : "text-muted-foreground")}>
                         {step.label}
                      </span>
                   </div>
@@ -83,7 +83,7 @@ function OrderSuccessContent() {
           </div>
 
           <div className="pt-8">
-             <Button asChild className="w-full h-14 rounded-2xl font-bold text-lg border-2 border-orange-500 text-orange-500 bg-white hover:bg-orange-50 hover:text-orange-600 transition-all">
+             <Button asChild className="w-full h-14 rounded-2xl font-bold text-lg border-2 border-primary text-primary bg-transparent hover:bg-primary/5 hover:text-primary transition-all shadow-none">
                 <Link href={`/order-details?id=${id}`}>View Order Status</Link>
              </Button>
           </div>
@@ -96,8 +96,8 @@ function OrderSuccessContent() {
             { label: 'Secure Payments', desc: 'Pay safely with cash or card.', img: 'https://picsum.photos/seed/safe/100/100' },
             { label: 'Top Restaurants', desc: 'From your favorite local spots.', img: 'https://picsum.photos/seed/top/100/100' }
           ].map((feature, i) => (
-            <div key={i} className="bg-white/50 backdrop-blur-sm p-4 rounded-3xl border border-white flex items-center gap-3">
-               <div className="h-10 w-10 shrink-0 bg-orange-100 rounded-xl flex items-center justify-center">
+            <div key={i} className="bg-card/50 backdrop-blur-sm p-4 rounded-3xl border border-border flex items-center gap-3">
+               <div className="h-10 w-10 shrink-0 bg-orange-100 dark:bg-orange-950/30 rounded-xl flex items-center justify-center">
                   <Image src={feature.img} alt={feature.label} width={24} height={24} className="rounded-lg" />
                </div>
                <div className="min-w-0">
@@ -113,7 +113,7 @@ function OrderSuccessContent() {
 
 export default function OrderSuccessPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Skeleton className="h-40 w-40 rounded-full" /></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><Skeleton className="h-40 w-40 rounded-full" /></div>}>
       <OrderSuccessContent />
     </Suspense>
   )
