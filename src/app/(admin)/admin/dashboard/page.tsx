@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Store, Bike, Trash2, TrendingUp, ShoppingCart, 
   User, Phone, Mail, MapPin, Calendar as CalendarIcon, 
-  CreditCard, Info, Clock, Star, ExternalLink,
+  CreditCard, Info, Clock, Star, 
   ChevronRight, ListFilter, DollarSign, History, Users, Heart
 } from 'lucide-react';
 import type { Order, Driver, Restaurant, Customer } from '@/lib/data';
@@ -209,7 +209,7 @@ export default function AdminDashboard() {
         ) : stats.map((stat) => (
           <Card 
             key={stat.label} 
-            className="border-none shadow-premium rounded-[2rem] cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all active:scale-95"
+            className="border-none shadow-premium rounded-[2rem] cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all active:scale-95 bg-card"
             onClick={() => handleStatClick(stat.label)}
           >
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -230,7 +230,7 @@ export default function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="drivers" className="space-y-8">
-        <TabsList className="bg-white p-1 rounded-2xl shadow-premium border-none h-14 w-full max-w-lg">
+        <TabsList className="bg-card p-1 rounded-2xl shadow-premium border border-border/50 h-14 w-full max-w-lg">
           <TabsTrigger value="drivers" className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">Drivers</TabsTrigger>
           <TabsTrigger value="owners" className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">Owners</TabsTrigger>
           <TabsTrigger value="customers" className="flex items-center gap-2 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">Customers</TabsTrigger>
@@ -242,7 +242,7 @@ export default function AdminDashboard() {
             {loadingDrivers ? <Skeleton className="h-40 w-full rounded-3xl" /> : allDrivers?.map(driver => (
               <Card 
                 key={driver.id} 
-                className="border-none shadow-premium rounded-[2rem] p-6 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all group"
+                className="border-none shadow-premium rounded-[2rem] p-6 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all group bg-card"
                 onClick={() => openInspection(driver, 'driver')}
               >
                 <div className="flex justify-between items-start mb-4">
@@ -279,7 +279,7 @@ export default function AdminDashboard() {
             {loadingOwners ? <Skeleton className="h-40 w-full rounded-3xl" /> : allOwners?.map(owner => (
               <Card 
                 key={owner.id} 
-                className="border-none shadow-premium rounded-[2rem] p-6 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all group"
+                className="border-none shadow-premium rounded-[2rem] p-6 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all group bg-card"
                 onClick={() => openInspection(owner, 'owner')}
               >
                 <div className="flex justify-between items-start mb-4">
@@ -307,7 +307,7 @@ export default function AdminDashboard() {
             {loadingCustomers ? <Skeleton className="h-40 w-full rounded-3xl" /> : allCustomers?.map(customer => (
               <Card 
                 key={customer.id} 
-                className="border-none shadow-premium rounded-[2rem] p-6 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all group"
+                className="border-none shadow-premium rounded-[2rem] p-6 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all group bg-card"
                 onClick={() => openInspection(customer, 'customer')}
               >
                 <div className="flex justify-between items-start mb-4">
@@ -344,12 +344,12 @@ export default function AdminDashboard() {
             {loadingRestaurants ? <Skeleton className="h-40 w-full rounded-3xl" /> : allRestaurants?.map(store => (
               <Card 
                 key={store.id} 
-                className="border-none shadow-premium rounded-[2rem] p-6 overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all group"
+                className="border-none shadow-premium rounded-[2rem] p-6 overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all group bg-card"
                 onClick={() => openInspection(store, 'restaurant')}
               >
                 <div className="relative h-32 -mx-6 -mt-6 mb-4">
                    <img src={store.bannerUrl} className="w-full h-full object-cover" alt="banner" />
-                   <div className="absolute bottom-2 right-2 h-10 w-10 bg-white p-1 rounded-lg shadow-lg">
+                   <div className="absolute bottom-2 right-2 h-10 w-10 bg-background p-1 rounded-lg shadow-lg">
                       <img src={store.logoUrl} className="w-full h-full object-cover rounded-md" alt="logo" />
                    </div>
                 </div>
@@ -437,13 +437,13 @@ export default function AdminDashboard() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Logo</p>
-                        <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl overflow-hidden border-4 border-white shadow-md bg-muted">
+                        <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl overflow-hidden border-4 border-background shadow-md bg-muted">
                            <img src={inspectedItem.logoUrl} className="w-full h-full object-cover" alt="logo" />
                         </div>
                       </div>
                       <div className="space-y-2">
                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Banner</p>
-                         <div className="h-20 sm:h-24 w-full rounded-2xl overflow-hidden border-4 border-white shadow-md bg-muted">
+                         <div className="h-20 sm:h-24 w-full rounded-2xl overflow-hidden border-4 border-background shadow-md bg-muted">
                            <img src={inspectedItem.bannerUrl} className="w-full h-full object-cover" alt="banner" />
                         </div>
                       </div>
@@ -453,7 +453,7 @@ export default function AdminDashboard() {
                   {inspectionType === 'driver' && inspectedItem.photoUrl && (
                     <div className="space-y-2">
                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Driver Photo</p>
-                       <div className="h-24 w-24 rounded-2xl overflow-hidden border-4 border-white shadow-md bg-muted">
+                       <div className="h-24 w-24 rounded-2xl overflow-hidden border-4 border-background shadow-md bg-muted">
                           <img src={inspectedItem.photoUrl} className="w-full h-full object-cover" alt="driver photo" />
                        </div>
                     </div>
@@ -516,7 +516,7 @@ export default function AdminDashboard() {
                            </div>
 
                            <div className="space-y-4">
-                              <div className="flex justify-between items-center bg-white p-3 rounded-2xl shadow-sm">
+                              <div className="flex justify-between items-center bg-card p-3 rounded-2xl shadow-sm border border-border/50">
                                  <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
                                     <Clock className="h-3.5 w-3.5" />
                                     {logDate ? format(logDate, 'MMM d, yyyy') : 'Select Date'}
@@ -529,7 +529,7 @@ export default function AdminDashboard() {
                               <div className="h-[250px] overflow-y-auto space-y-3 pr-2">
                                  {driverHistoryLogs.length > 0 ? (
                                     driverHistoryLogs.map(order => (
-                                      <div key={order.id} className="p-3 rounded-2xl bg-white border shadow-sm group hover:border-primary/30 transition-colors">
+                                      <div key={order.id} className="p-3 rounded-2xl bg-card border shadow-sm group hover:border-primary/30 transition-colors">
                                          <div className="flex justify-between items-start mb-1">
                                             <p className="text-[10px] font-bold">#ORD{order.id.slice(0, 6)}</p>
                                             <p className="text-[10px] font-bold text-green-600">R{(24 + (order.tip || 0)).toFixed(2)}</p>
