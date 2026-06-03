@@ -72,7 +72,20 @@ function OwnerHeader() {
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="rounded-xl border-none shadow-premium">
+            <DropdownMenuContent align="end" className="rounded-xl border-none shadow-premium min-w-[200px]">
+              <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                <Link href="/owner/menu">
+                  <Package className="mr-2 h-4 w-4" />
+                  <span>Manage Products</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                <Link href="/owner/orders">
+                  <ClipboardList className="mr-2 h-4 w-4" />
+                  <span>Manage Orders</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
                 <Link href="/owner/restaurant">
                   <Settings className="mr-2 h-4 w-4" />
