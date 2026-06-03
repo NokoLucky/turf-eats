@@ -43,14 +43,41 @@ function OwnerHeader() {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center px-4">
-        <Logo href="/owner/dashboard" />
+        <Logo href="/owner/dashboard" className="hidden sm:flex" />
+        
+        {/* Mobile Logo Short Version */}
+        <Link href="/owner/dashboard" className="sm:hidden text-primary">
+           <Store className="h-6 w-6" />
+        </Link>
+
+        {/* Central Prominent Orders Button */}
+        <div className="flex-1 flex justify-center px-2">
+           <Button 
+            asChild 
+            variant={pathname === '/owner/orders' ? 'default' : 'outline'} 
+            size="sm" 
+            className={cn(
+              "rounded-full font-bold h-9 shadow-md transition-all flex items-center gap-2 px-4 border-2 animate-in fade-in zoom-in duration-300",
+              pathname === '/owner/orders' 
+                ? "bg-primary text-white border-primary" 
+                : "border-primary text-primary hover:bg-primary/5 bg-card"
+            )}
+           >
+              <Link href="/owner/orders">
+                <ClipboardList className="h-4 w-4" />
+                <span className="hidden xs:inline sm:inline">Manage Orders</span>
+                <span className="xs:hidden sm:hidden">Orders</span>
+              </Link>
+           </Button>
+        </div>
+
         <nav className="ml-6 hidden items-center gap-4 text-sm font-medium lg:flex">
-          {navLinks.map((link) => (
+          {navLinks.filter(l => l.href !== '/owner/orders').map((link) => (
             <Link 
               key={link.href} 
               href={link.href} 
               className={cn(
-                "transition-colors hover:text-primary flex items-center gap-1.5",
+                "transition-colors hover:text-primary flex items-center gap-1.5 whitespace-nowrap",
                 pathname === link.href ? "text-primary font-bold" : "text-muted-foreground"
               )}
             >
@@ -59,16 +86,17 @@ function OwnerHeader() {
             </Link>
           ))}
         </nav>
+
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2">
+              <Button variant="ghost" className="flex items-center gap-2 px-2 sm:px-4">
                 <Store className="h-5 w-5 text-primary" />
                 {isLoading ? (
-                  <Skeleton className="h-5 w-24" />
+                  <Skeleton className="h-5 w-12 sm:w-24" />
                 ) : (
-                  <span className='truncate max-w-[100px] sm:max-w-xs'>{restaurant?.name || 'My Store'}</span>
+                  <span className='truncate max-w-[60px] sm:max-w-xs font-bold'>{restaurant?.name || 'My Store'}</span>
                 )}
               </Button>
             </DropdownMenuTrigger>
@@ -79,7 +107,7 @@ function OwnerHeader() {
                   <span>Manage Products</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+              <DropdownMenuItem asChild className="rounded-lg cursor-pointer font-bold text-primary">
                 <Link href="/owner/orders">
                   <ClipboardList className="mr-2 h-4 w-4" />
                   <span>Manage Orders</span>
@@ -93,7 +121,7 @@ function OwnerHeader() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+              <DropdownMenuItem asChild className="rounded-lg cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
                 <Link href="/login">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
