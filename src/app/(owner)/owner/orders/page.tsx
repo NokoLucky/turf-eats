@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -22,7 +21,7 @@ import {
   MapPin, Phone, User, 
   Bike, Package, Trash2, 
   ChevronRight, ArrowRight,
-  Info
+  Info, ClipboardList
 } from 'lucide-react';
 import {
   Dialog,
@@ -36,6 +35,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import OrderTrackingMap from '@/components/order-tracking-map';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 type EnrichedOrder = Order & { customerName?: string };
 
