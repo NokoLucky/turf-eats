@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -9,9 +10,10 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DollarSign, ShoppingCart, TrendingUp, Star, Users } from 'lucide-react';
+import { DollarSign, ShoppingCart, TrendingUp, Star, Users, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChartTooltip, ChartTooltipContent, ChartContainer, type ChartConfig } from "@/components/ui/chart"
+import Link from 'next/link';
 
 const chartConfig = {
   amount: {
@@ -110,58 +112,63 @@ export default function OwnerDashboard() {
           <h1 className="text-3xl font-bold">{greeting}{firstName ? `, ${firstName}` : ''} 👋</h1>
           <p className="text-muted-foreground mt-1">Your store received <span className="text-primary font-bold">{orders?.length || 0}</span> orders in total.</p>
         </div>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="rounded-xl">Overview</Button>
-        </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-        <Card className="border-none shadow-premium rounded-[2rem]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-bold text-muted-foreground uppercase">Revenue</CardTitle>
-            <div className="bg-green-100 p-2 rounded-xl"><DollarSign className="h-4 w-4 text-green-600" /></div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">R{stats.totalRevenue.toFixed(2)}</div>
-            <p className="text-[10px] text-green-600 font-bold mt-1 flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" /> ↑ +{stats.growth}% this week
-            </p>
-          </CardContent>
-        </Card>
+        <Link href="/owner/orders">
+          <Card className="border-none shadow-premium rounded-[2rem] hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-bold text-muted-foreground uppercase">Revenue</CardTitle>
+              <div className="bg-green-100 p-2 rounded-xl"><DollarSign className="h-4 w-4 text-green-600" /></div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">R{stats.totalRevenue.toFixed(2)}</div>
+              <p className="text-[10px] text-green-600 font-bold mt-1 flex items-center gap-1">
+                <TrendingUp className="h-3 w-3" /> ↑ +{stats.growth}% this week
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
         
-        <Card className="border-none shadow-premium rounded-[2rem]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-bold text-muted-foreground uppercase">Orders</CardTitle>
-            <div className="bg-orange-100 p-2 rounded-xl"><ShoppingCart className="h-4 w-4 text-orange-600" /></div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalOrders}</div>
-            <p className="text-[10px] text-muted-foreground mt-1 font-bold">ALL TIME</p>
-          </CardContent>
-        </Card>
+        <Link href="/owner/orders">
+          <Card className="border-none shadow-premium rounded-[2rem] hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-bold text-muted-foreground uppercase">Orders</CardTitle>
+              <div className="bg-orange-100 p-2 rounded-xl"><ShoppingCart className="h-4 w-4 text-orange-600" /></div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalOrders}</div>
+              <p className="text-[10px] text-muted-foreground mt-1 font-bold">CLICK TO MANAGE</p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="border-none shadow-premium rounded-[2rem]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-bold text-muted-foreground uppercase">Rating</CardTitle>
-            <div className="bg-yellow-100 p-2 rounded-xl"><Star className="h-4 w-4 text-yellow-600" /></div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{(restaurant?.rating || 0).toFixed(1)}</div>
-            <p className="text-[10px] text-muted-foreground mt-1 font-bold">FROM CUSTOMERS</p>
-          </CardContent>
-        </Card>
+        <Link href="/owner/ratings">
+          <Card className="border-none shadow-premium rounded-[2rem] hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-bold text-muted-foreground uppercase">Rating</CardTitle>
+              <div className="bg-yellow-100 p-2 rounded-xl"><Star className="h-4 w-4 text-yellow-600" /></div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{(restaurant?.rating || 0).toFixed(1)}</div>
+              <p className="text-[10px] text-muted-foreground mt-1 font-bold">VIEW REVIEWS</p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="border-none shadow-premium rounded-[2rem]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-bold text-muted-foreground uppercase">Customers</CardTitle>
-            <div className="bg-blue-100 p-2 rounded-xl"><Users className="h-4 w-4 text-blue-600" /></div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.activeCustomers}</div>
-            <p className="text-[10px] text-muted-foreground mt-1 font-bold">UNIQUE USERS</p>
-          </CardContent>
-        </Card>
+        <Link href="/owner/customers">
+          <Card className="border-none shadow-premium rounded-[2rem] hover:ring-2 hover:ring-primary/20 transition-all cursor-pointer h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-bold text-muted-foreground uppercase">Customers</CardTitle>
+              <div className="bg-blue-100 p-2 rounded-xl"><Users className="h-4 w-4 text-blue-600" /></div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.activeCustomers}</div>
+              <p className="text-[10px] text-muted-foreground mt-1 font-bold">VIEW AUDIENCE</p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -192,8 +199,11 @@ export default function OwnerDashboard() {
 
         {/* Recent Orders List */}
         <Card className="border-none shadow-premium rounded-[2rem] overflow-hidden">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Recent Orders</CardTitle>
+            <Button asChild variant="ghost" size="sm" className="rounded-full">
+              <Link href="/owner/orders">View All <ChevronRight className="h-4 w-4 ml-1" /></Link>
+            </Button>
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y">

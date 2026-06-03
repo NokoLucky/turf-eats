@@ -102,6 +102,7 @@ export type Order = {
   paymentMethod: string;
   isRated?: boolean;
   participantUids: string[];
+  estimatedPrepTime?: number; // Estimated minutes to prepare
 };
 
 export type OrderItem = {

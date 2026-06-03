@@ -2,7 +2,7 @@
 'use client';
 import Link from 'next/link';
 import { collection, query, where, limit } from 'firebase/firestore';
-import { LogOut, Store, Settings, Package } from 'lucide-react';
+import { LogOut, Store, Settings, Package, ClipboardList, Users, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,10 +16,13 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import type { Restaurant } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 function OwnerHeader() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const pathname = usePathname();
 
   const restaurantQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -29,20 +32,32 @@ function OwnerHeader() {
   const { data: restaurants, isLoading } = useCollection<Restaurant>(restaurantQuery);
   const restaurant = restaurants?.[0];
 
+  const navLinks = [
+    { href: '/owner/dashboard', label: 'Dashboard', icon: Store },
+    { href: '/owner/orders', label: 'Manage Orders', icon: ClipboardList },
+    { href: '/owner/menu', label: 'Products', icon: Package },
+    { href: '/owner/customers', label: 'Customers', icon: Users },
+    { href: '/owner/ratings', label: 'Ratings', icon: Star },
+  ];
+
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center px-4">
         <Logo href="/owner/dashboard" />
-        <nav className="ml-6 hidden items-center gap-6 text-sm font-medium md:flex">
-          <Link href="/owner/dashboard" className="transition-colors hover:text-primary">
-            Dashboard
-          </Link>
-          <Link href="/owner/menu" className="transition-colors hover:text-primary">
-            Products
-          </Link>
-          <Link href="/owner/orders" className="transition-colors hover:text-primary">
-            Orders
-          </Link>
+        <nav className="ml-6 hidden items-center gap-4 text-sm font-medium lg:flex">
+          {navLinks.map((link) => (
+            <Link 
+              key={link.href} 
+              href={link.href} 
+              className={cn(
+                "transition-colors hover:text-primary flex items-center gap-1.5",
+                pathname === link.href ? "text-primary font-bold" : "text-muted-foreground"
+              )}
+            >
+              <link.icon className="h-4 w-4" />
+              {link.label}
+            </Link>
+          ))}
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
@@ -53,7 +68,7 @@ function OwnerHeader() {
                 {isLoading ? (
                   <Skeleton className="h-5 w-24" />
                 ) : (
-                  <span className='truncate max-w-[120px] sm:max-w-xs'>{restaurant?.name || 'My Store'}</span>
+                  <span className='truncate max-w-[100px] sm:max-w-xs'>{restaurant?.name || 'My Store'}</span>
                 )}
               </Button>
             </DropdownMenuTrigger>
@@ -62,12 +77,6 @@ function OwnerHeader() {
                 <Link href="/owner/restaurant">
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Store Settings</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                <Link href="/owner/menu">
-                  <Package className="mr-2 h-4 w-4" />
-                  <span>Manage Products</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
