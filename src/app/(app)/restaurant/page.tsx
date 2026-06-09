@@ -4,7 +4,7 @@
 import React, { useEffect, useState, useMemo, Suspense } from 'react';
 import Image from 'next/image';
 import { notFound, useSearchParams } from 'next/navigation';
-import { Star, Plus, ArrowLeft, LayoutGrid, Check, X, Clock, MapPin, ShoppingCart, ZoomIn } from 'lucide-react';
+import { Star, Plus, ArrowLeft, LayoutGrid, Check, X, Clock, MapPin, ShoppingCart, ZoomIn, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
@@ -333,7 +333,7 @@ function SelectionDialog({
             <Button 
               onClick={handleConfirmOrder} 
               disabled={!isValid()} 
-              className="flex-1 h-12 sm:h-14 rounded-2xl font-black text-base sm:text-lg shadow-xl shadow-primary/20 flex justify-between px-4 sm:px-8"
+              className="flex-1 h-12 sm:h-14 rounded-2xl font-black text-base sm:text-lg shadow-xl shadow-primary/20 flex justify-between px-4 sm:px-4"
             >
                <span>Add to Cart</span>
                <span>R{totalPrice.toFixed(2)}</span>
@@ -507,6 +507,16 @@ function RestaurantContent() {
                 <div className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> nearby</div>
                 <div className="flex items-center gap-1"><Badge variant="outline" className="text-[9px] border-muted">30-40 min</Badge></div>
              </div>
+
+             {/* PROMOTION BANNER */}
+             {restaurant?.promotionBannerText && (
+               <div className="mb-6 bg-primary/10 border border-primary/20 p-3 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
+                  <div className="bg-primary p-2 rounded-xl shadow-lg shadow-primary/20">
+                    <Zap className="h-4 w-4 text-white fill-white" />
+                  </div>
+                  <p className="text-sm font-bold text-primary">{restaurant.promotionBannerText}</p>
+               </div>
+             )}
 
              <Tabs defaultValue="menu" className="w-full">
                 <TabsList className="w-full bg-transparent border-b rounded-none h-auto p-0 justify-start gap-8">
