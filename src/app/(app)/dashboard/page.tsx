@@ -5,13 +5,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { 
   Star, Search, MapPin, 
-  Clock, Truck, ChevronDown, X,
-  MoreHorizontal, ZoomIn, Info,
-  MessageSquare, Beaker, ArrowRight, Loader2
+  Clock, Truck, ZoomIn, Info,
+  ArrowRight
 } from 'lucide-react';
-import { collection, query, where, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, doc } from 'firebase/firestore';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import type { Restaurant, Order } from '@/lib/data';
+import type { Restaurant } from '@/lib/data';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -95,7 +94,6 @@ export default function CustomerDashboardPage() {
   const [greeting, setGreeting] = React.useState('Good morning');
   const [searchTerm, setSearchTerm] = React.useState('');
   const [selectedCategory, setSelectedCategory] = React.useState<string | null>(null);
-  const [isSimulating, setIsSimulating] = React.useState(false);
   
   // Image preview state
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
@@ -142,43 +140,6 @@ export default function CustomerDashboardPage() {
     setPreviewUrl(url);
     setPreviewTitle(title);
     setPreviewOpen(true);
-  };
-
-  const handleSimulateChat = async () => {
-    if (!user || !firestore || isSimulating) return;
-    setIsSimulating(true);
-
-    try {
-      const orderId = `test-${Date.now()}`;
-      const orderRef = doc(firestore, 'orders', orderId);
-      
-      const testOrder = {
-        id: orderId,
-        customerId: user.uid,
-        customerName: firstName,
-        customerPhone: user.phoneNumber || '+27123456789',
-        restaurantId: stores?.[0]?.id || 'test-restaurant',
-        storeOwnerId: 'test-owner',
-        driverId: user.uid, // SELF AS DRIVER FOR TESTING
-        orderDate: serverTimestamp(),
-        pickedUpAt: serverTimestamp(),
-        status: 'Out for Delivery',
-        itemsTotal: 100,
-        deliveryFee: 30,
-        serviceFee: 5,
-        totalAmount: 135,
-        deliveryAddress: customerProfile?.address || '123 Test Street, Capetown',
-        paymentMethod: 'cod',
-        participantUids: [user.uid],
-      };
-
-      await setDoc(orderRef, testOrder);
-      router.push(`/order-details?id=${orderId}`);
-    } catch (error) {
-      console.error("Simulation failed:", error);
-    } finally {
-      setIsSimulating(false);
-    }
   };
 
   return (
@@ -338,30 +299,6 @@ export default function CustomerDashboardPage() {
                     <Button variant="outline" className="rounded-xl" onClick={() => { setSearchTerm(''); setSelectedCategory(null); }}>Clear Filters</Button>
                 </div>
             )}
-        </div>
-      </div>
-
-      {/* DEV TESTING TOOLS */}
-      <div className="container px-4 sm:px-8 py-16">
-        <div className="bg-primary/5 rounded-[2.5rem] p-8 border-2 border-dashed border-primary/20 flex flex-col items-center text-center">
-            <div className="bg-primary/10 p-4 rounded-full mb-4">
-              <Beaker className="h-8 w-8 text-primary" />
-            </div>
-            <h3 className="text-xl font-bold">Developer Testing Tools</h3>
-            <p className="text-sm text-muted-foreground mt-2 max-w-sm">
-              Quickly test communication features by creating a mock order where you are both the customer and the driver.
-            </p>
-            <Button 
-              onClick={handleSimulateChat} 
-              disabled={isSimulating}
-              className="mt-6 rounded-2xl h-14 px-10 font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20"
-            >
-              {isSimulating ? (
-                <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Simulating...</>
-              ) : (
-                <><MessageSquare className="mr-2 h-5 w-5" /> Simulate Chat Experience</>
-              )}
-            </Button>
         </div>
       </div>
       
