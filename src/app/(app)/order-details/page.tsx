@@ -1,10 +1,11 @@
+
 'use client'
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useState } from 'react';
 import { notFound, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, Bike, Pizza, Circle, ShoppingBag, Star, Clock, Heart, Phone, User as UserIcon } from 'lucide-react';
+import { CheckCircle, Bike, Pizza, Circle, ShoppingBag, Star, Clock, Heart, Phone, User as UserIcon, MessageSquare } from 'lucide-react';
 import OrderTrackingMap from '@/components/order-tracking-map';
 import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, collection, getDoc, getDocs, onSnapshot } from 'firebase/firestore';
@@ -12,6 +13,7 @@ import type { Order, OrderItem, OrderStatus, Restaurant, Driver } from '@/lib/da
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, formatDistanceToNow } from 'date-fns';
 import { RatingDialog } from '@/components/rating-dialog';
+import { ChatDialog } from '@/components/chat-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -32,7 +34,7 @@ function OrderDetailsSkeleton() {
         </div>
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             <div className="lg:col-span-2">
-                <Card className="rounded-[2rem] border-none shadow-premium bg-card">
+                <Card className="rounded-[2.5rem] border-none shadow-premium bg-card">
                     <CardHeader>
                         <CardTitle>Live Tracking</CardTitle>
                     </CardHeader>
@@ -42,7 +44,7 @@ function OrderDetailsSkeleton() {
                 </Card>
             </div>
             <div className="space-y-8">
-                <Card className="rounded-[2rem] border-none shadow-premium bg-card">
+                <Card className="rounded-[2.5rem] border-none shadow-premium bg-card">
                     <CardHeader>
                         <CardTitle>Order Status</CardTitle>
                     </CardHeader>
@@ -70,6 +72,7 @@ function OrderDetailsContent() {
   const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isRatingOpen, setRatingOpen] = React.useState(false);
+  const [isChatOpen, setChatOpen] = useState(false);
 
   React.useEffect(() => {
     if (!firestore || !orderId) return;
@@ -144,6 +147,14 @@ function OrderDetailsContent() {
         onOpenChange={setRatingOpen}
         onRatingSubmitted={handleRatingSubmitted}
     />
+    {order && driverInfo && (
+      <ChatDialog 
+        orderId={order.id} 
+        isOpen={isChatOpen} 
+        onOpenChange={setChatOpen} 
+        recipientName={driverInfo.name} 
+      />
+    )}
     <div className="container py-12 px-4 sm:px-8">
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div>
@@ -223,11 +234,18 @@ function OrderDetailsContent() {
                             <span className="text-xs font-bold">{(driverInfo.rating || 5.0).toFixed(1)}</span>
                             <span className="text-muted-foreground text-[10px] ml-1">• {driverInfo.vehicleType}</span>
                          </div>
-                         <div className="flex items-center gap-2 mt-2">
-                            <Button asChild size="sm" variant="outline" className="h-8 rounded-lg text-[10px] font-bold">
+                         <div className="flex flex-wrap items-center gap-2 mt-4">
+                            <Button asChild size="sm" variant="outline" className="h-10 rounded-xl px-4 text-[10px] font-bold border-primary text-primary hover:bg-primary/5">
                                <a href={`tel:${driverInfo.phoneNumber}`}>
-                                  <Phone className="h-3 w-3 mr-1" /> Call Driver
+                                  <Phone className="h-3.5 w-3.5 mr-2" /> Call Driver
                                </a>
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              className="h-10 rounded-xl px-4 text-[10px] font-bold"
+                              onClick={() => setChatOpen(true)}
+                            >
+                               <MessageSquare className="h-3.5 w-3.5 mr-2" /> Message
                             </Button>
                          </div>
                       </div>

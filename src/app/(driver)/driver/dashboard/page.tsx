@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
@@ -8,7 +9,7 @@ import {
   TrendingUp, Star, DollarSign, Clock,
   Navigation, ShoppingBag, ArrowRight,
   Calendar as CalendarIcon, History, ChevronLeft, ChevronRight,
-  Heart, X
+  Heart, X, Phone, MessageSquare
 } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc, query, where, updateDoc, arrayUnion, getDoc, serverTimestamp } from 'firebase/firestore';
@@ -20,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useDriverLocationTracking } from '@/hooks/use-driver-location-tracking';
+import { ChatDialog } from '@/components/chat-dialog';
 import { cn } from '@/lib/utils';
 import { startOfDay, startOfWeek, isAfter, isSameDay, format } from 'date-fns';
 import {
@@ -35,7 +37,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 /**
  * Component to display an active task with navigation and status controls.
  */
-function ActiveTaskCard({ order, onStatusChange }: { order: Order, onStatusChange: (id: string, status: Order['status']) => void }) {
+function ActiveTaskCard({ order, onStatusChange, onChatOpen }: { order: Order, onStatusChange: (id: string, status: Order['status']) => void, onChatOpen: (id: string, name: string) => void }) {
   const firestore = useFirestore();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
 
@@ -48,7 +50,7 @@ function ActiveTaskCard({ order, onStatusChange }: { order: Order, onStatusChang
 
   const isPickupPhase = order.status === 'Placed' || order.status === 'Preparing';
   const targetAddress = isPickupPhase ? restaurant?.address : order.deliveryAddress;
-  const targetName = isPickupPhase ? restaurant?.name : 'Customer';
+  const targetName = isPickupPhase ? restaurant?.name : order.customerName || 'Customer';
 
   const handleNavigate = () => {
     if (!targetAddress) return;
@@ -81,6 +83,22 @@ function ActiveTaskCard({ order, onStatusChange }: { order: Order, onStatusChang
             <Button size="icon" variant="ghost" className="h-8 w-8 text-primary" onClick={handleNavigate}>
               <Navigation className="h-4 w-4" />
             </Button>
+          </div>
+
+          <div className="flex items-center gap-2 py-2 border-y border-white/5">
+             <Button asChild size="sm" variant="ghost" className="text-[10px] font-bold uppercase text-primary hover:bg-primary/10 rounded-xl px-4">
+                <a href={`tel:${order.customerPhone}`}>
+                  <Phone className="h-3 w-3 mr-2" /> Call Customer
+                </a>
+             </Button>
+             <Button 
+                size="sm" 
+                variant="ghost" 
+                className="text-[10px] font-bold uppercase text-white hover:bg-white/10 rounded-xl px-4"
+                onClick={() => onChatOpen(order.id, order.customerName || 'Customer')}
+             >
+                <MessageSquare className="h-3 w-3 mr-2" /> Message
+             </Button>
           </div>
 
           {!isPickupPhase && order.notes && (
@@ -119,6 +137,8 @@ export default function DriverDashboard() {
   const [greeting, setGreeting] = useState('Good morning');
   
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [activeChatOrder, setActiveChatOrder] = useState<{id: string, name: string} | null>(null);
   
   // Use undefined for initial value to avoid hydration mismatch
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -253,11 +273,24 @@ export default function DriverDashboard() {
     });
   };
 
+  const handleOpenChat = (id: string, name: string) => {
+    setActiveChatOrder({ id, name });
+    setIsChatOpen(true);
+  };
+
   const rawName = driverProfile?.name || user?.displayName || '';
   const firstName = (rawName && !rawName.startsWith('New ')) ? rawName.split(' ')[0] : '';
 
   return (
     <div className="min-h-screen bg-[#111] text-white pb-20">
+      {activeChatOrder && (
+        <ChatDialog 
+          orderId={activeChatOrder.id} 
+          isOpen={isChatOpen} 
+          onOpenChange={setIsChatOpen} 
+          recipientName={activeChatOrder.name} 
+        />
+      )}
       <div className="bg-[#1a1a1a] p-6 rounded-b-[2rem] shadow-lg">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
@@ -336,7 +369,7 @@ export default function DriverDashboard() {
             </h2>
             <div className="space-y-4">
               {activeDeliveries.map(order => (
-                <ActiveTaskCard key={order.id} order={order} onStatusChange={handleStatusChange} />
+                <ActiveTaskCard key={order.id} order={order} onStatusChange={handleStatusChange} onChatOpen={handleOpenChat} />
               ))}
             </div>
           </section>

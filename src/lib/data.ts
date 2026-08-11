@@ -116,6 +116,13 @@ export type OrderItem = {
     selectedAddOns?: MenuItemAddOn[];
 };
 
+export type ChatMessage = {
+  id: string;
+  senderId: string;
+  text: string;
+  createdAt: Timestamp;
+};
+
 export type Rating = {
     id: string;
     orderId: string;
