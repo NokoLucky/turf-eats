@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -76,7 +75,7 @@ export function ChatDialog({ orderId, isOpen, onOpenChange, recipientName }: Cha
                 <MessageSquare className="h-5 w-5" />
               </div>
               <div>
-                <DialogTitle className="text-xl font-bold">Chat with {recipientName.split(' ')[0]}</DialogTitle>
+                <DialogTitle className="text-xl font-bold">Chat with {recipientName ? recipientName.split(' ')[0] : 'Partner'}</DialogTitle>
                 <p className="text-[10px] text-white/70 font-medium uppercase tracking-widest">Order Support</p>
               </div>
             </div>

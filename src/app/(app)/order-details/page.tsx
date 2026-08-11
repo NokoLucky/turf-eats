@@ -1,4 +1,3 @@
-
 'use client'
 
 import React, { Suspense, useState } from 'react';
@@ -152,7 +151,7 @@ function OrderDetailsContent() {
         orderId={order.id} 
         isOpen={isChatOpen} 
         onOpenChange={setChatOpen} 
-        recipientName={driverInfo.name} 
+        recipientName={driverInfo.name || 'Driver'} 
       />
     )}
     <div className="container py-12 px-4 sm:px-8">
@@ -214,13 +213,13 @@ function OrderDetailsContent() {
              <Card className="rounded-[2.5rem] border-none shadow-premium overflow-hidden bg-card border border-border/50">
                 <CardHeader className="px-8 pt-8 pb-4">
                   <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">Your Delivery Partner</p>
-                  <CardTitle className="text-lg">Meet {driverInfo.name.split(' ')[0]}</CardTitle>
+                  <CardTitle className="text-lg">Meet {driverInfo.name ? driverInfo.name.split(' ')[0] : 'Your Driver'}</CardTitle>
                 </CardHeader>
                 <CardContent className="px-8 pb-8">
                    <div className="flex items-center gap-4">
                       <div className="relative h-16 w-16 rounded-full overflow-hidden bg-muted shadow-inner border-2 border-primary/20">
                          {driverInfo.photoUrl ? (
-                            <Image src={driverInfo.photoUrl} alt={driverInfo.name} fill className="object-cover" />
+                            <Image src={driverInfo.photoUrl} alt={driverInfo.name || 'Driver'} fill className="object-cover" />
                          ) : (
                             <div className="h-full w-full flex items-center justify-center text-muted-foreground">
                                <UserIcon className="h-8 w-8" />
@@ -228,11 +227,11 @@ function OrderDetailsContent() {
                          )}
                       </div>
                       <div className="flex-1">
-                         <p className="font-bold text-sm">{driverInfo.name}</p>
+                         <p className="font-bold text-sm">{driverInfo.name || 'Partner'}</p>
                          <div className="flex items-center gap-1 mt-0.5">
                             <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
                             <span className="text-xs font-bold">{(driverInfo.rating || 5.0).toFixed(1)}</span>
-                            <span className="text-muted-foreground text-[10px] ml-1">• {driverInfo.vehicleType}</span>
+                            <span className="text-muted-foreground text-[10px] ml-1">• {driverInfo.vehicleType || 'Courier'}</span>
                          </div>
                          <div className="flex flex-wrap items-center gap-2 mt-4">
                             <Button asChild size="sm" variant="outline" className="h-10 rounded-xl px-4 text-[10px] font-bold border-primary text-primary hover:bg-primary/5">
